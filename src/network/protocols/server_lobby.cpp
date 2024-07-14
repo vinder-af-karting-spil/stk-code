@@ -833,10 +833,23 @@ void ServerLobby::handleChat(Event* event)
         chat->setSynchronous(true);
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
+
+        //teamchat
+        STKPeer* sender = event->getPeer();
+        auto can_receive = m_message_receivers[sender];
+        bool team_speak = m_team_speakers.find(sender) != m_team_speakers.end();
+        team_speak &= (
+            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
+            RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
+            );
+        std::set<KartTeam> teams;
+        for (auto& profile : sender->getPlayerProfiles())
+            teams.insert(profile->getTeam());
+
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender_in_game, target_team, sender_name, this]
+            [game_started, sender_in_game, target_team, sender_name, can_receive, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
@@ -857,6 +870,24 @@ void ServerLobby::handleChat(Event* event)
                         return false;
                     }
                 }
+                if (team_speak)
+                {
+                    for (auto& profile : p->getPlayerProfiles())
+                        if (teams.count(profile->getTeam()) > 0)
+                            return true;
+                    return false;
+                }
+                if (can_receive.empty())
+                    return true;
+                for (auto& profile : p->getPlayerProfiles())
+                {
+                    if (can_receive.find(profile->getName()) !=
+                        can_receive.end())
+                    {
+                        return true;
+                    }
+                }
+
                 for (auto& peer : m_peers_muted_players)
                 {
                     if (auto peer_sp = peer.first.lock())
@@ -5695,6 +5726,26 @@ void ServerLobby::handleServerCommand(Event* event,
             peer->setAlwaysSpectate(ASM_NONE);
         updatePlayerList();
     }
+
+    else if (argv[0] == "teamchat")
+    {
+        NetworkString* chat = getNetworkString();
+        chat->addUInt8(LE_CHAT);
+        chat->setSynchronous(true);
+        m_team_speakers.insert(peer.get());
+        chat->encodeString16(L"Your messages are now addressed to team only");
+        peer->sendPacket(chat, true/*reliable*/);
+        delete chat;
+    }
+    
+    else if (argv[0] == "public")
+    {
+        m_message_receivers[peer.get()].clear();
+        m_team_speakers.erase(peer.get());
+        std::string s = "Your messages are now public";
+        sendStringToPeer(s, peer);
+    }
+
     else if (argv[0] == "listserveraddon")
     {
         NetworkString* chat = getNetworkString();
@@ -6052,3 +6103,31 @@ unmute_error:
         delete chat;
     }
 }   // handleServerCommand
+
+//-----------------------------------------------------------------------------
+void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const
+{
+    if (peer==NULL)
+    {
+        Log::info("ServerLobby",s.c_str());
+        return;
+    }
+    NetworkString* chat = getNetworkString();
+    chat->addUInt8(LE_CHAT);
+    chat->setSynchronous(true);
+    chat->encodeString16(StringUtils::utf8ToWide(s));
+    peer->sendPacket(chat, true/*reliable*/);
+    delete chat;
+}   // sendStringToPeer
+
+//-----------------------------------------------------------------------------
+void ServerLobby::sendStringToAllPeers(std::string& s)
+{
+    Log::info("ServerLobby",s.c_str());
+    NetworkString* chat = getNetworkString();
+    chat->addUInt8(LE_CHAT);
+    chat->setSynchronous(true);
+    chat->encodeString16(StringUtils::utf8ToWide(s));
+    sendMessageToPeers(chat, true/*reliable*/);
+    delete chat;
+}   // sendStringToAllPeers
