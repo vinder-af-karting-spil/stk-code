@@ -421,8 +421,12 @@ public:
     static int m_fixed_laps;
     void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToAllPeers(std::string& s);
+    bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
+    std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
     std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
+    int m_max_players;
+    int m_max_players_in_game;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

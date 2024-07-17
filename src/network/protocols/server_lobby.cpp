@@ -245,6 +245,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_result_ns->setSynchronous(true);
     m_items_complete_state = new BareNetworkString();
     m_server_id_online.store(0);
+    m_max_players         = ServerConfig::m_server_max_players;
+    m_max_players_in_game = ServerConfig::m_max_players_in_game;
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
@@ -5587,7 +5589,7 @@ std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
     auto peers = STKHost::get()->getPeers();
     std::set<std::shared_ptr<STKPeer>> always_spectate_peers;
 
-    unsigned player_limit = ServerConfig::m_max_players_in_game;
+    unsigned player_limit = m_max_players_in_game;
     // only 10 players allowed for battle or soccer
     if (RaceManager::get()->isBattleMode() || RaceManager::get()->isSoccerMode())
         player_limit = std::min(player_limit, 10u);
@@ -5679,6 +5681,25 @@ void ServerLobby::handleServerCommand(Event* event,
     auto argv = StringUtils::split(cmd, ' ');
     if (argv.size() == 0)
         return;
+
+    if (argv[0] == "vote")
+    {
+        if (ServerConfig::m_command_voting == false)
+        {
+            std::string msg = "Command voting is disabled on this server.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (argv.size() < 2)
+        {
+            std::string msg = "Usage: /vote [command]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        argv.erase(argv.begin());
+        cmd = cmd.substr(5, cmd.length());
+    }
+
     if (argv[0] == "spectate")
     {
         if (m_game_setup->isGrandPrix() || !ServerConfig::m_live_players)
@@ -5736,6 +5757,68 @@ void ServerLobby::handleServerCommand(Event* event,
         chat->encodeString16(L"Your messages are now addressed to team only");
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
+    }
+
+    else if (argv[0] == "to")
+    {       
+        if (argv.size() == 1)
+        {
+            NetworkString* chat = getNetworkString();
+            chat->addUInt8(LE_CHAT);
+            chat->setSynchronous(true);
+            chat->encodeString16(L"Usage: /to (username1) ... (usernameN)");
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat; 
+        }
+	else
+	{
+            NetworkString* chat = getNetworkString();
+            chat->addUInt8(LE_CHAT);
+            chat->setSynchronous(true);
+            m_message_receivers[peer.get()].clear();
+            for (unsigned i = 1; i < argv.size(); ++i)
+            {
+                m_message_receivers[peer.get()].insert(
+                    StringUtils::utf8ToWide(argv[i]));
+            }
+            chat->encodeString16(L"Successfully changed chat settings");
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+        }
+    }
+
+    else if (argv[0] == "slots")
+    {
+        if (argv.size() == 1)
+        {
+            std::string msg = "Please use the command in the form /slots [number]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+	if (m_server_owner.lock() != peer)
+        {
+	    if (!voteForCommand(peer,cmd)) return;
+        }
+        int limit = std::stoi(argv[1]);
+
+        if (limit < 2)
+        {
+            std::string msg = "The number of slots cannot be smaller than two.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (limit > m_max_players){
+            std::string msg = "The number of slots cannot be larger than maximal number of players.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else
+        {
+            m_max_players_in_game = limit;
+        }
+        updatePlayerList();
+        std::string message = "The number of slots have been changed to " + std::to_string(m_max_players_in_game)+".";
+        sendStringToAllPeers(message);
     }
     
     else if (argv[0] == "public")
@@ -5882,15 +5965,15 @@ void ServerLobby::handleServerCommand(Event* event,
     }
     else if (StringUtils::startsWith(cmd, "kick"))
     {
-        if (m_server_owner.lock() != peer)
+        if (argv.size() == 1)
         {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            chat->encodeString16(L"You are not server owner");
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
+            std::string msg = "Please use the command in the form /kick [player name]";
+            sendStringToPeer(msg, peer);
             return;
+        }
+	if (m_server_owner.lock() != peer)
+        {
+	    if (!voteForCommand(peer,cmd)) return;
         }
         std::string player_name;
         if (cmd.length() > 5)
@@ -6131,3 +6214,38 @@ void ServerLobby::sendStringToAllPeers(std::string& s)
     sendMessageToPeers(chat, true/*reliable*/);
     delete chat;
 }   // sendStringToAllPeers
+
+bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command)
+{
+    if (!ServerConfig::m_command_voting) return false;
+
+    std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+    int playerCount = STKHost::get()->getPeers().size();
+
+    if (m_command_voters.count(command) == 0)
+    {
+        m_command_voters[command] = std::vector<std::string>();
+    }
+
+    if (std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username) != m_command_voters[command].end())
+    {
+        std::string msg = "You already voted for \"" + command + "\".";
+        sendStringToPeer(msg, peer);
+    }
+    else
+    {
+        m_command_voters[command].push_back(username);
+        std::string message = username + " voted for \"/" + command + "\" (" + std::to_string(m_command_voters[command].size()) + " of " + std::to_string(playerCount) + " votes).";
+        sendStringToAllPeers(message);
+        Log::info("ServerLobby", message.c_str());
+    }
+
+
+    if (m_command_voters[command].size() > (playerCount / 2))
+    {
+        m_command_voters.erase(command);
+        return true;
+    }
+
+    return false;
+} // voteForCommand

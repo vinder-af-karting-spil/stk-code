@@ -139,6 +139,10 @@ namespace ServerConfig
         "Maximum number of players in the game, all other players on "
         "the server are spectators. Specify 0 to allow all players on "
         "the server to play."));
+    
+    SERVER_CFG_PREFIX BoolServerConfigParam m_command_voting
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "command-voting",
+        "Set true to enable command voting on the server."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_private_server_password
         SERVER_CFG_DEFAULT(StringServerConfigParam("",
