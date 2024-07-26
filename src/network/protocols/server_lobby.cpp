@@ -5662,6 +5662,8 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
             continue;
         if (ignore_ai_peer && peer->isAIPeer())
             continue;
+	if (peer->alwaysSpectate())
+            continue;
         all_ready = all_ready && p.second;
         if (!all_ready)
             return false;
