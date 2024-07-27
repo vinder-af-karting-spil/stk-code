@@ -282,6 +282,11 @@ void SoccerWorld::init()
     m_goal_target  = RaceManager::get()->getMaxGoal();
     m_goal_sound   = SFXManager::get()->createSoundSource("goal_scored");
 
+    m_red_ball_hitter = -1; 
+    m_blue_ball_hitter = -1; 
+    m_red_hit_ticks = -1;  
+    m_blue_hit_ticks = -1; 
+
     Track *track = Track::getCurrentTrack();
     if (track->hasNavMesh())
     {
