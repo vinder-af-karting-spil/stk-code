@@ -5803,14 +5803,14 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         int limit = std::stoi(argv[1]);
 
-        if (limit < 2)
+        if (limit < 6)
         {
-            std::string msg = "The number of slots cannot be smaller than two.";
+            std::string msg = "The number of slots cannot be smaller than 6.";
             sendStringToPeer(msg, peer);
             return;
         }
-        else if (limit > m_max_players){
-            std::string msg = "The number of slots cannot be larger than maximal number of players.";
+        else if (limit > 12){
+            std::string msg = "The number of slots cannot be larger than 12.";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -5820,6 +5820,28 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         updatePlayerList();
         std::string message = "The number of slots have been changed to " + std::to_string(m_max_players_in_game)+".";
+        sendStringToAllPeers(message);
+    }
+
+    else if (argv[0] == "powerupper-on")
+    {
+	if (m_server_owner.lock() != peer)
+        {
+	    if (!voteForCommand(peer,cmd)) return;
+        }
+	ServerConfig::m_allow_powerupper = true;
+        std::string message = "The powerupper is now on.";
+        sendStringToAllPeers(message);
+    }
+
+    else if (argv[0] == "powerupper-off")
+    {
+	if (m_server_owner.lock() != peer)
+        {
+	    if (!voteForCommand(peer,cmd)) return;
+        }
+	ServerConfig::m_allow_powerupper = false;
+        std::string message = "The powerupper is now on.";
         sendStringToAllPeers(message);
     }
     

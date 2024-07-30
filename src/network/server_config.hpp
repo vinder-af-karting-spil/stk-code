@@ -119,6 +119,10 @@ namespace ServerConfig
     SERVER_CFG_PREFIX BoolServerConfigParam m_soccer_goal_target
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "soccer-goal-target",
         "Use goal target in soccer."));
+    
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_powerupper
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
+        "Allow powerupper."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_wan_server
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "wan-server",

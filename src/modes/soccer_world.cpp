@@ -16,12 +16,12 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "modes/soccer_world.hpp"
-
 #include "main_loop.hpp"
 #include "audio/music_manager.hpp"
 #include "audio/sfx_base.hpp"
 #include "config/user_config.hpp"
 #include "io/file_manager.hpp"
+#include "items/powerup_manager.hpp"
 #include "graphics/irr_driver.hpp"
 #include "karts/abstract_kart_animation.hpp"
 #include "karts/kart_model.hpp"
@@ -31,8 +31,10 @@
 #include "network/network_config.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/game_events_protocol.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
+#include "network/server_config.hpp"
 #include "physics/physics.hpp"
 #include "states_screens/race_gui_base.hpp"
 #include "tracks/check_goal.hpp"
@@ -270,8 +272,11 @@ SoccerWorld::~SoccerWorld()
 /** Initializes the soccer world. It sets up the data structure
  *  to keep track of points etc. for each kart.
  */
+
+int once = 1;
 void SoccerWorld::init()
 {
+    once = 1;
     m_kart_team_map.clear();
     m_kart_position_map.clear();
     WorldWithRank::init();
@@ -615,6 +620,19 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         kart->getBody()->setAngularVelocity(Vec3(0.0f));
         m_goal_transforms[i] = kart->getBody()->getWorldTransform();
     }
+
+    if (ServerConfig::m_allow_powerupper)
+    {
+        if((abs(getScore(KART_TEAM_BLUE)-getScore(KART_TEAM_RED)) == 4) && (once == 1) && (!isRaceOver()))
+        {
+            set_powerup_multiplier(3);
+            auto sl = LobbyProtocol::get<ServerLobby>();
+	    std::string msg = "Powerupper on (automatically)";
+            sl->sendStringToAllPeers(msg);
+            once = 2;
+	}
+    }
+
 }   // onCheckGoalTriggered
 
 //-----------------------------------------------------------------------------

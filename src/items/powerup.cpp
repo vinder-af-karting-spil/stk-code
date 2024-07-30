@@ -515,6 +515,8 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     // positions), but this case is properly handled in getRandomPowerup.
     int position = m_kart->getPosition();
 
+    unsigned int kart_id = m_kart->getWorldKartId();
+
     unsigned int n=1;
     PowerupManager::PowerupType new_powerup;
     World *world = World::getWorld();
@@ -575,7 +577,7 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     random_number ^= (random_number >> 8);
 
     new_powerup = powerup_manager->getRandomPowerup(position, &n, 
-                                                    random_number);
+                                                    random_number, kart_id);
 
     // Always add a new powerup in ITEM_MODE_NEW (or if the kart
     // doesn't have a powerup atm).
