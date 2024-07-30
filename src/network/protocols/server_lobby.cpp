@@ -29,6 +29,7 @@
 #include "karts/official_karts.hpp"
 #include "modes/capture_the_flag.hpp"
 #include "modes/linear_world.hpp"
+#include "modes/soccer_world.hpp"
 #include "network/crypto.hpp"
 #include "network/event.hpp"
 #include "network/game_setup.hpp"
@@ -5675,6 +5676,7 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
 void ServerLobby::handleServerCommand(Event* event,
                                       std::shared_ptr<STKPeer> peer)
 {
+    SoccerWorld* sw = (SoccerWorld*)World::getWorld();
     NetworkString& data = event->data();
     std::string language;
     data.decodeString(&language);
@@ -5748,6 +5750,33 @@ void ServerLobby::handleServerCommand(Event* event,
         else
             peer->setAlwaysSpectate(ASM_NONE);
         updatePlayerList();
+    }
+
+    else if (argv[0] == "score")
+    {
+        if (m_state.load() != RACING)
+        {
+            NetworkString* chat = getNetworkString();
+            chat->addUInt8(LE_CHAT);
+            chat->setSynchronous(true);
+            std::string msg = "No on-going game!";
+            chat->encodeString16(StringUtils::utf8ToWide(msg));
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+
+
+        const int red_score = sw->getScore(KART_TEAM_RED);
+        const int blue_score = sw->getScore(KART_TEAM_BLUE);
+
+        NetworkString* chat = getNetworkString();
+        chat->addUInt8(LE_CHAT);
+        chat->setSynchronous(true);
+        std::string msg = "\U0001f7e5 Red " + std::to_string(red_score)+ " : " + std::to_string(blue_score) + " Blue \U0001f7e6";
+        chat->encodeString16(StringUtils::utf8ToWide(msg));
+        peer->sendPacket(chat, true/*reliable*/);
+        delete chat;
     }
 
     else if (argv[0] == "teamchat")
@@ -5841,7 +5870,7 @@ void ServerLobby::handleServerCommand(Event* event,
 	    if (!voteForCommand(peer,cmd)) return;
         }
 	ServerConfig::m_allow_powerupper = false;
-        std::string message = "The powerupper is now on.";
+        std::string message = "The powerupper is now off.";
         sendStringToAllPeers(message);
     }
     
