@@ -621,17 +621,30 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
         m_goal_transforms[i] = kart->getBody()->getWorldTransform();
     }
 
-    if (ServerConfig::m_allow_powerupper)
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (sl->m_powerupper_active)
     {
         if((abs(getScore(KART_TEAM_BLUE)-getScore(KART_TEAM_RED)) == 4) && (once == 1) && (!isRaceOver()))
         {
             set_powerup_multiplier(3);
-            auto sl = LobbyProtocol::get<ServerLobby>();
-	    std::string msg = "Powerupper on (automatically)";
+	    std::string msg = "Powerupper on";
             sl->sendStringToAllPeers(msg);
             once = 2;
 	}
+	else if (((abs(getScore(KART_TEAM_BLUE)-getScore(KART_TEAM_RED)) <= 2) && (!isRaceOver())))
+	{
+            set_powerup_multiplier(1);
+            auto sl = LobbyProtocol::get<ServerLobby>();
+	    if ((abs(getScore(KART_TEAM_BLUE)-getScore(KART_TEAM_RED)) == 2) && (once == 2))
+	    {
+                std::string msg = "Powerupper off";
+                sl->sendStringToAllPeers(msg);
+                once = 1;
+	    }
+	}
     }
+    else
+        set_powerup_multiplier(1);
 
 }   // onCheckGoalTriggered
 

@@ -427,6 +427,7 @@ public:
     std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
     int m_max_players;
     int m_max_players_in_game;
+    bool m_powerupper_active = false;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

@@ -248,6 +248,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_server_id_online.store(0);
     m_max_players         = ServerConfig::m_server_max_players;
     m_max_players_in_game = ServerConfig::m_max_players_in_game;
+    m_powerupper_active   = false;
     m_difficulty.store(ServerConfig::m_server_difficulty);
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
@@ -5859,7 +5860,7 @@ void ServerLobby::handleServerCommand(Event* event,
         {
 	    if (!voteForCommand(peer,cmd)) return;
         }
-	ServerConfig::m_allow_powerupper = true;
+	m_powerupper_active = true;
         std::string message = "The powerupper is now on.";
         sendStringToAllPeers(message);
     }
@@ -5870,7 +5871,7 @@ void ServerLobby::handleServerCommand(Event* event,
         {
 	    if (!voteForCommand(peer,cmd)) return;
         }
-	ServerConfig::m_allow_powerupper = false;
+	m_powerupper_active = false;
         std::string message = "The powerupper is now off.";
         sendStringToAllPeers(message);
     }
