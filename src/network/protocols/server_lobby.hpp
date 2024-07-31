@@ -428,6 +428,7 @@ public:
     int m_max_players;
     int m_max_players_in_game;
     bool m_powerupper_active = false;
+    bool m_allow_powerupper = false;
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

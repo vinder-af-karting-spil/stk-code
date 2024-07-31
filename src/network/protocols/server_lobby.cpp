@@ -253,6 +253,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_game_mode.store(ServerConfig::m_server_mode);
     m_default_vote = new PeerVote();
     m_player_reports_table_exists = false;
+    m_allow_powerupper = ServerConfig::m_allow_powerupper;
     initDatabase();
 }   // ServerLobby
 
@@ -5814,7 +5815,7 @@ void ServerLobby::handleServerCommand(Event* event,
                 m_message_receivers[peer.get()].insert(
                     StringUtils::utf8ToWide(argv[i]));
             }
-            chat->encodeString16(L"Successfully changed chat settings");
+
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
         }
@@ -5856,6 +5857,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
     else if (argv[0] == "powerupper-on")
     {
+	if (!(m_allow_powerupper)) return;
 	if (m_server_owner.lock() != peer)
         {
 	    if (!voteForCommand(peer,cmd)) return;
@@ -5867,6 +5869,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
     else if (argv[0] == "powerupper-off")
     {
+	if (!(m_allow_powerupper)) return;
 	if (m_server_owner.lock() != peer)
         {
 	    if (!voteForCommand(peer,cmd)) return;
