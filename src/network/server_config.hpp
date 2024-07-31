@@ -124,6 +124,12 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
         "Allow powerupper."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam  m_soccer_log
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "soccer-log","Soccer Log (true or false.)"));
+    
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_log_path
+        SERVER_CFG_DEFAULT(StringServerConfigParam("soccer_log.txt", "soccer-log-path", "Directory where the soccer log should be written to with / at the end."));
+    
     SERVER_CFG_PREFIX BoolServerConfigParam m_wan_server
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "wan-server",
         "Enable wan server, which requires you to have an stk-addons account "

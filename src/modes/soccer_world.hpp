@@ -99,6 +99,7 @@ private:
     int m_blue_ball_hitter;
     int m_blue_hit_ticks;
     int m_red_hit_ticks;
+    bool m_soccer_log;
 
     /** Goals data of each team scored */
     std::vector<ScorerData> m_red_scorers;
