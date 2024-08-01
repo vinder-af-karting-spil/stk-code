@@ -90,7 +90,7 @@ GameSetup::GameSetup()
         }
 	else
 	{
-	    Log::error("Could not read random-installaddon-lines file: %s", strerror(errno));
+	    Log::error("GameSetup", "Could not read random-installaddon-lines file: %s", strerror(errno));
 	}
     }
 
@@ -192,7 +192,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
 	
 	// Delimiter for the prefix
 	total_motd.append(L"\n", 1);
-	total_motd.append(ServerConfig::m_ril_prefix);
+	total_motd.append(StringUtils::utf8ToWide(ServerConfig::m_ril_prefix));
 	total_motd.append(L" ", 1);
 
 	// Pick random line

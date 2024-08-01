@@ -852,6 +852,7 @@ void ServerLobby::handleChat(Event* event)
         for (auto& profile : sender->getPlayerProfiles())
             teams.insert(profile->getTeam());
 
+
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
@@ -4768,14 +4769,13 @@ void ServerLobby::broadcastMessageInGame(const irr::core::stringw& message)
     chat->setSynchronous(true);
     chat->addUInt8(LE_CHAT).encodeString16(message);
 
+    // what is wrong here?
     STKHost::get()->sendPacketToAllPeersWith(
-        [](STKPeer& peer) {
+        [](STKPeer* peer) {
 		// is player
 	    return peer->hasPlayerProfiles() &&
 	        // is in game or spectating
-		(peer->isWaitingForGame() || peer->isSpectator()) &&
-		// can receive
-		m_message_receivers[sender];
+		(!peer->isWaitingForGame() || peer->isSpectator());
     }, chat);
     delete chat;
 }
@@ -4850,12 +4850,13 @@ void ServerLobby::configPeersStartTime()
             StkTime::sleep(sleep_time);
             //Log::info("ServerLobby", "Started at %lf", StkTime::getRealTime());
             m_state.store(RACING);
+	    const std::string game_start_message = ServerConfig::m_game_start_message;
 
 	    // Have Fun
-	    if (!ServerConfig::m_game_start_message.empty())
+	    if (!game_start_message.empty())
 	    {
 		broadcastMessageInGame(
-		    StringUtils::utf8ToWide(ServerConfig::m_game_start_message));
+		    StringUtils::utf8ToWide(game_start_message));
 	    }
         });
 }   // configPeersStartTime
