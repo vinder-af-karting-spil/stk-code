@@ -35,12 +35,14 @@
 #include "utils/string_utils.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <fstream>
 #include <random>
 
 //-----------------------------------------------------------------------------
 GameSetup::GameSetup()
 {
+    // Read txt file for motd, if present
     const std::string& motd = ServerConfig::m_motd;
     if (motd.find(".txt") != std::string::npos)
     {
@@ -66,6 +68,32 @@ GameSetup::GameSetup()
         (StringUtils::xmlDecode(server_name));
     m_extra_server_info = -1;
     m_is_grand_prix.store(false);
+
+    // Read txt file for random installaddon lines, if present
+    m_addons_of_the_day.clear();
+    //m_addons_of_the_day.shrink_to_fit();
+    
+    const std::string& ril = ServerConfig::m_random_installaddon_lines;
+    if (!ril.empty())
+    {
+        const std::string& path = ServerConfig::getConfigDirectory() + "/" +
+            ril;
+        std::ifstream message(FileUtils::getPortableReadingPath(path));
+        if (message.is_open())
+        {
+            for (std::string line; std::getline(message, line); )
+            {
+	        m_addons_of_the_day.push_back(
+		    StringUtils::utf8ToWide(line).trim()
+		);
+            }
+        }
+	else
+	{
+	    Log::error("Could not read random-installaddon-lines file: %s", strerror(errno));
+	}
+    }
+
     reset();
 }   // GameSetup
 
@@ -158,7 +186,25 @@ void GameSetup::addServerInfo(NetworkString* ns)
     else
         ns->addUInt8(0).addFloat(0.0f);
 
-    ns->encodeString16(m_message_of_today);
+    if (!m_addons_of_the_day.empty()) {
+        // In case config has random-installaddon-lines
+	irr::core::stringw total_motd(m_message_of_today);
+	
+	// Delimiter for the prefix
+	total_motd.append(L"\n", 1);
+	total_motd.append(ServerConfig::m_ril_prefix);
+	total_motd.append(L" ", 1);
+
+	// Pick random line
+        std::random_device rd;
+        std::mt19937_64 g(rd());
+
+	// add the latter
+        total_motd.append( m_addons_of_the_day[g() % m_addons_of_the_day.size()] );
+        ns->encodeString16(total_motd);
+    }
+    else
+        ns->encodeString16(m_message_of_today);
     ns->addUInt8((uint8_t)ServerConfig::m_server_configurable);
     ns->addUInt8(ServerConfig::m_live_players? 1 : 0);
 }   // addServerInfo

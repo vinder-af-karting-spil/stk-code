@@ -124,6 +124,18 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
         "Allow powerupper."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_random_installaddon_lines
+        SERVER_CFG_DEFAULT(StringServerConfigParam("", "random-installaddon-lines",
+        "When a player enters server lobby, show random /installaddon command line from file (or empty to disable)."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_ril_prefix
+        SERVER_CFG_DEFAULT(StringServerConfigParam("/installaddon", "ril-prefix",
+        "If random-installaddon-lines is configured, specifies the prefix before the addon name."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_game_start_message
+        SERVER_CFG_DEFAULT(StringServerConfigParam("Have Fun", "game-start-message",
+        "This message is shown when the game is started. Defaults to \"Have Fun\", if empty, this function is disabled."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam  m_soccer_log
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "soccer-log","Soccer Log (true or false.)"));
     

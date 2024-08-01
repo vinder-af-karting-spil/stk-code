@@ -2561,7 +2561,7 @@ void ServerLobby::startSelection(const Event *event)
     if (!ServerConfig::m_owner_less && ServerConfig::m_team_choosing &&
         RaceManager::get()->teamEnabled())
     {
-	set_powerup_multiplier(1);
+	set_powerup_multiplier(1); // ?????
         auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
         if ((red_blue.first == 0 || red_blue.second == 0) &&
             red_blue.first + red_blue.second != 1)
@@ -4758,6 +4758,29 @@ void ServerLobby::submitRankingsToAddons()
 }   // submitRankingsToAddons
 
 //-----------------------------------------------------------------------------
+/** This function serves a purpose to send the message to all peers that are
+ *  in game and/or spectating.
+ */
+void ServerLobby::broadcastMessageInGame(const irr::core::stringw& message)
+{
+
+    NetworkString* chat = getNetworkString();
+    chat->setSynchronous(true);
+    chat->addUInt8(LE_CHAT).encodeString16(message);
+
+    STKHost::get()->sendPacketToAllPeersWith(
+        [](STKPeer& peer) {
+		// is player
+	    return peer->hasPlayerProfiles() &&
+	        // is in game or spectating
+		(peer->isWaitingForGame() || peer->isSpectator()) &&
+		// can receive
+		m_message_receivers[sender];
+    }, chat);
+    delete chat;
+}
+
+//-----------------------------------------------------------------------------
 /** This function is called when all clients have loaded the world and
  *  are therefore ready to start the race. It determine the start time in
  *  network timer for client and server based on pings and then switches state
@@ -4827,6 +4850,13 @@ void ServerLobby::configPeersStartTime()
             StkTime::sleep(sleep_time);
             //Log::info("ServerLobby", "Started at %lf", StkTime::getRealTime());
             m_state.store(RACING);
+
+	    // Have Fun
+	    if (!ServerConfig::m_game_start_message.empty())
+	    {
+		broadcastMessageInGame(
+		    StringUtils::utf8ToWide(ServerConfig::m_game_start_message));
+	    }
         });
 }   // configPeersStartTime
 
