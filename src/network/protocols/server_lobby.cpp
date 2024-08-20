@@ -51,7 +51,6 @@
 #include "online/online_profile.hpp"
 #include "online/request_manager.hpp"
 #include "online/xml_request.hpp"
-#include "race/race_manager.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
@@ -824,6 +823,8 @@ void ServerLobby::handleChat(Event* event)
     event->data().decodeString16(&message, 360/*max_len*/);
 
     KartTeam target_team = KART_TEAM_NONE;
+
+    // WTF????
     if (event->data().size() > 0)
         target_team = (KartTeam)event->data().getUInt8();
 
@@ -837,6 +838,9 @@ void ServerLobby::handleChat(Event* event)
 
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
+	// excuse me, where is this thing added? the sender_name
+	// FIXME: strip the message contents before the semicolon ":" included,
+	// manually verify that the username is in player profiles, otherwise deny the message
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
 
@@ -844,6 +848,8 @@ void ServerLobby::handleChat(Event* event)
         STKPeer* sender = event->getPeer();
         auto can_receive = m_message_receivers[sender];
         bool team_speak = m_team_speakers.find(sender) != m_team_speakers.end();
+
+	// make a function of it for god sake, or at least a macro
         team_speak &= (
             RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
             RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
@@ -852,7 +858,7 @@ void ServerLobby::handleChat(Event* event)
         for (auto& profile : sender->getPlayerProfiles())
             teams.insert(profile->getTeam());
 
-
+        /// yes, this thing, sender_name, where is it ADDED to the resulting message?
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
@@ -912,6 +918,7 @@ void ServerLobby::handleChat(Event* event)
 }   // handleChat
 
 //-----------------------------------------------------------------------------
+//FIXME: add "force" argument that avoids the check for manual team choosing
 void ServerLobby::changeTeam(Event* event)
 {
     if (!ServerConfig::m_team_choosing ||
@@ -966,6 +973,7 @@ bool ServerLobby::notifyEventAsynchronous(Event* event)
                   message_type);
         switch(message_type)
         {
+	// le paquet envoyé au serveur
         case LE_CONNECTION_REQUESTED: connectionRequested(event); break;
         case LE_KART_SELECTION: kartSelectionRequested(event);    break;
         case LE_CLIENT_LOADED_WORLD: finishedLoadingWorldClient(event); break;
@@ -1568,8 +1576,11 @@ void ServerLobby::asynchronousUpdate()
                     updatePlayerList();
                 m_timeout.store(std::numeric_limits<int64_t>::max());
             }
-            if (m_timeout.load() < (int64_t)StkTime::getMonoTimeMs() ||
-                (checkPeersReady(true/*ignore_ai_peer*/) &&
+
+	    const char all_ready_play = checkPeersCanPlayAndReady(true/*ignore_ai_peer*/);
+            if (((m_timeout.load() < (int64_t)StkTime::getMonoTimeMs()) &&
+	 	  (all_ready_play&2)) ||
+                ((all_ready_play==3) &&
                 (int)players >= ServerConfig::m_min_start_game_players))
             {
                 resetPeersReady();
@@ -1852,6 +1863,9 @@ void ServerLobby::rejectLiveJoin(STKPeer* peer, BackLobbyReason blr)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, /*reliable*/true);
     delete server_info;
+
+    // everywhere where addServerInfo is used, sendRandomInstalladdonLine be used too.
+    sendRandomInstalladdonLine(peer);
 }   // rejectLiveJoin
 
 //-----------------------------------------------------------------------------
@@ -3908,6 +3922,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     peer->sendPacket(server_info);
     delete server_info;
 
+    sendRandomInstalladdonLine(peer);
+
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
     NetworkString* message_ack = getNetworkString(4);
     message_ack->setSynchronous(true);
@@ -3990,6 +4006,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             getRankingForPlayer(peer->getPlayerProfiles()[0]);
         }
     }
+
 
 #ifdef ENABLE_SQLITE3
     if (m_server_stats_table.empty() || peer->isAIPeer())
@@ -4917,8 +4934,16 @@ void ServerLobby::resetServer()
     server_info->setSynchronous(true);
     server_info->addUInt8(LE_SERVER_INFO);
     m_game_setup->addServerInfo(server_info);
+
     sendMessageToPeersInServer(server_info);
     delete server_info;
+
+    NetworkString* ril_pkt = getNetworkString();
+    ril_pkt->setSynchronous(true);
+    addRandomInstalladdonMessage(ril_pkt);
+
+    sendMessageToPeersInServer(ril_pkt);
+    delete ril_pkt;
     setup();
     m_state = NetworkConfig::get()->isLAN() ?
         WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
@@ -5295,6 +5320,12 @@ void ServerLobby::handleServerConfiguration(Event* event)
     m_game_setup->addServerInfo(server_info);
     sendMessageToPeers(server_info);
     delete server_info;
+    NetworkString* ril_pkt = getNetworkString();
+    ril_pkt->setSynchronous(true);
+    addRandomInstalladdonMessage(ril_pkt);
+
+    sendMessageToPeers(ril_pkt);
+    delete ril_pkt;
     updatePlayerList();
 }   // handleServerConfiguration
 
@@ -5632,6 +5663,7 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, /*reliable*/true);
     delete server_info;
+    sendRandomInstalladdonLine(peer);
 }   // clientInGameWantsToBackLobby
 
 //-----------------------------------------------------------------------------
@@ -5680,6 +5712,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     m_game_setup->addServerInfo(server_info);
     peer->sendPacket(server_info, /*reliable*/true);
     delete server_info;
+    sendRandomInstalladdonLine(peer);
 }   // clientSelectingAssetsWantsToBackLobby
 
 std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
@@ -5752,6 +5785,34 @@ bool ServerLobby::supportsAI()
 }   // supportsAI
 
 //-----------------------------------------------------------------------------
+bool ServerLobby::checkPeersCanPlay(bool ignore_ai_peer) const
+{
+// frustrating indentation, in this vim setting
+    const bool is_team_game = (
+        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
+        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
+    );
+    for (auto p : m_peers_ready)
+    {
+        auto peer = p.first.lock();
+	KartTeam team;
+        if (!peer)
+            continue;
+	if (!peer->hasPlayerProfiles())
+	    continue;
+	team = peer->getPlayerProfiles()[0]->getTeam();
+        if (ignore_ai_peer && peer->isAIPeer())
+            continue;
+	// player won't play the game without teams
+	if (is_team_game && (team == KART_TEAM_NONE))
+	    continue;
+	if (!peer->alwaysSpectate())
+	    return true;
+    }
+    return false;
+}   // checkPeersCanPlay
+
+//-----------------------------------------------------------------------------
 bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
 {
     bool all_ready = true;
@@ -5770,6 +5831,40 @@ bool ServerLobby::checkPeersReady(bool ignore_ai_peer) const
     }
     return true;
 }   // checkPeersReady
+
+// Optimization: you can go through the loop once, without the second time
+//-----------------------------------------------------------------------------
+char ServerLobby::checkPeersCanPlayAndReady(bool ignore_ai_peer) const
+{
+    const bool is_team_game = (
+        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER ||
+        RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
+    );
+    // 0x1: all the players are ready, 0x2: there is at least one player that can play,
+    // by default all players are ready
+    char all_ready_play = !m_peers_ready.empty();
+    for (auto p : m_peers_ready)
+    {
+        auto peer = p.first.lock();
+	KartTeam team;
+        if (!peer)
+            continue;
+	if (!peer->hasPlayerProfiles())
+	    continue;
+	team = peer->getPlayerProfiles()[0]->getTeam();
+        if (ignore_ai_peer && peer->isAIPeer())
+            continue;
+	if (peer->alwaysSpectate())
+            continue;
+	else if(is_team_game == (team != KART_TEAM_NONE))
+	    all_ready_play |= 2;
+
+	if (all_ready_play&1 && !p.second)
+	    all_ready_play &= ~1;
+    }
+    return all_ready_play;
+}   // checkPeersCanPlayAndReady
+
 
 //-----------------------------------------------------------------------------
 void ServerLobby::handleServerCommand(Event* event,
@@ -6403,3 +6498,78 @@ bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string com
 
     return false;
 } // voteForCommand
+//-----------------------------------------------------------------------------
+// Specify default argument to determine current mode from server config
+const std::string ServerLobby::getRandomAddon(RaceManager::MinorRaceModeType m) const
+{
+    const std::set<std::string>* addon_list;
+
+    m = m != RaceManager::MINOR_MODE_NONE ? m : RaceManager::get()->getMinorMode();
+    switch (m)
+    {
+        case RaceManager::MINOR_MODE_NORMAL_RACE:
+        case RaceManager::MINOR_MODE_TIME_TRIAL:
+        case RaceManager::MINOR_MODE_FOLLOW_LEADER:
+	    addon_list = &m_addon_kts.second;
+            break;
+        case RaceManager::MINOR_MODE_FREE_FOR_ALL:
+        case RaceManager::MINOR_MODE_CAPTURE_THE_FLAG:
+	    addon_list = &m_addon_arenas;
+            break;
+        case RaceManager::MINOR_MODE_SOCCER:
+	    addon_list = &m_addon_soccers;
+            break;
+        default:
+            assert(false);
+	    return "";
+            break;
+    }
+    
+    RandomGenerator rg;
+    std::set<std::string>::const_iterator it = addon_list->cbegin();
+    std::advance(it, rg.get((int)addon_list->size()));
+    std::string result = *it; 
+    // remove "addon_" prefix
+    result.erase(0, 6);
+
+    return result;
+} // getRandomSoccerAddon
+
+NetworkString* ServerLobby::addRandomInstalladdonMessage(NetworkString* const ril_pkt) const
+{
+    std::string ril_prefix = ServerConfig::m_ril_prefix;
+    std::string msg(ril_prefix + " ");
+    // choose an addon
+    msg += getRandomAddon();
+
+    ril_pkt->addUInt8(LE_CHAT);
+    ril_pkt->encodeString16(StringUtils::utf8ToWide(msg));
+    //peer->sendPacket(ril_pkt, true*reliable*);
+    return ril_pkt;
+}
+//-----------------------------------------------------------------------------
+void ServerLobby::sendRandomInstalladdonLine(STKPeer* const peer) const
+{
+    if (ServerConfig::m_enable_ril)
+    {
+	NetworkString* ril_pkt = getNetworkString();
+	ril_pkt->setSynchronous(true);
+	addRandomInstalladdonMessage(ril_pkt);
+
+        peer->sendPacket(ril_pkt, true/*reliable*/);
+	delete ril_pkt;
+    }
+} // sendRandomInstalladdonLine
+//-----------------------------------------------------------------------------
+void ServerLobby::sendRandomInstalladdonLine(std::shared_ptr<STKPeer> const peer) const
+{
+    if (ServerConfig::m_enable_ril)
+    {
+	NetworkString* ril_pkt = getNetworkString();
+	ril_pkt->setSynchronous(true);
+	addRandomInstalladdonMessage(ril_pkt);
+
+        peer->sendPacket(ril_pkt, true/*reliable*/);
+	delete ril_pkt;
+    }
+} // sendRandomInstalladdonLine

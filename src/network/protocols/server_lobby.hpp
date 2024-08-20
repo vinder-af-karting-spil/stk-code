@@ -20,6 +20,7 @@
 #define SERVER_LOBBY_HPP
 
 #include "network/protocols/lobby_protocol.hpp"
+#include "race/race_manager.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/time.hpp"
 
@@ -278,6 +279,8 @@ private:
     void handleServerConfiguration(Event* event);
     void updateTracksForMode();
     bool checkPeersReady(bool ignore_ai_peer) const;
+    bool checkPeersCanPlay(bool ignore_ai_peer) const;
+    char checkPeersCanPlayAndReady(bool ignore_ai_peer) const;
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
@@ -422,7 +425,11 @@ public:
     static int m_fixed_laps;
     void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToAllPeers(std::string& s);
+    void sendRandomInstalladdonLine(STKPeer* peer) const;
+    void sendRandomInstalladdonLine(std::shared_ptr<STKPeer> peer) const;
     bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
+    NetworkString* addRandomInstalladdonMessage(NetworkString* ns) const;
+    const std::string getRandomAddon(RaceManager::MinorRaceModeType m=RaceManager::MINOR_MODE_NONE) const;
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
     std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;

@@ -124,9 +124,9 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
         "Allow powerupper."));
 
-    SERVER_CFG_PREFIX StringServerConfigParam m_random_installaddon_lines
-        SERVER_CFG_DEFAULT(StringServerConfigParam("", "random-installaddon-lines",
-        "When a player enters server lobby, show random /installaddon command line from file (or empty to disable)."));
+    SERVER_CFG_PREFIX BoolServerConfigParam m_enable_ril
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "enable-ril",
+        "When a player enters server lobby, show random /installaddon command line according to the current server mode (default is false)."));
 
     SERVER_CFG_PREFIX StringServerConfigParam m_ril_prefix
         SERVER_CFG_DEFAULT(StringServerConfigParam("/installaddon", "ril-prefix",

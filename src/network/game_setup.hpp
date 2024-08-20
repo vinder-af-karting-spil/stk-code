@@ -57,9 +57,7 @@ private:
     std::atomic_bool m_is_grand_prix;
 
     irr::core::stringw m_message_of_today;
-
-    /* each is randomly picked and sent out as a part of MOTD */
-    std::vector<irr::core::stringw> m_addons_of_the_day;
+    //std::vector<irr::core::stringw> m_addons_of_the_day;
 
     /** Utf8 server name (with xml decoded) */
     std::string m_server_name_utf8;

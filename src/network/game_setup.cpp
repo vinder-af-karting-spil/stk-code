@@ -33,6 +33,7 @@
 #include "utils/log.hpp"
 #include "utils/stk_process.hpp"
 #include "utils/string_utils.hpp"
+#include "tracks/track_manager.hpp"
 
 #include <algorithm>
 #include <cerrno>
@@ -69,6 +70,7 @@ GameSetup::GameSetup()
     m_extra_server_info = -1;
     m_is_grand_prix.store(false);
 
+#if 0
     // Read txt file for random installaddon lines, if present
     m_addons_of_the_day.clear();
     //m_addons_of_the_day.shrink_to_fit();
@@ -93,6 +95,7 @@ GameSetup::GameSetup()
 	    Log::error("GameSetup", "Could not read random-installaddon-lines file: %s", strerror(errno));
 	}
     }
+#endif
 
     reset();
 }   // GameSetup
@@ -185,7 +188,7 @@ void GameSetup::addServerInfo(NetworkString* ns)
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
-
+#if 0
     if (!m_addons_of_the_day.empty()) {
         // In case config has random-installaddon-lines
 	irr::core::stringw total_motd(m_message_of_today);
@@ -202,9 +205,11 @@ void GameSetup::addServerInfo(NetworkString* ns)
 	// add the latter
         total_motd.append( m_addons_of_the_day[g() % m_addons_of_the_day.size()] );
         ns->encodeString16(total_motd);
+
     }
     else
-        ns->encodeString16(m_message_of_today);
+#endif
+    ns->encodeString16(m_message_of_today);
     ns->addUInt8((uint8_t)ServerConfig::m_server_configurable);
     ns->addUInt8(ServerConfig::m_live_players? 1 : 0);
 }   // addServerInfo
