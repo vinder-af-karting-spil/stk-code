@@ -6370,11 +6370,21 @@ void ServerLobby::handleServerCommand(Event* event,
         std::string suggestionMsg = cmd.substr(_cmd_size + 1);
         file << " [" << player_name << "]: " << suggestionMsg << std::endl;
 
+        file.flush();
+        if (!file.good())
+        {
+            response = "Failed to record a feature. Input/output error (2). Please inform the administrator.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+
         // inform success
         response = "Thanks for your suggestion! Your suggestion has been recorded, and we will review it at some point.";
         chat->encodeString16(response);
+        peer->sendPacket(chat, true/*reliable*/);
         delete chat;
-
     }
     /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")
