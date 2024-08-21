@@ -6331,7 +6331,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         // ensure there is a message specified "feature" = 7 characters long,
         // 1 whitespace, and 5 is the minimum
-        if (cmd.length() < _cmd_size + 1 + 5)
+        if (cmd.length() < _cmd_size + 5)
         {
             response = L"You need to specify the message that is at least 5 characters long.";
             chat->encodeString16(response);
@@ -6341,7 +6341,7 @@ void ServerLobby::handleServerCommand(Event* event,
         }
 
         // open a file, for append
-        std::ostringstream file(
+        std::fstream file(
                 ServerConfig::m_feature_filepath, std::ios_base::app );
         if (file.fail() || file.bad())
         {
@@ -6367,7 +6367,7 @@ void ServerLobby::handleServerCommand(Event* event,
         file << datetime;
 
         // other details
-        std::string suggestionMsg = cmd.substr(_cmd_size + 1);
+        std::string suggestionMsg = cmd.substr(_cmd_size);
         file << " [" << player_name << "]: " << suggestionMsg << std::endl;
 
         file.flush();
