@@ -176,6 +176,10 @@ namespace ServerConfig
         "motd", "Message of today shown in lobby, you can enter encoded XML "
         "words here or a file.txt and let STK load it."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_feature_filepath
+        SERVER_CFG_DEFAULT(StringServerConfigParam("features.txt",
+        "feature-filepath", "File to log the /feature (message) messages into from players."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_chat
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "chat",
         "If this value is set to false, the server will ignore chat messages "

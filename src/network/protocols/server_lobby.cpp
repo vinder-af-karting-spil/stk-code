@@ -61,6 +61,7 @@
 #include "utils/translation.hpp"
 
 #include <algorithm>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -5995,8 +5996,8 @@ void ServerLobby::handleServerCommand(Event* event,
             peer->sendPacket(chat, true/*reliable*/);
             delete chat; 
         }
-	else
-	{
+        else
+        {
             NetworkString* chat = getNetworkString();
             chat->addUInt8(LE_CHAT);
             chat->setSynchronous(true);
@@ -6320,6 +6321,62 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
+    else if (argv[0] == "feature")
+    {
+        const size_t _cmd_size = sizeof("feature");
+        NetworkString* chat = getNetworkString();
+        chat->addUInt8(LE_CHAT);
+        chat->setSynchronous(true);
+        irr::core::stringw response;
+
+        // ensure there is a message specified "feature" = 7 characters long,
+        // 1 whitespace, and 5 is the minimum
+        if (cmd.length() < _cmd_size + 1 + 5)
+        {
+            response = L"You need to specify the message that is at least 5 characters long.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+
+        // open a file, for append
+        std::ostringstream file(
+                ServerConfig::m_feature_filepath, std::ios_base::app );
+        if (file.fail() || file.bad())
+        {
+            response = L"Failed to record a feature. Input/output error (1). Please inform the administrator.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        std::string player_name;
+        if (!peer->hasPlayerProfiles())
+            player_name = "(unknown)";
+        else
+            player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+
+        // TODO: check if player can send the feature at all
+        const std::time_t now = std::chrono::system_clock::to_time_t(
+                std::chrono::system_clock::now());
+
+        // write current date and time
+        char datetime[20];
+        std::strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+        file << datetime;
+
+        // other details
+        std::string suggestionMsg = cmd.substr(_cmd_size + 1);
+        file << " [" << player_name << "]: " << suggestionMsg << std::endl;
+
+        // inform success
+        response = "Thanks for your suggestion! Your suggestion has been recorded, and we will review it at some point.";
+        chat->encodeString16(response);
+        delete chat;
+
+    }
+    /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")
     {
         std::shared_ptr<STKPeer> player_peer;
