@@ -2542,6 +2542,35 @@ void ServerLobby::unregisterServer(bool now, std::weak_ptr<ServerLobby> sl)
 
 }   // unregisterServer
 
+void ServerLobby::insertKartsIntoNotType(std::set<std::string>& set, const char* type) const
+{
+    // m_available_kts.first is not an addon list
+    for (const std::string& kt : m_available_kts.first ) {
+        const KartProperties* const props = kart_properties_manager->getKart(kt);
+        const std::string& _type = props->getKartType();
+        if (_type != type)
+        {
+            Log::verbose("ServerLobby", "Kart %s has been ruled out, type %s != %s (requred)", kt.c_str(), _type.c_str(), type);
+            set.insert(kt);
+        }
+    }
+}
+
+const char* ServerLobby::kartRestrictedTypeName(const enum KartRestrictionMode mode) const
+{
+    switch (mode) {
+        case LIGHT:
+            return "light";
+        case MEDIUM:
+            return "medium";
+        case HEAVY:
+            return "heavy";
+        case NONE:
+            break;
+    }
+    return "";
+}
+
 //-----------------------------------------------------------------------------
 /** Instructs all clients to start the kart selection. If event is NULL,
  *  the command comes from the owner less server.
@@ -2597,6 +2626,19 @@ void ServerLobby::startSelection(const Event *event)
 
     // Remove karts / tracks from server that are not supported on all clients
     std::set<std::string> karts_erase, tracks_erase;
+    switch (m_kart_restriction) {
+        case NONE:
+            break;
+        case LIGHT:
+            insertKartsIntoNotType(karts_erase, "light");
+            break;
+        case MEDIUM:
+            insertKartsIntoNotType(karts_erase, "medium");
+            break;
+        case HEAVY:
+            insertKartsIntoNotType(karts_erase, "heavy");
+            break;
+    }
     auto peers = STKHost::get()->getPeers();
     std::set<STKPeer*> always_spectate_peers;
     bool has_peer_plays_game = false;
@@ -5497,10 +5539,30 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
     for (unsigned i = 0; i < player_count; i++)
     {
         std::string kart;
+        bool forcedRandom = false;
+
         ns.decodeString(&kart);
-        if (kart.find("randomkart") != std::string::npos ||
-            (kart.find("addon_") == std::string::npos &&
-            m_available_kts.first.find(kart) == m_available_kts.first.end()))
+        const bool isStandardKart = kart.find("addon_") == std::string::npos;
+
+        if (m_kart_restriction && !isStandardKart) {
+            auto kt = m_addon_kts.first.find(kart);
+            const std::string ktr(kartRestrictedTypeName(m_kart_restriction));
+            const std::string ktc = kart_properties_manager->getKart(*kt)->getKartType();
+            if (kt != m_addon_kts.first.cend() && 
+                    ktc != ktr) {
+                Log::verbose("ServerLobby",
+                             "Player %s chose the addon kart %s that is of the type %s, not %s.",
+                        StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName()).c_str(),
+                        kart.c_str(), ktc.c_str(), ktr.c_str());
+                forcedRandom = true;
+            }
+        }
+
+        // decide if the kart is chosen incorrectly or randomly
+        //
+        if (kart.find("randomkart") != std::string::npos || forcedRandom ||
+            (isStandardKart && (
+            m_available_kts.first.find(kart) == m_available_kts.first.end())))
         {
             RandomGenerator rg;
             std::set<std::string>::iterator it =
@@ -6386,6 +6448,39 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
+    else if (argv[0] == "heavyparty")
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+
+        if (m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        m_kart_restriction = state ? HEAVY : NONE;
+        std::string message("Heavy party is now ");
+        if (state)
+        {
+            message += "ACTIVE. Only heavy karts can be chosen.";
+        }
+        else
+        {
+            message += "INACTIVE. All karts can be chosen.";
+        }
+
+        sendStringToAllPeers(message);
+    }
     /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")
     {
@@ -6590,6 +6685,11 @@ const std::string ServerLobby::getRandomAddon(RaceManager::MinorRaceModeType m) 
             assert(false);
 	    return "";
             break;
+    }
+
+    if (addon_list->empty())
+    {
+        return "(no-addons-installed)";
     }
     
     RandomGenerator rg;

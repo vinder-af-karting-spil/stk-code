@@ -51,6 +51,7 @@ namespace Online
     class Request;
 }
 
+
 class ServerLobby : public LobbyProtocol
 {
 public:
@@ -80,6 +81,27 @@ private:
         bool m_tried = false;
     };
     bool m_player_reports_table_exists;
+
+    // When used outside of server lobby context, migrate it to somewhere else.
+
+    enum KartRestrictionMode : int 
+    {
+        NONE,                   // All karts can be played
+        LIGHT,                  // Light type karts can be player
+        MEDIUM,                 // Medium type karts can be used
+        HEAVY,                  // Heavy type karts can be user
+        // TODO: Same for addon karts, note that the players that have no addon karts won't be able to play.
+        /*
+        ADDON,
+        ADDON_LIGHT,
+        ADDON_MEDIUM,
+        ADDON_HEAVY,
+        // Same for vanilla karts
+        VANILLA,
+        VANILLA_LIGHT,
+        VANILLA_MEDIUM,
+        VANILLA_HEAVY, */
+    };
 
 #ifdef ENABLE_SQLITE3
     sqlite3* m_db;
@@ -395,6 +417,8 @@ public:
     virtual void update(int ticks) OVERRIDE;
     virtual void asynchronousUpdate() OVERRIDE;
 
+    void insertKartsIntoNotType(std::set<std::string>& set, const char* type) const;
+    const char* kartRestrictedTypeName(const enum KartRestrictionMode mode) const;
     void startSelection(const Event *event=NULL);
     void checkIncomingConnectionRequests();
     void finishedLoadingWorld() OVERRIDE;
@@ -436,6 +460,8 @@ public:
     int m_max_players;
     int m_max_players_in_game;
     bool m_powerupper_active = false;
+    // TODO:
+    enum KartRestrictionMode m_kart_restriction = NONE;
     bool m_allow_powerupper = false;
 };   // class ServerLobby
 
