@@ -419,6 +419,8 @@ public:
 
     void insertKartsIntoNotType(std::set<std::string>& set, const char* type) const;
     const char* kartRestrictedTypeName(const enum KartRestrictionMode mode) const;
+    enum KartRestrictionMode getKartRestrictionMode() const { return m_kart_restriction; }
+    void setKartRestrictionMode(enum KartRestrictionMode mode);
     void startSelection(const Event *event=NULL);
     void checkIncomingConnectionRequests();
     void finishedLoadingWorld() OVERRIDE;

@@ -20,6 +20,7 @@
 
 #include "addons/addon.hpp"
 #include "config/user_config.hpp"
+#include "irrString.h"
 #include "items/network_item_manager.hpp"
 #include "items/powerup_manager.hpp"
 #include "karts/abstract_kart.hpp"
@@ -2550,7 +2551,7 @@ void ServerLobby::insertKartsIntoNotType(std::set<std::string>& set, const char*
         const std::string& _type = props->getKartType();
         if (_type != type)
         {
-            Log::verbose("ServerLobby", "Kart %s has been ruled out, type %s != %s (requred)", kt.c_str(), _type.c_str(), type);
+            //Log::verbose("ServerLobby", "Kart %s has been ruled out, type %s != %s (requred)", kt.c_str(), _type.c_str(), type);
             set.insert(kt);
         }
     }
@@ -2571,6 +2572,10 @@ const char* ServerLobby::kartRestrictedTypeName(const enum KartRestrictionMode m
     return "";
 }
 
+void ServerLobby::setKartRestrictionMode(const enum KartRestrictionMode mode)
+{
+    m_kart_restriction = mode;
+}
 //-----------------------------------------------------------------------------
 /** Instructs all clients to start the kart selection. If event is NULL,
  *  the command comes from the owner less server.
@@ -3520,6 +3525,12 @@ void ServerLobby::clientDisconnected(Event* event)
     delete msg;
 
     writeDisconnectInfoTable(event->getPeer());
+
+    // On last player, reset kart restriction.
+    if (!STKHost::get()->getPeerCount())
+    {
+        setKartRestrictionMode(NONE);
+    }
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
@@ -4981,12 +4992,15 @@ void ServerLobby::resetServer()
     sendMessageToPeersInServer(server_info);
     delete server_info;
 
-    NetworkString* ril_pkt = getNetworkString();
-    ril_pkt->setSynchronous(true);
-    addRandomInstalladdonMessage(ril_pkt);
+    if (ServerConfig::m_enable_ril)
+    {
+        NetworkString* ril_pkt = getNetworkString();
+        ril_pkt->setSynchronous(true);
+        addRandomInstalladdonMessage(ril_pkt);
 
-    sendMessageToPeersInServer(ril_pkt);
-    delete ril_pkt;
+        sendMessageToPeersInServer(ril_pkt);
+        delete ril_pkt;
+    }
     setup();
     m_state = NetworkConfig::get()->isLAN() ?
         WAITING_FOR_START_GAME : REGISTER_SELF_ADDRESS;
@@ -5363,12 +5377,15 @@ void ServerLobby::handleServerConfiguration(Event* event)
     m_game_setup->addServerInfo(server_info);
     sendMessageToPeers(server_info);
     delete server_info;
-    NetworkString* ril_pkt = getNetworkString();
-    ril_pkt->setSynchronous(true);
-    addRandomInstalladdonMessage(ril_pkt);
+    if (ServerConfig::m_enable_ril)
+    {
+        NetworkString* ril_pkt = getNetworkString();
+        ril_pkt->setSynchronous(true);
+        addRandomInstalladdonMessage(ril_pkt);
 
-    sendMessageToPeers(ril_pkt);
-    delete ril_pkt;
+        sendMessageToPeers(ril_pkt);
+        delete ril_pkt;
+    }
     updatePlayerList();
 }   // handleServerConfiguration
 
@@ -5544,18 +5561,43 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
         ns.decodeString(&kart);
         const bool isStandardKart = kart.find("addon_") == std::string::npos;
 
-        if (m_kart_restriction && !isStandardKart) {
+        if (m_kart_restriction && !isStandardKart)
+        {
             auto kt = m_addon_kts.first.find(kart);
-            const std::string ktr(kartRestrictedTypeName(m_kart_restriction));
-            const std::string ktc = kart_properties_manager->getKart(*kt)->getKartType();
-            if (kt != m_addon_kts.first.cend() && 
-                    ktc != ktr) {
+            if (kt == m_addon_kts.first.cend())
+            {
                 Log::verbose("ServerLobby",
-                             "Player %s chose the addon kart %s that is of the type %s, not %s.",
+                             "Player %s chose the addon kart %s that is not installed on the server.",
                         StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName()).c_str(),
-                        kart.c_str(), ktc.c_str(), ktr.c_str());
+                        kart.c_str());
+                auto chat = getNetworkString();
+                chat->setSynchronous(true);
+                chat->addUInt8(LE_CHAT);
+                chat->encodeString16(irr::core::stringw(L"You may not use this kart for this game. Please choose a different one."));
+                peer->sendPacket(chat, true/*reliable*/);
+                delete chat;
                 forcedRandom = true;
             }
+            else {
+                const std::string ktr(kartRestrictedTypeName(m_kart_restriction));
+                const std::string ktc = kart_properties_manager->getKart(*kt)->getKartType();
+
+                if (kt != m_addon_kts.first.cend() && 
+                        ktc != ktr)
+                {
+                    Log::verbose("ServerLobby",
+                                 "Player %s chose the addon kart %s that is of the type %s, not %s.",
+                            StringUtils::wideToUtf8(peer->getPlayerProfiles()[i]->getName()).c_str(),
+                            kart.c_str(), ktc.c_str(), ktr.c_str());
+                    auto chat = getNetworkString();
+                    chat->setSynchronous(true);
+                    chat->addUInt8(LE_CHAT);
+                    chat->encodeString16(irr::core::stringw(L"You may not use this kart for this game. Please choose a different one."));
+                    peer->sendPacket(chat, true/*reliable*/);
+                    delete chat;
+                    forcedRandom = true;
+                }
+            }   
         }
 
         // decide if the kart is chosen incorrectly or randomly
@@ -6704,6 +6746,8 @@ const std::string ServerLobby::getRandomAddon(RaceManager::MinorRaceModeType m) 
 
 NetworkString* ServerLobby::addRandomInstalladdonMessage(NetworkString* const ril_pkt) const
 {
+    if (!ServerConfig::m_enable_ril)
+        return ril_pkt;
     std::string ril_prefix = ServerConfig::m_ril_prefix;
     std::string msg(ril_prefix + " ");
     // choose an addon
@@ -6719,12 +6763,12 @@ void ServerLobby::sendRandomInstalladdonLine(STKPeer* const peer) const
 {
     if (ServerConfig::m_enable_ril)
     {
-	NetworkString* ril_pkt = getNetworkString();
-	ril_pkt->setSynchronous(true);
-	addRandomInstalladdonMessage(ril_pkt);
+        NetworkString* ril_pkt = getNetworkString();
+        ril_pkt->setSynchronous(true);
+        addRandomInstalladdonMessage(ril_pkt);
 
         peer->sendPacket(ril_pkt, true/*reliable*/);
-	delete ril_pkt;
+        delete ril_pkt;
     }
 } // sendRandomInstalladdonLine
 //-----------------------------------------------------------------------------
