@@ -458,7 +458,8 @@ public:
     const std::string getRandomAddon(RaceManager::MinorRaceModeType m=RaceManager::MINOR_MODE_NONE) const;
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
-    std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
+    //Deprecated
+    //std::map<STKPeer*, std::set<irr::core::stringw>> m_message_receivers;
     int m_max_players;
     int m_max_players_in_game;
     bool m_powerupper_active = false;

@@ -851,7 +851,7 @@ void ServerLobby::handleChat(Event* event)
 
         //teamchat
         STKPeer* sender = event->getPeer();
-        auto can_receive = m_message_receivers[sender];
+        //auto can_receive = m_message_receivers[sender];
         bool team_speak = m_team_speakers.find(sender) != m_team_speakers.end();
 
 	// make a function of it for god sake, or at least a macro
@@ -867,7 +867,7 @@ void ServerLobby::handleChat(Event* event)
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender, sender_in_game, target_team, sender_name, can_receive, team_speak, teams, this]
+            [game_started, sender, sender_in_game, target_team, sender_name, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
@@ -911,6 +911,7 @@ void ServerLobby::handleChat(Event* event)
                             return false;
                     }
                 }
+#if 0
                 // incase of no /to
                 if (can_receive.empty())
                     return true;
@@ -922,8 +923,8 @@ void ServerLobby::handleChat(Event* event)
                         return true;
                     }
                 }
-
-                return sender == p;
+#endif
+                return true;
             }, chat);
             event->getPeer()->updateLastMessage();
         delete chat;
@@ -6105,35 +6106,59 @@ void ServerLobby::handleServerCommand(Event* event,
 
     else if (argv[0] == "to")
     {       
+        if (!peer->hasPlayerProfiles())
+            return;
+
         if (argv.size() == 1)
         {
             NetworkString* chat = getNetworkString();
             chat->addUInt8(LE_CHAT);
             chat->setSynchronous(true);
-            chat->encodeString16(L"Usage: /to (username1) ... (usernameN)");
+            chat->encodeString16(L"Usage: /to (username) message...");
             peer->sendPacket(chat, true/*reliable*/);
             delete chat; 
+        
         }
         else
         {
-            NetworkString* chat = getNetworkString();
-            chat->addUInt8(LE_CHAT);
-            chat->setSynchronous(true);
-            std::string response("Your messages are now addressed to ");
-            m_message_receivers[peer.get()].clear();
-            for (unsigned i = 1; i < argv.size(); ++i)
+            NetworkString* senderMsg = getNetworkString();
+            senderMsg->addUInt8(LE_CHAT);
+            senderMsg->setSynchronous(true);
+            std::shared_ptr<STKPeer> target = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[1]));
+            if (!target)
             {
-                m_message_receivers[peer.get()].insert(
-                    StringUtils::utf8ToWide(argv[i]));
-                response += argv[1];
-                if (i < argv.size() - 1)
-                    response += ", ";
+                senderMsg->encodeString16(L"Recipient is not online.");
+                peer->sendPacket(senderMsg);
+                delete senderMsg;
+                return;
             }
-            response += ".";
-            chat->encodeString16(StringUtils::utf8ToWide(response));
+            core::stringw msg = StringUtils::utf8ToWide(
+                    cmd.substr(3 + argv[1].size())
+                    );
 
-            peer->sendPacket(chat, true/*reliable*/);
-            delete chat;
+            NetworkString* recipientMsg = getNetworkString();
+            recipientMsg->addUInt8(LE_CHAT);
+            recipientMsg->setSynchronous(true);
+
+            // make the message for recipient
+            core::stringw recipientMsgS = L"\xf0\x9f\x94\x92 from ";
+            core::stringw senderMsgS = L"\xf0\x9f\x94\x92 to ";
+
+            recipientMsgS += peer->getPlayerProfiles()[0]->getName();
+            senderMsgS += StringUtils::utf8ToWide(argv[1]);
+            recipientMsgS += L": ";
+            senderMsgS += L": ";
+            recipientMsgS += msg;
+            senderMsgS += msg;
+
+            recipientMsg->encodeString16(recipientMsgS);
+            senderMsg->encodeString16(senderMsgS);
+
+            peer->sendPacket(senderMsg, true/*reliable*/);
+            target->sendPacket(recipientMsg, true/*reliable*/);
+            delete senderMsg;
+            delete recipientMsg;
         }
     }
 
@@ -6197,7 +6222,7 @@ void ServerLobby::handleServerCommand(Event* event,
     
     else if (argv[0] == "public")
     {
-        m_message_receivers[peer.get()].clear();
+        //m_message_receivers[peer.get()].clear();
         m_team_speakers.erase(peer.get());
         std::string s = "Your messages are now public";
         sendStringToPeer(s, peer);
