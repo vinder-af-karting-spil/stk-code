@@ -3098,6 +3098,9 @@ void ServerLobby::checkRaceFinished()
         submitRankingsToAddons();
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
+
+    // Remove kart restriction after the game is over
+    setKartRestrictionMode(NONE);
 }   // checkRaceFinished
 
 //-----------------------------------------------------------------------------
