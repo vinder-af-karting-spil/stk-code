@@ -6142,8 +6142,8 @@ void ServerLobby::handleServerCommand(Event* event,
             recipientMsg->setSynchronous(true);
 
             // make the message for recipient
-            core::stringw recipientMsgS = L"\xf0\x9f\x94\x92 from ";
-            core::stringw senderMsgS = L"\xf0\x9f\x94\x92 to ";
+            core::stringw recipientMsgS = L"🔒 from ";
+            core::stringw senderMsgS = L"🔒 to ";
 
             recipientMsgS += peer->getPlayerProfiles()[0]->getName();
             senderMsgS += StringUtils::utf8ToWide(argv[1]);
