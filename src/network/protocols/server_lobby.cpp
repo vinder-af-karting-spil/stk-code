@@ -63,9 +63,12 @@
 
 #include <algorithm>
 #include <ctime>
+#include <cwchar>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <sstream>
+#include <string>
 
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
@@ -869,10 +872,16 @@ void ServerLobby::handleChat(Event* event)
             {
                 if (game_started)
                 {
+                    // separates the chat between lobby peers, and ingame players/spectators
+                    if (p->isWaitingForGame() != sender_in_game)
+                        return false;
+#if 0
                     if (p->isWaitingForGame() && !sender_in_game)
                         return false;
                     if (!p->isWaitingForGame() && sender_in_game)
                         return false;
+#endif
+                    // when targeted towards one team, send it.
                     if (target_team != KART_TEAM_NONE)
                     {
                         if (p->isSpectator())
@@ -885,6 +894,7 @@ void ServerLobby::handleChat(Event* event)
                         return false;
                     }
                 }
+                // /teamchat restrictions
                 if (team_speak)
                 {
                     for (auto& profile : p->getPlayerProfiles())
@@ -892,6 +902,16 @@ void ServerLobby::handleChat(Event* event)
                             return true;
                     return false;
                 }
+                for (auto& peer : m_peers_muted_players)
+                {
+                    if (auto peer_sp = peer.first.lock())
+                    {
+                        if (peer_sp.get() == p &&
+                            peer.second.find(sender_name) != peer.second.end())
+                            return false;
+                    }
+                }
+                // incase of no /to
                 if (can_receive.empty())
                     return true;
                 for (auto& profile : p->getPlayerProfiles())
@@ -903,16 +923,7 @@ void ServerLobby::handleChat(Event* event)
                     }
                 }
 
-                for (auto& peer : m_peers_muted_players)
-                {
-                    if (auto peer_sp = peer.first.lock())
-                    {
-                        if (peer_sp.get() == p &&
-                            peer.second.find(sender_name) != peer.second.end())
-                            return false;
-                    }
-                }
-                return true;
+                return false;
             }, chat);
             event->getPeer()->updateLastMessage();
         delete chat;
@@ -6105,12 +6116,18 @@ void ServerLobby::handleServerCommand(Event* event,
             NetworkString* chat = getNetworkString();
             chat->addUInt8(LE_CHAT);
             chat->setSynchronous(true);
+            std::stringstream response("Your messages are now addressed to ");
             m_message_receivers[peer.get()].clear();
             for (unsigned i = 1; i < argv.size(); ++i)
             {
                 m_message_receivers[peer.get()].insert(
                     StringUtils::utf8ToWide(argv[i]));
+                response << argv[1];
+                if (i < argv.size() - 1)
+                    response << ", ";
             }
+            response << ".";
+            chat->encodeString16(StringUtils::utf8ToWide(response.str()));
 
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
