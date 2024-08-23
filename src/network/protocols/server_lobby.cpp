@@ -6119,18 +6119,18 @@ void ServerLobby::handleServerCommand(Event* event,
             NetworkString* chat = getNetworkString();
             chat->addUInt8(LE_CHAT);
             chat->setSynchronous(true);
-            std::stringstream response("Your messages are now addressed to ");
+            std::string response("Your messages are now addressed to ");
             m_message_receivers[peer.get()].clear();
             for (unsigned i = 1; i < argv.size(); ++i)
             {
                 m_message_receivers[peer.get()].insert(
                     StringUtils::utf8ToWide(argv[i]));
-                response << argv[1];
+                response += argv[1];
                 if (i < argv.size() - 1)
-                    response << ", ";
+                    response += ", ";
             }
-            response << ".";
-            chat->encodeString16(StringUtils::utf8ToWide(response.str()));
+            response += ".";
+            chat->encodeString16(StringUtils::utf8ToWide(response));
 
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
