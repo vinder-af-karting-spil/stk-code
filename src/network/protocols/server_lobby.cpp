@@ -867,7 +867,7 @@ void ServerLobby::handleChat(Event* event)
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender_in_game, target_team, sender_name, can_receive, team_speak, teams, this]
+            [game_started, sender, sender_in_game, target_team, sender_name, can_receive, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
@@ -923,7 +923,7 @@ void ServerLobby::handleChat(Event* event)
                     }
                 }
 
-                return false;
+                return sender == p;
             }, chat);
             event->getPeer()->updateLastMessage();
         delete chat;
