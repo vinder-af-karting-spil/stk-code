@@ -453,8 +453,11 @@ public:
     void sendStringToAllPeers(std::string& s);
     void sendRandomInstalladdonLine(STKPeer* peer) const;
     void sendRandomInstalladdonLine(std::shared_ptr<STKPeer> peer) const;
+    void sendCurrentModifiers(STKPeer* peer) const;
+    void sendCurrentModifiers(std::shared_ptr<STKPeer> peer) const;
     bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
     NetworkString* addRandomInstalladdonMessage(NetworkString* ns) const;
+    NetworkString* addKartRestrictionMessage(NetworkString* ns) const;
     const std::string getRandomAddon(RaceManager::MinorRaceModeType m=RaceManager::MINOR_MODE_NONE) const;
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
