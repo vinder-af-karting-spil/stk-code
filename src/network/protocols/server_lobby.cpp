@@ -1880,6 +1880,7 @@ void ServerLobby::rejectLiveJoin(STKPeer* peer, BackLobbyReason blr)
 
     // everywhere where addServerInfo is used, sendRandomInstalladdonLine be used too.
     sendRandomInstalladdonLine(peer);
+    sendCurrentModifiers(peer);
 }   // rejectLiveJoin
 
 //-----------------------------------------------------------------------------
@@ -3992,6 +3993,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     delete server_info;
 
     sendRandomInstalladdonLine(peer);
+    sendCurrentModifiers(peer);
 
     const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
     NetworkString* message_ack = getNetworkString(4);
@@ -5784,6 +5786,7 @@ void ServerLobby::clientInGameWantsToBackLobby(Event* event)
     peer->sendPacket(server_info, /*reliable*/true);
     delete server_info;
     sendRandomInstalladdonLine(peer);
+    sendCurrentModifiers(peer);
 }   // clientInGameWantsToBackLobby
 
 //-----------------------------------------------------------------------------
@@ -5833,6 +5836,7 @@ void ServerLobby::clientSelectingAssetsWantsToBackLobby(Event* event)
     peer->sendPacket(server_info, /*reliable*/true);
     delete server_info;
     sendRandomInstalladdonLine(peer);
+    sendCurrentModifiers(peer);
 }   // clientSelectingAssetsWantsToBackLobby
 
 std::set<std::shared_ptr<STKPeer>> ServerLobby::getSpectatorsByLimit()
@@ -6862,3 +6866,50 @@ void ServerLobby::sendRandomInstalladdonLine(std::shared_ptr<STKPeer> const peer
 	delete ril_pkt;
     }
 } // sendRandomInstalladdonLine
+void ServerLobby::sendCurrentModifiers(STKPeer* const peer) const
+{
+    NetworkString* pkt = getNetworkString();
+    pkt->setSynchronous(true);
+
+    // add stuff here
+    addKartRestrictionMessage(pkt);
+
+    peer->sendPacket(pkt, true/*reliable*/);
+    delete pkt;
+}
+void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer> const peer) const
+{
+    NetworkString* pkt = getNetworkString();
+    pkt->setSynchronous(true);
+
+    // add stuff here
+    addKartRestrictionMessage(pkt);
+
+    peer->sendPacket(pkt, true/*reliable*/);
+    delete pkt;
+}
+NetworkString* ServerLobby::addKartRestrictionMessage(NetworkString* ns) const
+{
+    if (m_kart_restriction == NONE)
+        return ns;
+
+    ns->addUInt8(LE_CHAT);
+    core::stringw msg = L"\n---===---\n";
+    switch (m_kart_restriction)
+    {
+        case HEAVY:
+            msg += L"HEAVY PARTY is ACTIVE! Only heavy karts can be chosen";
+            break;
+        case MEDIUM:
+            msg += L"MEDIUM PARTY is ACTIVE! Only medium karts can be chosen";
+            break;
+        case LIGHT:
+            msg += L"LIGHT INSURANCE is ACTIVE! Only light karts can be chosen, to ensure better experience.";
+            break;
+        case NONE:
+            break;
+    }
+    msg += L"\n---===---";
+    ns->encodeString16(msg);
+    return ns;
+}
