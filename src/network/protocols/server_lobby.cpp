@@ -6568,6 +6568,39 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
+    else if (argv[0] == "mediumparty")
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+
+        if (m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        m_kart_restriction = state ? MEDIUM : NONE;
+        std::string message("Medium party is now ");
+        if (state)
+        {
+            message += "ACTIVE. Only medium karts can be chosen.";
+        }
+        else
+        {
+            message += "INACTIVE. All karts can be chosen.";
+        }
+
+        sendStringToAllPeers(message);
+    }
     /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")
     {
