@@ -208,6 +208,10 @@ namespace ServerConfig
         "STK will use the stk-addons server to share AES key between the client "
         "and server."));
 
+    SERVER_CFG_PREFIX FloatServerConfigParam m_check_servers_cooldown
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(10.0f, "check-servers-cooldown",
+        "Global cooldown for the /check-servers command. Set to 0 to disable the command."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_validating_player
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "validating-player",
         "By default WAN server will always validate player and LAN will not, "

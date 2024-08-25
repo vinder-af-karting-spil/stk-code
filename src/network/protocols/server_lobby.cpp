@@ -46,6 +46,7 @@
 #include "network/race_event_manager.hpp"
 #include "network/server_config.hpp"
 #include "network/socket_address.hpp"
+#include "network/server.hpp"
 #include "network/stk_host.hpp"
 #include "network/stk_ipv6.hpp"
 #include "network/stk_peer.hpp"
@@ -59,7 +60,7 @@
 #include "utils/random_generator.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
-#include "utils/translation.hpp"
+//#include "utils/translation.hpp"
 
 #include <algorithm>
 #include <ctime>
@@ -67,6 +68,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -259,6 +261,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_default_vote = new PeerVote();
     m_player_reports_table_exists = false;
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
+    m_last_wanrefresh_cmd_time = 0UL;
     initDatabase();
 }   // ServerLobby
 
@@ -867,7 +870,7 @@ void ServerLobby::handleChat(Event* event)
         core::stringw sender_name =
             event->getPeer()->getPlayerProfiles()[0]->getName();
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender, sender_in_game, target_team, sender_name, team_speak, teams, this]
+            [game_started, sender_in_game, target_team, sender_name, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
@@ -1452,6 +1455,60 @@ void ServerLobby::writePlayerReport(Event* event)
 #endif
 }   // writePlayerReport
 
+void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
+{
+    core::stringw responseMsg = L"[Currently played servers]";
+    std::lock_guard<std::mutex> wr_lock(m_wanrefresh_lock);
+    std::shared_ptr<STKPeer> requester = m_last_wanrefresh_requester.lock();
+    // send a message to whoever requested the message
+    NetworkString* response = getNetworkString();
+    response->setSynchronous(true);
+    response->addUInt8(LE_CHAT);
+
+    for (std::shared_ptr<Server> serverPtr : m_last_wanrefresh_res->m_servers)
+    {
+        auto players = serverPtr->getPlayers();
+        if (players.empty() || serverPtr->isPasswordProtected())
+            continue;
+
+        RaceManager::MinorRaceModeType m =
+            ServerConfig::getLocalGameMode(m_game_mode.load()).first;
+
+        responseMsg += StringUtils::getCountryFlag(serverPtr->getCountryCode());
+        responseMsg += serverPtr->getName();
+        responseMsg += L" (";
+        responseMsg += players.size();
+        responseMsg += L"/";
+        responseMsg += serverPtr->getMaxPlayers();
+        responseMsg += L"), ";
+        responseMsg += StringUtils::utf8ToWide(
+                RaceManager::getIdentOf(m));
+        responseMsg += L", ";
+        if (serverPtr->isGameStarted())
+        {
+            Track* track = serverPtr->getCurrentTrack();
+            if (track)
+                responseMsg += track->getName();
+            else
+                responseMsg += L"(unknown track)";
+        }
+        else {
+            responseMsg += L"(waiting for game)";
+        }
+        responseMsg += L"\n";
+        
+        //player list
+        for (auto player : players)
+        {
+            responseMsg += std::get<1>(player);
+            responseMsg += L", ";
+        }
+        responseMsg += L"\n\n";
+    }
+
+    response->encodeString16(responseMsg);
+    delete response;
+}
 //-----------------------------------------------------------------------------
 /** Find out the public IP server or poll STK server asynchronously. */
 void ServerLobby::asynchronousUpdate()
@@ -1502,6 +1559,12 @@ void ServerLobby::asynchronousUpdate()
         m_last_unsuccess_poll_time = StkTime::getMonoTimeMs() + 3000;
         registerServer(false/*first_time*/);
     }
+
+    // Respond to asynchronous events
+    if (m_last_wanrefresh_res->m_servers.size() &&
+            m_last_wanrefresh_res->m_list_updated.load() &&
+            !m_last_wanrefresh_requester.expired())
+        sendWANListToPeer(m_last_wanrefresh_requester.lock());
 
     switch (m_state.load())
     {
@@ -1574,6 +1637,7 @@ void ServerLobby::asynchronousUpdate()
         {
             unsigned players = 0;
             STKHost::get()->updatePlayers(&players);
+
             if (((int)players >= ServerConfig::m_min_start_game_players ||
                 m_game_setup->isGrandPrixStarted()) &&
                 m_timeout.load() == std::numeric_limits<int64_t>::max())
@@ -1602,6 +1666,7 @@ void ServerLobby::asynchronousUpdate()
                 return;
             }
         }
+        // You can implement anything of interesting when there is a crowned player
         break;
     }
     case ERROR_LEAVE:
@@ -6604,6 +6669,33 @@ void ServerLobby::handleServerCommand(Event* event,
         }
 
         sendStringToAllPeers(message);
+    }
+    else if (argv[0] == "check-servers"
+            && ServerConfig::m_check_servers_cooldown > 0.0f)
+    {
+        NetworkString* response = getNetworkString();
+        response->setSynchronous(true);
+        uint64_t now = StkTime::getMonoTimeMs();
+        // first, check if the timeout has not ran out yet
+        if (m_last_wanrefresh_cmd_time + (uint64_t)(ServerConfig::m_check_servers_cooldown * 1000.0f)
+                > now)
+        {
+            response->addUInt8(LE_CHAT);
+            response->encodeString16(L"Someone has already used the command");
+            peer->sendPacket(response, true/*reliable*/);
+            delete response;
+            return;
+        }
+
+        // then, set current time
+        m_last_wanrefresh_cmd_time = now;
+        // and current sender
+        m_last_wanrefresh_requester = peer;
+        // and, create a request
+
+        m_last_wanrefresh_res = ServersManager::get()->getWANRefreshRequest();
+        
+        delete response;
     }
     /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")

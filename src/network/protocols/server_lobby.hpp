@@ -23,6 +23,7 @@
 #include "race/race_manager.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/time.hpp"
+#include "network/servers_manager.hpp"
 
 #include "irrString.h"
 
@@ -280,6 +281,12 @@ private:
     // Calculated before each game started
     unsigned m_ai_count;
 
+    // TierS additional members
+    uint64_t m_last_wanrefresh_cmd_time;
+    std::shared_ptr<ServerList> m_last_wanrefresh_res;
+    std::weak_ptr<STKPeer> m_last_wanrefresh_requester;
+    std::mutex m_wanrefresh_lock;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
@@ -455,6 +462,7 @@ public:
     void sendRandomInstalladdonLine(std::shared_ptr<STKPeer> peer) const;
     void sendCurrentModifiers(STKPeer* peer) const;
     void sendCurrentModifiers(std::shared_ptr<STKPeer> peer) const;
+    void sendWANListToPeer(std::shared_ptr<STKPeer> peer);
     bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
     NetworkString* addRandomInstalladdonMessage(NetworkString* ns) const;
     NetworkString* addKartRestrictionMessage(NetworkString* ns) const;
