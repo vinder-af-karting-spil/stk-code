@@ -6093,7 +6093,7 @@ void ServerLobby::handleServerCommand(Event* event,
         cmd = cmd.substr(5, cmd.length());
     }
 
-    if (argv[0] == "spectate")
+    if (argv[0] == "spectate" || argv[0] == "s" || argv[0] == "sp" || argv[0] == "spec" || argv[0] == "spect")
     {
         if (m_game_setup->isGrandPrix() || !ServerConfig::m_live_players)
         {
@@ -6141,7 +6141,7 @@ void ServerLobby::handleServerCommand(Event* event,
         updatePlayerList();
     }
 
-    else if (argv[0] == "score")
+    else if (argv[0] == "score" || argv[0] == "sc")
     {
         if (m_state.load() != RACING)
         {
@@ -6168,7 +6168,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
 
-    else if (argv[0] == "teamchat")
+    else if (argv[0] == "teamchat" || argv[0] == "tc" || argv[0] == "tchat")
     {
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
@@ -6179,7 +6179,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
 
-    else if (argv[0] == "to")
+    else if (argv[0] == "to" || argv[0] == "msg" || argv[0] == "dm" || argv[0] == "pm")
     {       
         if (!peer->hasPlayerProfiles())
             return;
@@ -6200,7 +6200,7 @@ void ServerLobby::handleServerCommand(Event* event,
             senderMsg->addUInt8(LE_CHAT);
             senderMsg->setSynchronous(true);
             std::shared_ptr<STKPeer> target = STKHost::get()->findPeerByName(
-                StringUtils::utf8ToWide(argv[1]));
+                StringUtils::utf8ToWide(argv[1]), true/*ignoreCase*/, true/*onlyPrefix*/);
             if (!target)
             {
                 senderMsg->encodeString16(L"Recipient is not online.");
@@ -6221,7 +6221,7 @@ void ServerLobby::handleServerCommand(Event* event,
             core::stringw senderMsgS = L"🔒 to ";
 
             recipientMsgS += peer->getPlayerProfiles()[0]->getName();
-            senderMsgS += StringUtils::utf8ToWide(argv[1]);
+            senderMsgS += target->getPlayerProfiles()[0]->getName();
             recipientMsgS += L": ";
             senderMsgS += L": ";
             recipientMsgS += msg;
@@ -6237,7 +6237,7 @@ void ServerLobby::handleServerCommand(Event* event,
         }
     }
 
-    else if (argv[0] == "slots")
+    else if (argv[0] == "slots" || argv[0] == "sl")
     {
         if (argv.size() == 1)
         {
@@ -6295,7 +6295,7 @@ void ServerLobby::handleServerCommand(Event* event,
         sendStringToAllPeers(message);
     }
     
-    else if (argv[0] == "public")
+    else if (argv[0] == "public" || argv[0] == "pub" || argv[0] == "all")
     {
         //m_message_receivers[peer.get()].clear();
         m_team_speakers.erase(peer.get());
@@ -6303,7 +6303,7 @@ void ServerLobby::handleServerCommand(Event* event,
         sendStringToPeer(s, peer);
     }
 
-    else if (argv[0] == "listserveraddon")
+    else if (argv[0] == "listserveraddon" || argv[0] == "lsa")
     {
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
@@ -6437,7 +6437,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (StringUtils::startsWith(cmd, "kick"))
+    else if (argv[0] == "kick")
     {
         if (argv.size() == 1)
         {
@@ -6453,7 +6453,7 @@ void ServerLobby::handleServerCommand(Event* event,
         if (cmd.length() > 5)
             player_name = cmd.substr(5);
         std::shared_ptr<STKPeer> player_peer = STKHost::get()->findPeerByName(
-            StringUtils::utf8ToWide(player_name));
+            StringUtils::utf8ToWide(player_name), true/*ignoreCase*/, true/*prefixOnly*/);
         if (player_name.empty() || !player_peer || player_peer->isAIPeer())
         {
             NetworkString* chat = getNetworkString();
@@ -6512,7 +6512,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "serverhasaddon")
+    else if (argv[0] == "serverhasaddon" || argv[0] == "sha")
     {
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
@@ -6610,7 +6610,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "heavyparty")
+    else if (argv[0] == "heavyparty" || argv[0] == "hp")
     {
         irr::core::stringw response;
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
@@ -6643,7 +6643,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
-    else if (argv[0] == "mediumparty")
+    else if (argv[0] == "mediumparty" || argv[0] == "mp")
     {
         irr::core::stringw response;
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
@@ -6676,7 +6676,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
-    else if (argv[0] == "scanservers"
+    else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
             && ServerConfig::m_check_servers_cooldown > 0.0f)
     {
         NetworkString* response = getNetworkString();
@@ -6810,15 +6810,16 @@ unmute_error:
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "showcommands")
+    else if (argv[0] == "showcommands" || argv[0] == "commands" || argv[0] == "cmds" || argv[0] == "cmd")
     {
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         core::stringw res = (
-            L"/showcommands /vote /spectate /score /teamchat /to /slots /powerupper-on /powerupper-off /public "
-            L"/listserveraddon /playerhasaddon /kick /playeraddonscore /serverhasaddon /feature "
-            L"/heavyparty /mediumparty /scanservers /mute /unmute /listmute"
+            L"/showcommands|commands|cmds /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
+            L"/to|msg|dm|pm /slots|sl /powerupper-on /powerupper-off /public|pub|all "
+            L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /feature "
+            L"/heavyparty|hp /mediumparty|mp /scanservers|online /mute /unmute /listmute"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);

@@ -1466,16 +1466,29 @@ std::shared_ptr<STKPeer> STKHost::findPeerByHostId(uint32_t id) const
 
 //-----------------------------------------------------------------------------
 std::shared_ptr<STKPeer>
-    STKHost::findPeerByName(const core::stringw& name) const
+    STKHost::findPeerByName(const core::stringw& name,
+            const bool ignoreCase, const bool onlyPrefix) const
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     auto ret = std::find_if(m_peers.begin(), m_peers.end(),
-        [name](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
+        [name, onlyPrefix, ignoreCase](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
         {
             bool found = false;
             for (auto& profile : p.second->getPlayerProfiles())
             {
-                if (profile->getName() == name)
+                const irr::core::stringw& cname = profile->getName();
+                if (
+                        // test equality based on priority:
+                        // case sensitive equal, case insensitive equal,
+                        // starts with case sensitive,
+                        // starts with case insensitive
+                        //
+                        (cname == name) ||
+                        (ignoreCase && cname.equals_ignore_case(name)) ||
+                        (onlyPrefix && StringUtils::wideStartsWith(cname, name)) ||
+                        (ignoreCase && onlyPrefix && StringUtils::wideStartsWith(
+                            cname, name, true/*ignoreCase*/))
+                        )
                 {
                     found = true;
                     break;
