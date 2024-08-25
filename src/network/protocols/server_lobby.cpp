@@ -6676,7 +6676,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
-    else if (argv[0] == "check-servers"
+    else if (argv[0] == "scanservers"
             && ServerConfig::m_check_servers_cooldown > 0.0f)
     {
         NetworkString* response = getNetworkString();
@@ -6807,6 +6807,20 @@ unmute_error:
             total += "muted";
             chat->encodeString16(total);
         }
+        peer->sendPacket(chat, true/*reliable*/);
+        delete chat;
+    }
+    else if (argv[0] == "showcommands")
+    {
+        NetworkString* chat = getNetworkString();
+        chat->addUInt8(LE_CHAT);
+        chat->setSynchronous(true);
+        core::stringw res = (
+            L"/showcommands /vote /spectate /score /teamchat /to /slots /powerupper-on /powerupper-off /public "
+            L"/listserveraddon /playerhasaddon /kick /playeraddonscore /serverhasaddon /feature "
+            L"/heavyparty /mediumparty /scanservers /mute /unmute /listmute"
+        );
+        chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
