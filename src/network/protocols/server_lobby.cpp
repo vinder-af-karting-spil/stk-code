@@ -6817,7 +6817,7 @@ unmute_error:
         chat->setSynchronous(true);
         core::stringw res = (
             L"/showcommands /vote /spectate /score /teamchat /to /slots /powerupper-on /powerupper-off /public "
-            L"/listserveraddon /playerhasaddon /kick /playeraddonscore /serverhasaddon /feature "
+            L"/listserveraddon /playerhasaddon /kick /playeraddonscore /serverhasaddon /inform "
             L"/heavyparty /mediumparty /scanservers /mute /unmute /listmute"
         );
         chat->encodeString16(res);
