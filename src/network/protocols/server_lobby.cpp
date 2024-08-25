@@ -262,6 +262,8 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_player_reports_table_exists = false;
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
     m_last_wanrefresh_cmd_time = 0UL;
+    m_last_wanrefresh_res = nullptr;
+    m_last_wanrefresh_requester.reset();
     initDatabase();
 }   // ServerLobby
 
@@ -1457,7 +1459,7 @@ void ServerLobby::writePlayerReport(Event* event)
 
 void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
 {
-    core::stringw responseMsg = L"[Currently played servers]";
+    core::stringw responseMsg = L"[Currently played servers]\n";
     std::lock_guard<std::mutex> wr_lock(m_wanrefresh_lock);
     std::shared_ptr<STKPeer> requester = m_last_wanrefresh_requester.lock();
     // send a message to whoever requested the message
@@ -1488,7 +1490,7 @@ void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
         {
             Track* track = serverPtr->getCurrentTrack();
             if (track)
-                responseMsg += track->getName();
+                responseMsg += StringUtils::utf8ToWide(track->getIdent());
             else
                 responseMsg += L"(unknown track)";
         }
@@ -1501,12 +1503,13 @@ void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
         for (auto player : players)
         {
             responseMsg += std::get<1>(player);
-            responseMsg += L", ";
+            responseMsg += L" | ";
         }
         responseMsg += L"\n\n";
     }
 
     response->encodeString16(responseMsg);
+    peer->sendPacket(response);
     delete response;
 }
 //-----------------------------------------------------------------------------
@@ -1561,10 +1564,13 @@ void ServerLobby::asynchronousUpdate()
     }
 
     // Respond to asynchronous events
-    if (m_last_wanrefresh_res->m_servers.size() &&
+    if (m_last_wanrefresh_res && m_last_wanrefresh_res->m_servers.size() &&
             m_last_wanrefresh_res->m_list_updated.load() &&
             !m_last_wanrefresh_requester.expired())
+    {
         sendWANListToPeer(m_last_wanrefresh_requester.lock());
+        m_last_wanrefresh_res->m_list_updated.store(false);
+    }
 
     switch (m_state.load())
     {
@@ -6681,7 +6687,7 @@ void ServerLobby::handleServerCommand(Event* event,
                 > now)
         {
             response->addUInt8(LE_CHAT);
-            response->encodeString16(L"Someone has already used the command");
+            response->encodeString16(L"Someone has already used the command. Please wait before doing it again.");
             peer->sendPacket(response, true/*reliable*/);
             delete response;
             return;
@@ -6695,6 +6701,9 @@ void ServerLobby::handleServerCommand(Event* event,
 
         m_last_wanrefresh_res = ServersManager::get()->getWANRefreshRequest();
         
+        response->addUInt8(LE_CHAT);
+        response->encodeString16(L"Fetching, please wait...");
+        peer->sendPacket(response, true/*reliable*/);
         delete response;
     }
     /* is this kimden's code below? seems like only kimden can use goto */
