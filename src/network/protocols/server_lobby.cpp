@@ -6545,15 +6545,15 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "feature")
+    else if (argv[0] == "inform")
     {
-        const size_t _cmd_size = sizeof("feature");
+        const size_t _cmd_size = sizeof("inform");
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         irr::core::stringw response;
 
-        // ensure there is a message specified "feature" = 7 characters long,
+        // ensure there is a message specified "inform" = 6 characters long,
         // 1 whitespace, and 5 is the minimum
         if (cmd.length() < _cmd_size + 5)
         {
@@ -6597,7 +6597,7 @@ void ServerLobby::handleServerCommand(Event* event,
         file.flush();
         if (!file.good())
         {
-            response = "Failed to record a feature. Input/output error (2). Please inform the administrator.";
+            response = "Failed to record a message. Input/output error (2). Please inform the administrator.";
             chat->encodeString16(response);
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
