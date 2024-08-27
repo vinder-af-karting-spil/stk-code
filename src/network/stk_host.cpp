@@ -1637,23 +1637,33 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 
     if (first_resid == second_resid)
     {
-        Log::info("STKHost", "Forced first and second kart positions"
+        Log::verbose("STKHost", "Forced first and second kart positions"
                 " collide. Kart positions have not been changed.");
         return players;
     }
+    std::shared_ptr<NetworkPlayerProfile> temp;
     // Swap first and second
     if (players.size() > 1 && first_resid == 1 && second_resid == 0)
     {
-        std::swap(players[0], players[1]);
+        temp = players[0];
+        players[0] = players[1];
+        players[1] = temp;
+        Log::verbose("STKHost", "Swapped first #0 and second #1 player positions.");
         return players;
     }
     if (players.size() > 0 && first_resid != 0)
     {
-        std::swap(players[0], players[first_resid]);
+        temp = players[0];
+        players[0] = players[first_resid];
+        players[first_resid] = temp;
+        Log::verbose("STKHost", "Set %u player to #0.", first_resid);
     }
     if (players.size() > 1 && second_resid != 1)
     {
-        std::swap(players[1], players[second_resid]);
+        temp = players[1];
+        players[1] = players[second_resid];
+        players[second_resid] = temp;
+        Log::verbose("STKHost", "Set %u player to #1.", second_resid);
     }
 
     return players;
