@@ -7044,12 +7044,14 @@ core::stringw ServerLobby::formatTeammateList(
 //------------------------------------------------------------------------------------------
 void ServerLobby::setPoleEnabled(bool mode)
 {
-    STKHost* const host = STKHost::get();
-    m_pole_enabled = mode;
-
     m_blue_pole_votes.clear();
     m_red_pole_votes.clear();
 
+    if (m_pole_enabled == mode)
+        return;
+    m_pole_enabled = mode;
+
+    STKHost* const host = STKHost::get();
     host->setForcedFirstPlayer(nullptr);
     host->setForcedSecondPlayer(nullptr);
 
