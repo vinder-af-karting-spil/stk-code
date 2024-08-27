@@ -41,6 +41,7 @@
 #include "utils/time.hpp"
 #include "utils/vs.hpp"
 
+#include <cstddef>
 #include <string.h>
 #if defined(WIN32)
 #  include "ws2tcpip.h"
@@ -1432,7 +1433,56 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
     lock.unlock();
     return p;
 }   // getAllPlayerProfiles
+//-----------------------------------------------------------------------------
+std::vector<std::shared_ptr<NetworkPlayerProfile> >
+    STKHost::getPlayerProfilesOfTeam(const KartTeam team) const
+{
+    std::vector<std::shared_ptr<NetworkPlayerProfile> > p;
+    std::unique_lock<std::mutex> lock(m_peers_mutex);
+    for (auto& peer : m_peers)
+    {
+        if (peer.second->isDisconnected() || !peer.second->isValidated())
+            continue;
+        if (ServerConfig::m_ai_handling && peer.second->isAIPeer())
+            continue;
+        for (auto& profile : peer.second->getPlayerProfiles())
+        {
+            if (profile->getTeam() != team)
+                continue;
 
+            p.push_back(profile);
+        }
+    }
+    lock.unlock();
+    return p;
+}   // getAllPlayerProfiles
+//-----------------------------------------------------------------------------
+void STKHost::getTeamLists(
+    std::vector<std::shared_ptr<NetworkPlayerProfile>>& blue_team,
+    std::vector<std::shared_ptr<NetworkPlayerProfile>>& red_team) const
+{
+
+    std::unique_lock<std::mutex> lock(m_peers_mutex);
+    for (auto& peer : m_peers)
+    {
+        if (peer.second->isDisconnected() || !peer.second->isValidated())
+            continue;
+        if (ServerConfig::m_ai_handling && peer.second->isAIPeer())
+            continue;
+        for (auto& profile : peer.second->getPlayerProfiles())
+        {
+            if (profile->getTeam() == KART_TEAM_NONE)
+                continue;
+
+            if (profile->getTeam() == KART_TEAM_BLUE)
+                blue_team.push_back(profile);
+
+            else
+                red_team.push_back(profile);
+        }
+    }
+    lock.unlock();
+} // getTeamLists
 //-----------------------------------------------------------------------------
 std::set<uint32_t> STKHost::getAllPlayerOnlineIds() const
 {
@@ -1542,6 +1592,10 @@ std::pair<int, int> STKHost::getAllPlayersTeamInfo() const
 std::vector<std::shared_ptr<NetworkPlayerProfile> >
     STKHost::getPlayersForNewGame(bool* has_always_on_spectators) const
 {
+    // Forced position overrides if specified
+    std::size_t first_resid = 0;
+    std::size_t second_resid = 1;
+
     std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     for (auto& p : m_peers)
@@ -1560,8 +1614,48 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         if (ServerConfig::m_ai_handling && stk_peer->isAIPeer())
             continue;
         for (auto& q : stk_peer->getPlayerProfiles())
+        {
             players.push_back(q);
+
+            auto forced_first_player =
+                m_forced_first_player.expired() ? nullptr 
+                : m_forced_first_player.lock();
+
+            auto forced_second_player =
+                m_forced_second_player.expired() ? nullptr 
+                : m_forced_second_player.lock();
+
+            if (forced_first_player != nullptr &&
+                    forced_first_player == q)
+                first_resid = players.size() - 1;
+
+            if (forced_second_player != nullptr &&
+                    forced_second_player == q)
+                second_resid = players.size() - 1;
+        }
     }
+
+    if (first_resid == second_resid)
+    {
+        Log::info("STKHost", "Forced first and second kart positions"
+                " collide. Kart positions have not been changed.");
+        return players;
+    }
+    // Swap first and second
+    if (players.size() > 1 && first_resid == 1 && second_resid == 0)
+    {
+        std::swap(players[0], players[1]);
+        return players;
+    }
+    if (players.size() > 0 && first_resid != 0)
+    {
+        std::swap(players[0], players[first_resid]);
+    }
+    if (players.size() > 1 && second_resid != 1)
+    {
+        std::swap(players[1], players[second_resid]);
+    }
+
     return players;
 }   // getPlayersForNewGame
 
@@ -1645,3 +1739,27 @@ uint16_t STKHost::getPrivatePort() const
 {
     return m_network->getPort();
 }  // getPrivatePort
+bool STKHost::isPeerInTeam(
+    std::shared_ptr<STKPeer>& p, const KartTeam team) const
+{
+    if (!p->hasPlayerProfiles()) return false;
+
+    for (auto& profile : p->getPlayerProfiles())
+    {
+        if (profile->getTeam() == team)
+            return true;
+    }
+    return false;
+}
+bool STKHost::isPeerInTeam(
+    STKPeer* p, const KartTeam team) const
+{
+    if (!p->hasPlayerProfiles()) return false;
+
+    for (auto& profile : p->getPlayerProfiles())
+    {
+        if (profile->getTeam() == team)
+            return true;
+    }
+    return false;
+}

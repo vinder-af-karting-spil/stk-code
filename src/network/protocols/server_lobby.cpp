@@ -44,6 +44,7 @@
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/protocols/global_log.hpp"
 #include "network/race_event_manager.hpp"
+#include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
 #include "network/socket_address.hpp"
 #include "network/server.hpp"
@@ -71,6 +72,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <utility>
 
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
@@ -1736,6 +1738,28 @@ void ServerLobby::asynchronousUpdate()
         }
         if (go_on_race)
         {
+            // pole
+            if (isPoleEnabled())
+            {
+                auto pole = decidePoles();
+
+                STKHost::get()->setForcedFirstPlayer(pole.first);
+                STKHost::get()->setForcedSecondPlayer(pole.second);
+
+                announcePoleFor(pole.first, KART_TEAM_BLUE);
+                if (pole.first)
+                    Log::info("ServerLobby", "Pole player for team blue is %s.",
+                            StringUtils::wideToUtf8(pole.first->getName()).c_str());
+                else
+                    Log::info("ServerLobby", "No pole player for team blue.");
+
+                announcePoleFor(pole.second, KART_TEAM_RED);
+                if (pole.second)
+                    Log::info("ServerLobby", "Pole player for team red is %s.",
+                            StringUtils::wideToUtf8(pole.second->getName()).c_str());
+                else
+                    Log::info("ServerLobby", "No pole player for team red.");
+            }
             *m_default_vote = winner_vote;
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
@@ -1808,8 +1832,8 @@ void ServerLobby::asynchronousUpdate()
             RaceManager::get()->setFlagDeactivatedTicks(flag_deactivated_time);
             configRemoteKart(players, 0);
            
-	    std::string log_msg;
-	    if(ServerConfig::m_soccer_log)
+            std::string log_msg;
+            if(ServerConfig::m_soccer_log)
             {
                 log_msg = "Addon: " + winner_vote.m_track_name;
                 GlobalLog::writeLog(log_msg + "\n", GlobalLogTypes::POS_LOG);
@@ -3174,6 +3198,8 @@ void ServerLobby::checkRaceFinished()
 
     // Remove kart restriction after the game is over
     setKartRestrictionMode(NONE);
+    // Remove pole mode after the game is over
+    setPoleEnabled(false);
 }   // checkRaceFinished
 
 //-----------------------------------------------------------------------------
@@ -3613,10 +3639,11 @@ void ServerLobby::clientDisconnected(Event* event)
 
     writeDisconnectInfoTable(event->getPeer());
 
-    // On last player, reset kart restriction.
+    // On last player
     if (!STKHost::get()->getPeerCount())
     {
         setKartRestrictionMode(NONE);
+        setPoleEnabled(false);
     }
 }   // clientDisconnected
 
@@ -6093,7 +6120,17 @@ void ServerLobby::handleServerCommand(Event* event,
         cmd = cmd.substr(5, cmd.length());
     }
 
-    if (argv[0] == "spectate" || argv[0] == "s" || argv[0] == "sp" || argv[0] == "spec" || argv[0] == "spect")
+    unsigned int argv0_number;
+    std::stringstream argv0_ss;
+    argv0_ss << argv[0];
+    argv0_ss >> argv0_number;
+
+    if (isPoleEnabled() && argv.size() == 1 && !argv0_ss.fail())
+    {
+        // command is a number, /1 /2 /3 ... and pole is enabled
+        submitPoleVote(peer, argv0_number);
+    }
+    else if (argv[0] == "spectate" || argv[0] == "s" || argv[0] == "sp" || argv[0] == "spec" || argv[0] == "spect")
     {
         if (m_game_setup->isGrandPrix() || !ServerConfig::m_live_players)
         {
@@ -6825,21 +6862,52 @@ unmute_error:
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
+    else if (argv[0] == "pole")
+    {
+        if (
+            RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_SOCCER &&
+            RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
+        )
+        {
+            NetworkString* chat = getNetworkString();
+            chat->addUInt8(LE_CHAT);
+            chat->setSynchronous(true);
+            core::stringw msg = L"Pole only applies to team games.";
+            chat->encodeString16(msg);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+
+        }
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            core::stringw response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+
+        if (m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+
+        setPoleEnabled(state);
+    }
     else
     {
-        NetworkString* chat = getNetworkString();
-        chat->addUInt8(LE_CHAT);
-        chat->setSynchronous(true);
         std::string msg = "Unknown command: ";
         msg += cmd;
-        chat->encodeString16(StringUtils::utf8ToWide(msg));
-        peer->sendPacket(chat, true/*reliable*/);
-        delete chat;
+        sendStringToPeer(msg, peer);
     }
 }   // handleServerCommand
 
 //-----------------------------------------------------------------------------
-void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const
+void ServerLobby::sendStringToPeer(const std::string& s, std::shared_ptr<STKPeer>& peer) const
 {
     if (peer==NULL)
     {
@@ -6850,6 +6918,21 @@ void ServerLobby::sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& pee
     chat->addUInt8(LE_CHAT);
     chat->setSynchronous(true);
     chat->encodeString16(StringUtils::utf8ToWide(s));
+    peer->sendPacket(chat, true/*reliable*/);
+    delete chat;
+}   // sendStringToPeer
+//-----------------------------------------------------------------------------
+void ServerLobby::sendStringToPeer(const irr::core::stringw& s, std::shared_ptr<STKPeer>& peer) const
+{
+    if (peer==NULL)
+    {
+        Log::info("ServerLobby",StringUtils::wideToUtf8(s).c_str());
+        return;
+    }
+    NetworkString* chat = getNetworkString();
+    chat->addUInt8(LE_CHAT);
+    chat->setSynchronous(true);
+    chat->encodeString16(s);
     peer->sendPacket(chat, true/*reliable*/);
     delete chat;
 }   // sendStringToPeer
@@ -6942,6 +7025,205 @@ const std::string ServerLobby::getRandomAddon(RaceManager::MinorRaceModeType m) 
     return result;
 } // getRandomSoccerAddon
 
+//------------------------------------------------------------------------------------------
+core::stringw ServerLobby::formatTeammateList(
+    const std::vector<std::shared_ptr<NetworkPlayerProfile>> &team) const
+{
+    core::stringw res;
+    for (unsigned int i = 0; i < team.size(); ++i)
+    {
+        res += L"/";
+        res += core::stringw(i + 1);
+        res += L" to vote for ";
+        res += team[i]->getName();
+        res += L"\n";
+    }
+    return res;
+} // formatTeammateList
+
+//------------------------------------------------------------------------------------------
+void ServerLobby::setPoleEnabled(bool mode)
+{
+    STKHost* const host = STKHost::get();
+    m_pole_enabled = mode;
+
+    m_blue_pole_votes.clear();
+    m_red_pole_votes.clear();
+
+    host->setForcedFirstPlayer(nullptr);
+    host->setForcedSecondPlayer(nullptr);
+
+    if (mode)
+    {
+        resetPeersReady();
+
+        std::vector<std::shared_ptr<NetworkPlayerProfile>>
+            team_blue, team_red;
+
+        host->getTeamLists(team_blue, team_red);
+
+        // send message to team members
+        const core::stringw header =
+            L"Pole vote has been opened. Please vote for the teammate that will be at the "
+            L"most front position towards the ball or puck:\n";
+
+        core::stringw msg_red = header, msg_blue = header;
+
+        msg_blue += formatTeammateList(team_blue);
+        msg_red += formatTeammateList(team_red);
+
+        NetworkString* const pkt_blue = getNetworkString();
+        NetworkString* const pkt_red = getNetworkString();
+
+        pkt_blue->setSynchronous(true);
+        pkt_blue->addUInt8(LE_CHAT);
+        pkt_red->setSynchronous(true);
+        pkt_red->addUInt8(LE_CHAT);
+        pkt_blue->encodeString16(msg_blue);
+        pkt_red->encodeString16(msg_red);
+
+        host->sendPacketToAllPeersWith([host](STKPeer* p)
+                {
+                    if (p->isAIPeer()) return false;
+                    return host->isPeerInTeam(p, KART_TEAM_BLUE);
+                }, pkt_blue);
+        host->sendPacketToAllPeersWith([host](STKPeer* p)
+                {
+                    if (p->isAIPeer()) return false;
+                    return host->isPeerInTeam(p, KART_TEAM_RED);
+                }, pkt_red);
+
+        delete pkt_blue;
+        delete pkt_red;
+    }
+    else 
+    {
+        std::string resp("Pole has been disabled.");
+        sendStringToAllPeers(resp);
+    }
+} // setPoleEnabled
+
+//------------------------------------------------------------------------------------------
+void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned int vote)
+{
+    if (!voter->hasPlayerProfiles())
+        return;
+
+    std::shared_ptr<NetworkPlayerProfile> voter_profile = voter->getPlayerProfiles()[0];
+    const KartTeam team = voter_profile->getTeam();
+    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>*
+        mapping = &m_blue_pole_votes;
+    if (team == KART_TEAM_NONE)
+    {
+        sendStringToPeer(L"You need to be in the team in order to vote for the pole.", voter);
+        return;
+    }
+
+    if (team == KART_TEAM_RED)
+        mapping = &m_red_pole_votes;
+
+    auto teammates = STKHost::get()->getPlayerProfilesOfTeam(team);
+
+    if (vote == 0 || teammates.size() == 0 || vote > teammates.size())
+    {
+        Log::verbose("ServerLobby", "Pole vote %u is specified, invalid.", vote);
+        sendStringToPeer(L"Out of range. Please select one of the listed teammates.", voter);
+        return;
+    }
+
+    auto teammate = teammates[vote - 1];
+    const core::stringw& tmName = teammate->getName();
+    (*mapping)[voter] = teammate;
+    core::stringw msg = voter_profile->getName();
+    msg += L" voted for ";
+    msg += tmName;
+    msg += L" to be the pole.";
+
+    NetworkString* const packet = getNetworkString();
+    packet->setSynchronous(true);
+    packet->addUInt8(LE_CHAT);
+    packet->encodeString16(msg);
+
+    STKHost::get()->sendPacketToAllPeersWith(
+            [team](STKPeer* p)
+            {
+                if (p->isAIPeer()) return false;
+                return STKHost::get()->isPeerInTeam(p, team);
+            }, packet);
+    delete packet;
+
+} // submitPoleVote
+
+//-----------------------------------------------------------------------------------------
+
+std::shared_ptr<NetworkPlayerProfile> ServerLobby::decidePoleFor(
+        const PoleVoterMap& mapping) const
+{
+    std::map<std::shared_ptr<NetworkPlayerProfile>, unsigned> res;
+
+    for (auto entry : mapping)
+    {
+        auto rentry = res.find(entry.second);
+        if (rentry == res.cend())
+            res[entry.second] = 1;
+        else
+            res[entry.second] += 1;
+    }
+
+    if (res.size() == 0)
+        return nullptr;
+
+    return std::max_element(
+            res.cbegin(), res.cend(),
+            [](const PoleVoterResultEntry& a,
+               const PoleVoterResultEntry& b)
+            {
+                return a.second < b.second;
+            })->first;
+} // countPoleVotes
+//-----------------------------------------------------------------------------------------
+std::pair<
+    std::shared_ptr<NetworkPlayerProfile>,
+    std::shared_ptr<NetworkPlayerProfile>>
+ServerLobby::decidePoles()
+{
+    std::vector<std::shared_ptr<NetworkPlayerProfile>>
+        team_blue, team_red;
+
+    std::shared_ptr<NetworkPlayerProfile> blue, red;
+    STKHost::get()->getTeamLists(team_blue, team_red);
+
+    blue = decidePoleFor(m_blue_pole_votes);
+    red = decidePoleFor(m_red_pole_votes);
+    
+    return std::make_pair(blue, red);
+} // decidePoles
+
+void ServerLobby::announcePoleFor(std::shared_ptr<NetworkPlayerProfile>& pole, const KartTeam team) const
+{
+    if (team == KART_TEAM_NONE || pole == nullptr)
+        return;
+
+    core::stringw msgS = L"Current pole player is ";
+    msgS += pole->getName();
+    NetworkString* const msg = getNetworkString();
+    msg->setSynchronous(true);
+    msg->addUInt8(LE_CHAT);
+    msg->encodeString16(msgS);
+
+    STKHost::get()->sendPacketToAllPeersWith(
+            [team](STKPeer* p)
+            {
+                if (!p->hasPlayerProfiles() || p->isAIPeer() || !p->isValidated() ||
+                        p->isWaitingForGame())
+                    return false;
+
+                return STKHost::get()->isPeerInTeam(p, team);
+            }, msg);
+    
+    delete msg;
+}
+
 NetworkString* ServerLobby::addRandomInstalladdonMessage(NetworkString* const ril_pkt) const
 {
     if (!ServerConfig::m_enable_ril)
@@ -6993,7 +7275,7 @@ void ServerLobby::sendCurrentModifiers(STKPeer* const peer) const
     peer->sendPacket(pkt, true/*reliable*/);
     delete pkt;
 }
-void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer> const peer) const
+void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer>& peer) const
 {
     NetworkString* pkt = getNetworkString();
     pkt->setSynchronous(true);

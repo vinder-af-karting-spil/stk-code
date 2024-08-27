@@ -1557,14 +1557,16 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
             .getPlayerName();
     }
 
-    // Notice: In blender, please set 1,3,5,7... for blue starting position;
-    // 2,4,6,8... for red.
+    // Notice: In blender, please set 1,3,5,7... (odd number) for blue starting position;
+    // 2,4,6,8... (even number) for red.
     if (team == KART_TEAM_BLUE)
     {
+        // odd
         pos_index = 1 + 2 * cur_blue;
     }
     else
     {
+        // even
         pos_index = 2 + 2 * cur_red;
     }
 
@@ -1619,6 +1621,7 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
 }   // createKartWithTeam
 
 //-----------------------------------------------------------------------------
+// count the number of teammates for the specified team
 int World::getTeamNum(KartTeam team) const
 {
     int total = 0;

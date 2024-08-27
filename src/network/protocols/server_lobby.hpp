@@ -56,6 +56,23 @@ namespace Online
 class ServerLobby : public LobbyProtocol
 {
 public:
+    typedef std::map<const std::shared_ptr<STKPeer>,
+                      std::shared_ptr<NetworkPlayerProfile>>
+        PoleVoterConstMap;
+    typedef std::pair<const std::shared_ptr<STKPeer>,
+                      std::shared_ptr<NetworkPlayerProfile>>
+        PoleVoterConstEntry;
+    typedef std::map<std::shared_ptr<STKPeer>,
+                     std::shared_ptr<NetworkPlayerProfile>>
+        PoleVoterMap;
+    typedef std::pair<std::shared_ptr<NetworkPlayerProfile>,
+                      unsigned int>
+        PoleVoterResultEntry;
+    typedef std::pair<const std::shared_ptr<NetworkPlayerProfile>,
+                      unsigned int>
+        PoleVoterConstResultEntry;
+
+
     /* The state for a small finite state machine. */
     enum ServerState : unsigned int
     {
@@ -72,6 +89,7 @@ public:
         ERROR_LEAVE,              // shutting down server
         EXITING
     };
+        
 private:
     struct KeyData
     {
@@ -287,6 +305,14 @@ private:
     std::weak_ptr<STKPeer> m_last_wanrefresh_requester;
     std::mutex m_wanrefresh_lock;
 
+    // Pole
+    bool m_pole_enabled = false;
+    // For which player each peer submits a vote
+    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>
+        m_blue_pole_votes;
+    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>
+        m_red_pole_votes;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
@@ -456,17 +482,31 @@ public:
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
     static int m_fixed_laps;
-    void sendStringToPeer(std::string& s, std::shared_ptr<STKPeer>& peer) const;
+    void sendStringToPeer(const std::string& s, std::shared_ptr<STKPeer>& peer) const;
+    void sendStringToPeer(const irr::core::stringw& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToAllPeers(std::string& s);
     void sendRandomInstalladdonLine(STKPeer* peer) const;
     void sendRandomInstalladdonLine(std::shared_ptr<STKPeer> peer) const;
     void sendCurrentModifiers(STKPeer* peer) const;
-    void sendCurrentModifiers(std::shared_ptr<STKPeer> peer) const;
+    void sendCurrentModifiers(std::shared_ptr<STKPeer>& peer) const;
     void sendWANListToPeer(std::shared_ptr<STKPeer> peer);
     bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
     NetworkString* addRandomInstalladdonMessage(NetworkString* ns) const;
     NetworkString* addKartRestrictionMessage(NetworkString* ns) const;
     const std::string getRandomAddon(RaceManager::MinorRaceModeType m=RaceManager::MINOR_MODE_NONE) const;
+    bool isPoleEnabled() const { return m_pole_enabled; }
+    core::stringw formatTeammateList(
+            const std::vector<std::shared_ptr<NetworkPlayerProfile>> &team) const;
+    void setPoleEnabled(bool mode);
+    void submitPoleVote(std::shared_ptr<STKPeer>& voter, unsigned int vote);
+
+    std::shared_ptr<NetworkPlayerProfile> decidePoleFor(const PoleVoterMap& mapping) const;
+
+    std::pair<
+        std::shared_ptr<NetworkPlayerProfile>,
+        std::shared_ptr<NetworkPlayerProfile>> decidePoles();
+    void announcePoleFor(std::shared_ptr<NetworkPlayerProfile>& p, KartTeam team) const;
+
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
     //Deprecated
