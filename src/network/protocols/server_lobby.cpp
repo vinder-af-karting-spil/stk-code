@@ -1787,7 +1787,7 @@ void ServerLobby::asynchronousUpdate()
                 }
             }
             m_game_setup->sortPlayersForGrandPrix(players);
-            m_game_setup->sortPlayersForGame(players);
+            m_game_setup->sortPlayersForGame(players, isPoleEnabled() ? 2 : 0);
             for (unsigned i = 0; i < players.size(); i++)
             {
                 std::shared_ptr<NetworkPlayerProfile>& player = players[i];
