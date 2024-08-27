@@ -689,6 +689,7 @@ void RaceManager::startNextRace()
         Log::error("RaceManager", "Could not create given race mode.");
         assert(0);
     }
+
     main_loop->renderGUI(200);
 
     // A second constructor phase is necessary in order to be able to
