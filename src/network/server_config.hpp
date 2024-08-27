@@ -124,6 +124,18 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
         "Allow powerupper."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_heavyparty
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-heavyparty",
+        "Allow heavy party."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_mediumparty
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-mediumparty",
+        "Allow medium party."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_pole
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-pole",
+        "Allow pole. Players can team vote which teammate gets the leading start position."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_enable_ril
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "enable-ril",
         "When a player enters server lobby, show random /installaddon command line according to the current server mode (default is false)."));

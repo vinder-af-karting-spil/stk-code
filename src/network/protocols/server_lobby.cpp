@@ -6647,7 +6647,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "heavyparty" || argv[0] == "hp")
+    else if (ServerConfig::m_allow_heavyparty && (argv[0] == "heavyparty" || argv[0] == "hp"))
     {
         irr::core::stringw response;
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
@@ -6680,7 +6680,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
-    else if (argv[0] == "mediumparty" || argv[0] == "mp")
+    else if (ServerConfig::m_allow_mediumparty && (argv[0] == "mediumparty" || argv[0] == "mp"))
     {
         irr::core::stringw response;
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
@@ -6862,7 +6862,7 @@ unmute_error:
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "pole")
+    else if (ServerConfig::m_allow_pole && (argv[0] == "pole"))
     {
         if (
             RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_SOCCER &&
