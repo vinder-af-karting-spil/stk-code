@@ -1746,19 +1746,21 @@ void ServerLobby::asynchronousUpdate()
                 STKHost::get()->setForcedFirstPlayer(pole.first);
                 STKHost::get()->setForcedSecondPlayer(pole.second);
 
-                announcePoleFor(pole.first, KART_TEAM_BLUE);
+                announcePoleFor(pole.first, pole.first->getTeam());
                 if (pole.first)
-                    Log::info("ServerLobby", "Pole player for team blue is %s.",
+                    Log::info("ServerLobby", "Pole player for team %d is %s.",
+                            pole.first->getTeam(),
                             StringUtils::wideToUtf8(pole.first->getName()).c_str());
                 else
-                    Log::info("ServerLobby", "No pole player for team blue.");
+                    Log::info("ServerLobby", "No pole player for first pos.");
 
                 announcePoleFor(pole.second, KART_TEAM_RED);
                 if (pole.second)
-                    Log::info("ServerLobby", "Pole player for team red is %s.",
+                    Log::info("ServerLobby", "Pole player for team %d is %s.",
+                            pole.second->getTeam(),
                             StringUtils::wideToUtf8(pole.second->getName()).c_str());
                 else
-                    Log::info("ServerLobby", "No pole player for team red.");
+                    Log::info("ServerLobby", "No pole player for second pos.");
             }
             *m_default_vote = winner_vote;
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
@@ -7234,13 +7236,21 @@ ServerLobby::decidePoles()
     std::vector<std::shared_ptr<NetworkPlayerProfile>>
         team_blue, team_red;
 
-    std::shared_ptr<NetworkPlayerProfile> blue, red;
+    std::shared_ptr<NetworkPlayerProfile> first, second;
     STKHost::get()->getTeamLists(team_blue, team_red);
 
-    blue = decidePoleFor(m_blue_pole_votes);
-    red = decidePoleFor(m_red_pole_votes);
+    first = decidePoleFor(m_blue_pole_votes);
+    second = decidePoleFor(m_red_pole_votes);
+
+    // order does not matter, as long as the poles are at the topmost position,
+    // it should be fine
+    if (second && !first)
+    {
+        first = second;
+        second = nullptr;
+    }
     
-    return std::make_pair(blue, red);
+    return std::make_pair(first, second);
 } // decidePoles
 
 void ServerLobby::announcePoleFor(std::shared_ptr<NetworkPlayerProfile>& pole, const KartTeam team) const

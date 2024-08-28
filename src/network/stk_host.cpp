@@ -1593,6 +1593,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
     STKHost::getPlayersForNewGame(bool* has_always_on_spectators) const
 {
     // Forced position overrides if specified
+    bool found0, found1 = false;
     std::size_t first_resid = 0;
     std::size_t second_resid = 1;
 
@@ -1627,23 +1628,29 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 
             if (forced_first_player != nullptr &&
                     forced_first_player == q)
+            {
+                found0 = true;
                 first_resid = players.size() - 1;
+            }
 
             if (forced_second_player != nullptr &&
                     forced_second_player == q)
+            {
+                found1 = true;
                 second_resid = players.size() - 1;
+            }
         }
     }
 
-    if (first_resid == second_resid)
+    if (first_resid == second_resid && found0 && found1)
     {
-        Log::verbose("STKHost", "Forced first and second kart positions"
+        Log::error("STKHost", "Forced first and second kart positions"
                 " collide. Kart positions have not been changed.");
         return players;
     }
     std::shared_ptr<NetworkPlayerProfile> temp;
     // Swap first and second
-    if (players.size() > 1 && first_resid == 1 && second_resid == 0)
+    if (found0 && found1 && players.size() > 1 && first_resid == 1 && second_resid == 0)
     {
         temp = players[0];
         players[0] = players[1];
@@ -1651,14 +1658,14 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         Log::verbose("STKHost", "Swapped first #0 and second #1 player positions.");
         return players;
     }
-    if (players.size() > 0 && first_resid != 0)
+    if (players.size() > 0 && found0 && first_resid != 0)
     {
         temp = players[0];
         players[0] = players[first_resid];
         players[first_resid] = temp;
         Log::verbose("STKHost", "Set %u player to #0.", first_resid);
     }
-    if (players.size() > 1 && second_resid != 1)
+    if (players.size() > 1 && found1 && second_resid != 1)
     {
         temp = players[1];
         players[1] = players[second_resid];
