@@ -1767,6 +1767,21 @@ void ServerLobby::asynchronousUpdate()
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);
+
+            if (players.size() > 0)
+            {
+                auto player1 = players[0];
+                Log::verbose("ServerLobby", "[1]player #0 is %s",
+                        StringUtils::wideToUtf8(player1->getName()).c_str());
+            }
+            if (players.size() > 1)
+            {
+                auto player2 = players[1];
+                Log::verbose("ServerLobby", "[1]player #1 is %s",
+                        StringUtils::wideToUtf8(player2->getName()).c_str());
+            }
+
+
             auto ai_instance = m_ai_peer.lock();
             if (supportsAI())
             {
@@ -1788,6 +1803,20 @@ void ServerLobby::asynchronousUpdate()
             }
             m_game_setup->sortPlayersForGrandPrix(players);
             m_game_setup->sortPlayersForGame(players, 0/*ignoreLeading*/, !isPoleEnabled()/*shuffle*/);
+
+            if (players.size() > 0)
+            {
+                auto player1 = players[0];
+                Log::verbose("ServerLobby", "[2]player #0 is %s",
+                        StringUtils::wideToUtf8(player1->getName()).c_str());
+            }
+            if (players.size() > 1)
+            {
+                auto player2 = players[1];
+                Log::verbose("ServerLobby", "[2]player #1 is %s",
+                        StringUtils::wideToUtf8(player2->getName()).c_str());
+            }
+
             for (unsigned i = 0; i < players.size(); i++)
             {
                 std::shared_ptr<NetworkPlayerProfile>& player = players[i];
@@ -1818,6 +1847,19 @@ void ServerLobby::asynchronousUpdate()
                         rg.get((int)m_available_kts.first.size()));
                     players[i]->setKartName(*it);
                 }
+            }
+
+            if (players.size() > 0)
+            {
+                auto player1 = players[0];
+                Log::verbose("ServerLobby", "[3]player #0 is %s",
+                        StringUtils::wideToUtf8(player1->getName()).c_str());
+            }
+            if (players.size() > 1)
+            {
+                auto player2 = players[1];
+                Log::verbose("ServerLobby", "[3]player #1 is %s",
+                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
