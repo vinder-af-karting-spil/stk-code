@@ -1571,7 +1571,7 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     }
 
     // Debugging pole
-    Log::debug("World", "Player %s gets the position of #%d.",
+    Log::verbose("World", "Player %s gets the position of #%d.",
             StringUtils::wideToUtf8(online_name).c_str(),
             pos_index);
 
