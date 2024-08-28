@@ -767,6 +767,7 @@ void ServerLobby::setup()
     // Initialise the data structures to detect if all clients and 
     // the server are ready:
     resetPeersReady();
+    setPoleEnabled(false);
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
     Log::info("ServerLobby", "Resetting the server to its initial state.");
@@ -1743,8 +1744,8 @@ void ServerLobby::asynchronousUpdate()
             {
                 auto pole = decidePoles();
 
-                STKHost::get()->setForcedFirstPlayer(pole.first);
-                STKHost::get()->setForcedSecondPlayer(pole.second);
+                RaceManager::get()->setBluePole(pole.first);
+                RaceManager::get()->setRedPole(pole.second);
 
                 announcePoleFor(pole.first, pole.first->getTeam());
                 if (pole.first)
@@ -3688,6 +3689,17 @@ void ServerLobby::clientDisconnected(Event* event)
     {
         setKartRestrictionMode(NONE);
         setPoleEnabled(false);
+    }
+    else 
+    {
+        auto peer = event->getPeer();
+        auto b = m_blue_pole_votes.find(peer);
+        auto r = m_red_pole_votes.find(peer);
+        if (b != m_blue_pole_votes.cend())
+            m_blue_pole_votes.erase(b);
+        if (r != m_red_pole_votes.cend())
+            m_red_pole_votes.erase(r);
+        RaceManager::get()->resetPoleProfile(event->getPeer());
     }
 }   // clientDisconnected
 
@@ -7096,8 +7108,10 @@ void ServerLobby::setPoleEnabled(bool mode)
     m_pole_enabled = mode;
 
     STKHost* const host = STKHost::get();
+    RaceManager* const race_manager = RaceManager::get();
     host->setForcedFirstPlayer(nullptr);
     host->setForcedSecondPlayer(nullptr);
+    race_manager->clearPoles();
 
     if (mode)
     {
@@ -7130,12 +7144,12 @@ void ServerLobby::setPoleEnabled(bool mode)
 
         host->sendPacketToAllPeersWith([host](STKPeer* p)
                 {
-                    if (p->isAIPeer()) return false;
+                    if (p->isAIPeer() || !p->isConnected() || !p->isValidated()) return false;
                     return host->isPeerInTeam(p, KART_TEAM_BLUE);
                 }, pkt_blue);
         host->sendPacketToAllPeersWith([host](STKPeer* p)
                 {
-                    if (p->isAIPeer()) return false;
+                    if (p->isAIPeer() || !p->isConnected() || !p->isValidated()) return false;
                     return host->isPeerInTeam(p, KART_TEAM_RED);
                 }, pkt_red);
 
@@ -7152,12 +7166,20 @@ void ServerLobby::setPoleEnabled(bool mode)
 //------------------------------------------------------------------------------------------
 void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned int vote)
 {
+    STKPeer* const voter_p = voter.get();
+
     if (!voter->hasPlayerProfiles())
         return;
 
+    if (m_state.load() != WAITING_FOR_START_GAME)
+    {
+        sendStringToPeer(L"You can only vote for the poles before the game started.", voter);
+        return;
+    }
+
     std::shared_ptr<NetworkPlayerProfile> voter_profile = voter->getPlayerProfiles()[0];
     const KartTeam team = voter_profile->getTeam();
-    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>*
+    std::map<STKPeer*, std::weak_ptr<NetworkPlayerProfile>>*
         mapping = &m_blue_pole_votes;
     if (team == KART_TEAM_NONE)
     {
@@ -7177,9 +7199,10 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
         return;
     }
 
-    auto teammate = teammates[vote - 1];
-    const core::stringw& tmName = teammate->getName();
-    (*mapping)[voter] = teammate;
+    std::weak_ptr<NetworkPlayerProfile> teammate = teammates[vote - 1];
+    auto teammate_p = teammate.lock();
+    const core::stringw& tmName = teammate_p->getName();
+    (*mapping)[voter_p] = teammate;
     core::stringw msg = voter_profile->getName();
     msg += L" voted for ";
     msg += tmName;
@@ -7205,27 +7228,48 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
 std::shared_ptr<NetworkPlayerProfile> ServerLobby::decidePoleFor(
         const PoleVoterMap& mapping) const
 {
+    std::shared_ptr<NetworkPlayerProfile> npp, max_npp;
+    unsigned max_npp_c = 0;
     std::map<std::shared_ptr<NetworkPlayerProfile>, unsigned> res;
 
     for (auto entry : mapping)
     {
-        auto rentry = res.find(entry.second);
+        if (entry.second.expired())
+            continue;
+
+        npp = entry.second.lock();
+        auto rentry = res.find(npp);
         if (rentry == res.cend())
-            res[entry.second] = 1;
+        {
+            res[npp] = 1;
+            if (max_npp_c < 1)
+            {
+                max_npp_c = 1;
+                max_npp = npp;
+            }
+        }
         else
-            res[entry.second] += 1;
+        {
+            res[npp] += 1;
+            if (max_npp_c < res[npp])
+            {
+                max_npp_c = res[npp];
+                max_npp = npp;
+            }
+        }
     }
 
     if (res.size() == 0)
         return nullptr;
 
-    return std::max_element(
+    /*return std::max_element(
             res.cbegin(), res.cend(),
             [](const PoleVoterResultEntry& a,
                const PoleVoterResultEntry& b)
             {
                 return a.second < b.second;
-            })->first;
+            })->first;*/
+    return max_npp;
 } // countPoleVotes
 //-----------------------------------------------------------------------------------------
 std::pair<
@@ -7268,7 +7312,7 @@ void ServerLobby::announcePoleFor(std::shared_ptr<NetworkPlayerProfile>& pole, c
     STKHost::get()->sendPacketToAllPeersWith(
             [team](STKPeer* p)
             {
-                if (!p->hasPlayerProfiles() || p->isAIPeer() || !p->isValidated() ||
+                if (!p->isConnected() || !p->hasPlayerProfiles() || p->isAIPeer() || !p->isValidated() ||
                         p->isWaitingForGame())
                     return false;
 

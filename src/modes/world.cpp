@@ -85,6 +85,7 @@
 
 #include <IrrlichtDevice.h>
 #include <ISceneManager.h>
+#include <memory>
 
 World* World::m_world[PT_COUNT];
 
@@ -1557,17 +1558,51 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
             .getPlayerName();
     }
 
+    const bool doPoles = RaceManager::get()->hasPolePlayers();
+    const int redPoleID = getRedPoleStartTransformID();
+    const int bluePoleID = getBluePoleStartTransformID();
+    KartTeam poleTeam = KART_TEAM_NONE;
+    std::weak_ptr<NetworkPlayerProfile> npp =
+        RaceManager::get()->getKartInfo(global_player_id).getNetworkPlayerProfile();
+    std::shared_ptr<NetworkPlayerProfile> npp_s = nullptr;
+    if (!npp.expired() || (npp_s = npp.lock()) != nullptr)
+    {
+        if (doPoles)
+            poleTeam = RaceManager::get()->getPoleTeam(npp_s.get());
+    }
+
     // Notice: In blender, please set 1,3,5,7... (odd number) for blue starting position;
     // 2,4,6,8... (even number) for red.
     if (team == KART_TEAM_BLUE)
     {
+        int def = 1 + 2 * cur_blue;
         // odd
-        pos_index = 1 + 2 * cur_blue;
+        if (RaceManager::get()->hasBluePole())
+        {
+            // the current kart is a pole, it gets the pole position no matter what
+            if (poleTeam == KART_TEAM_BLUE) pos_index = bluePoleID;
+            // the kart is not a pole kart, but it tries to claim the pole slot or past it
+            else if (bluePoleID <= def)
+                pos_index = def + 2;
+            // the kart claims slot that is prior the pole slot, normal behavior
+            else pos_index = def;
+        }
+        // default
+        else pos_index = def;
     }
     else
     {
+        int def = 2 + 2 * cur_red;
         // even
-        pos_index = 2 + 2 * cur_red;
+        if (RaceManager::get()->hasRedPole())
+        {
+            if (poleTeam == KART_TEAM_RED) pos_index = redPoleID;
+            else if (redPoleID <= def)
+                pos_index = def + 2;
+            else pos_index = def;
+        }
+        // default
+        else pos_index = def;
     }
 
     // Debugging pole
@@ -1795,4 +1830,14 @@ void World::updateAchievementModeCounters(bool start)
     if (RaceManager::get()->hasGhostKarts())
         PlayerManager::increaseAchievement(start ? ACS::WITH_GHOST_STARTED : ACS::WITH_GHOST_FINISHED,1);
 } // updateAchievementModeCounters
+//-----------------------------------------------------------------------------
+// Override functions below in SoccerWorld class
+const btTransform &World::getRedPoleStartTransform()
+{
+    return getStartTransform(getRedPoleStartTransformID());
+}
+const btTransform &World::getBluePoleStartTransform()
+{
+    return getStartTransform(getBluePoleStartTransformID());
+}
 #undef ACS

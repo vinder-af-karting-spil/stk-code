@@ -280,7 +280,8 @@ public:
     /** Returns two vectors with player profiles for blue and red team. */
     void getTeamLists(
           std::vector<std::shared_ptr<NetworkPlayerProfile>>& blue_team,
-          std::vector<std::shared_ptr<NetworkPlayerProfile>>& red_team) const;
+          std::vector<std::shared_ptr<NetworkPlayerProfile>>& red_team,
+          bool onlyCanPlay = true) const;
     // ------------------------------------------------------------------------
     std::set<uint32_t> getAllPlayerOnlineIds() const;
     // ------------------------------------------------------------------------

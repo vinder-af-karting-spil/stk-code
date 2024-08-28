@@ -26,11 +26,13 @@
   * track was selected, etc.
   */
 
+#include <memory>
 #include <vector>
 #include <algorithm>
 #include <cassert>
 #include <string>
 
+#include "network/network_player_profile.hpp"
 #include "network/remote_kart_info.hpp"
 #include "race/grand_prix_data.hpp"
 #include "utils/vec3.hpp"
@@ -296,6 +298,11 @@ private:
 
     /** The kart status data for each kart. */
     std::vector<KartStatus>          m_kart_status;
+
+    /** Pole: Race Manager side */
+    std::weak_ptr<NetworkPlayerProfile>
+                                     m_blue_pole,
+                                     m_red_pole;
 
     /** The selected difficulty. */
     Difficulty                       m_difficulty;
@@ -948,6 +955,33 @@ public:
             m_minor_mode == MINOR_MODE_CAPTURE_THE_FLAG ||
             m_minor_mode == MINOR_MODE_FREE_FOR_ALL;
     }
+
+    /** Pole: methods */
+    bool hasPolePlayers() const 
+    {
+        return (!m_blue_pole.expired() && m_blue_pole.lock() != nullptr) ||
+               (!m_red_pole.expired() && m_red_pole.lock() != nullptr);
+    }
+    bool hasBluePole() const
+    {
+        return (!m_blue_pole.expired() && m_blue_pole.lock() != nullptr);
+    }
+    bool hasRedPole() const
+    {
+        return (!m_red_pole.expired() && m_red_pole.lock() != nullptr);
+    }
+    KartTeam getPoleTeam(NetworkPlayerProfile* profile) const;
+    std::weak_ptr<NetworkPlayerProfile> getBluePoleWeak() const { return m_blue_pole; }
+    std::weak_ptr<NetworkPlayerProfile> getRedPoleWeak() const  { return m_red_pole; }
+    std::shared_ptr<NetworkPlayerProfile> getBluePole() const;
+    std::shared_ptr<NetworkPlayerProfile> getRedPole() const;
+    void setBluePole(std::shared_ptr<NetworkPlayerProfile>& profile);
+    void setRedPole(std::shared_ptr<NetworkPlayerProfile>& profile);
+    void resetBluePole() { m_blue_pole.reset(); }
+    void resetRedPole() { m_red_pole.reset(); }
+    void resetPoleProfile(std::shared_ptr<NetworkPlayerProfile>& profile);
+    void resetPoleProfile(STKPeer* peer);
+    void clearPoles();
 };   // RaceManager
 
 #endif

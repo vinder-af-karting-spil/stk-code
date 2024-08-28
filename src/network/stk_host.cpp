@@ -1459,13 +1459,16 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 //-----------------------------------------------------------------------------
 void STKHost::getTeamLists(
     std::vector<std::shared_ptr<NetworkPlayerProfile>>& blue_team,
-    std::vector<std::shared_ptr<NetworkPlayerProfile>>& red_team) const
+    std::vector<std::shared_ptr<NetworkPlayerProfile>>& red_team,
+    const bool onlyCanPlay) const
 {
-
     std::unique_lock<std::mutex> lock(m_peers_mutex);
     for (auto& peer : m_peers)
     {
         if (peer.second->isDisconnected() || !peer.second->isValidated())
+            continue;
+        if (onlyCanPlay && (peer.second->isSpectator() ||
+                    peer.second->alwaysSpectate()))
             continue;
         if (ServerConfig::m_ai_handling && peer.second->isAIPeer())
             continue;

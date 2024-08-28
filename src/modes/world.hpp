@@ -315,6 +315,13 @@ public:
     // ------------------------------------------------------------------------
     virtual void onMouseClick(int x, int y) {};
 
+    // Virtual functions Pole related
+    // ===============
+    virtual const btTransform &getRedPoleStartTransform();
+    virtual const btTransform &getBluePoleStartTransform();
+    virtual const int getRedPoleStartTransformID() { return 2; }
+    virtual const int getBluePoleStartTransformID() { return 1; }
+
     // Other functions
     // ===============
     Highscores     *getHighscores() const;
