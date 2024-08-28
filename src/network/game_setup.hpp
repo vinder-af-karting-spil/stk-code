@@ -137,7 +137,7 @@ public:
     // ------------------------------------------------------------------------
     void sortPlayersForGame(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
-                unsigned ignoreLeading = 0u) const;
+                unsigned ignoreLeading = 0u, bool shuffle = true) const;
     // ------------------------------------------------------------------------
     void setHitCaptureTime(int hc, float time)
     {

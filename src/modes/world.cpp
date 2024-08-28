@@ -1570,6 +1570,11 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
         pos_index = 2 + 2 * cur_red;
     }
 
+    // Debugging pole
+    Log::debug("World", "Player %s gets the position of #%d.",
+            StringUtils::wideToUtf8(online_name).c_str(),
+            pos_index);
+
     btTransform init_pos = getStartTransform(pos_index - 1);
     m_kart_position_map[index] = (unsigned)(pos_index - 1);
 
