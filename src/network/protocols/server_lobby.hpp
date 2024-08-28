@@ -28,7 +28,7 @@
 #include "irrString.h"
 
 #include <algorithm>
-#include <array>
+//#include <array>
 #include <atomic>
 #include <functional>
 #include <map>
@@ -56,19 +56,19 @@ namespace Online
 class ServerLobby : public LobbyProtocol
 {
 public:
-    typedef std::map<const std::shared_ptr<STKPeer>,
-                      std::shared_ptr<NetworkPlayerProfile>>
-        PoleVoterConstMap;
-    typedef std::pair<const std::shared_ptr<STKPeer>,
-                      std::shared_ptr<NetworkPlayerProfile>>
-        PoleVoterConstEntry;
-    typedef std::map<std::shared_ptr<STKPeer>,
-                     std::shared_ptr<NetworkPlayerProfile>>
+    typedef std::map<STKPeer*,
+                      std::weak_ptr<NetworkPlayerProfile>>
         PoleVoterMap;
-    typedef std::pair<std::shared_ptr<NetworkPlayerProfile>,
+    typedef std::map<STKPeer* const,
+                      std::weak_ptr<NetworkPlayerProfile>>
+        PoleVoterConstMap;
+    typedef std::pair<STKPeer* const,
+                      std::weak_ptr<NetworkPlayerProfile>>
+        PoleVoterConstEntry;
+    typedef std::pair<std::weak_ptr<NetworkPlayerProfile>,
                       unsigned int>
         PoleVoterResultEntry;
-    typedef std::pair<const std::shared_ptr<NetworkPlayerProfile>,
+    typedef std::pair<const std::weak_ptr<NetworkPlayerProfile>,
                       unsigned int>
         PoleVoterConstResultEntry;
 
@@ -308,9 +308,9 @@ private:
     // Pole
     bool m_pole_enabled = false;
     // For which player each peer submits a vote
-    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>
+    std::map<STKPeer*, std::weak_ptr<NetworkPlayerProfile>>
         m_blue_pole_votes;
-    std::map<std::shared_ptr<STKPeer>, std::shared_ptr<NetworkPlayerProfile>>
+    std::map<STKPeer*, std::weak_ptr<NetworkPlayerProfile>>
         m_red_pole_votes;
 
     // connection management
@@ -412,7 +412,9 @@ private:
     void changeHandicap(Event* event);
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+        unsigned int push_front_blue = 0,
+        unsigned int push_front_red = 0) const;
     NetworkString* getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;

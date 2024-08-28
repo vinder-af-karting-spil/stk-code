@@ -51,6 +51,7 @@
 #include "network/protocol_manager.hpp"
 #include "network/network_config.hpp"
 #include "network/network_string.hpp"
+#include "network/stk_peer.hpp"
 #include "replay/replay_play.hpp"
 #include "scriptengine/property_animator.hpp"
 #include "states_screens/grand_prix_cutscene.hpp"
@@ -1350,3 +1351,82 @@ void RaceManager::scheduleBenchmark()
 {
     m_scheduled_benchmark = true;
 }   // scheduleBenchmark
+//---------------------------------------------------------------------------------------------
+KartTeam RaceManager::getPoleTeam(NetworkPlayerProfile* profile) const
+{
+    if (!profile || profile->getTeam() == KART_TEAM_NONE || !hasPolePlayers())
+        return KART_TEAM_NONE;
+
+    std::shared_ptr<NetworkPlayerProfile> blue_pole, red_pole;
+    blue_pole = getBluePole();
+    red_pole = getRedPole();
+    
+    if (profile->getTeam() == KART_TEAM_RED && red_pole.get() == profile)
+        return KART_TEAM_RED;
+    if (profile->getTeam() == KART_TEAM_BLUE && blue_pole.get() == profile)
+        return KART_TEAM_BLUE;
+    return KART_TEAM_NONE;
+} // getPoleTeam
+//---------------------------------------------------------------------------------------------
+std::shared_ptr<NetworkPlayerProfile> RaceManager::getBluePole() const
+{
+    if (m_blue_pole.expired())
+        return nullptr;
+
+    return m_blue_pole.lock();
+} // getBluePole
+//---------------------------------------------------------------------------------------------
+std::shared_ptr<NetworkPlayerProfile> RaceManager::getRedPole() const
+{
+    if (m_red_pole.expired())
+        return nullptr;
+
+    return m_red_pole.lock();
+} // getRedPole
+//---------------------------------------------------------------------------------------------
+void RaceManager::setBluePole(std::shared_ptr<NetworkPlayerProfile>& profile)
+{
+    m_blue_pole = profile;
+} // setBluePole
+//---------------------------------------------------------------------------------------------
+void RaceManager::setRedPole(std::shared_ptr<NetworkPlayerProfile>& profile)
+{
+    m_red_pole = profile;
+} // setRedPole
+//---------------------------------------------------------------------------------------------
+void RaceManager::resetPoleProfile(std::shared_ptr<NetworkPlayerProfile>& profile)
+{
+    if (profile == nullptr)
+        return;
+
+    std::shared_ptr<NetworkPlayerProfile> blue_pole = nullptr, red_pole = nullptr;
+
+    if (!m_blue_pole.expired()) blue_pole = m_blue_pole.lock();
+    if (!m_red_pole.expired()) red_pole = m_red_pole.lock();
+
+    if (blue_pole == profile) m_blue_pole.reset();
+    if (red_pole == profile) m_red_pole.reset();
+} // resetPoleProfile
+//---------------------------------------------------------------------------------------------
+void RaceManager::resetPoleProfile(STKPeer* peer)
+{
+    if (peer == nullptr)
+        return;
+
+    std::shared_ptr<NetworkPlayerProfile> blue_pole = nullptr, red_pole = nullptr;
+
+    if (!m_blue_pole.expired()) blue_pole = m_blue_pole.lock();
+    if (!m_red_pole.expired()) red_pole = m_red_pole.lock();
+
+    for (auto& profile : peer->getPlayerProfiles())
+    {
+        if (blue_pole == profile) m_blue_pole.reset();
+        if (red_pole == profile) m_red_pole.reset();
+    }
+} // resetPoleProfile
+//---------------------------------------------------------------------------------------------
+void RaceManager::clearPoles()
+{
+    m_blue_pole.reset();
+    m_red_pole.reset();
+}
