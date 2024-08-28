@@ -246,14 +246,15 @@ void GameSetup::sortPlayersForGrandPrix(
 //-----------------------------------------------------------------------------
 void GameSetup::sortPlayersForGame(
     std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
-            unsigned ignoreLeading) const
+            unsigned ignoreLeading, const bool shuffle) const
 {
-    if (!isGrandPrix())
+    ignoreLeading = std::min(ignoreLeading, (unsigned)players.size());
+    if (!isGrandPrix() && shuffle)
     {
         std::random_device rd;
         std::mt19937 g(rd());
         std::shuffle(players.begin() + 
-                std::min(ignoreLeading, (unsigned)players.size()),
+                ignoreLeading,
             players.end(), g);
         Log::verbose("GameSetup", "Player positions have been shuffled, "
                 "ignoreLeading = %u", ignoreLeading);
