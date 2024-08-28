@@ -64,6 +64,7 @@
 //#include "utils/translation.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <ctime>
 #include <cwchar>
 #include <fstream>
@@ -1744,8 +1745,11 @@ void ServerLobby::asynchronousUpdate()
             {
                 auto pole = decidePoles();
 
-                RaceManager::get()->setBluePole(pole.first);
-                RaceManager::get()->setRedPole(pole.second);
+                STKHost::get()->setForcedFirstPlayer(pole.second);
+                STKHost::get()->setForcedSecondPlayer(pole.first);
+
+                //RaceManager::get()->setBluePole(pole.first);
+                //RaceManager::get()->setRedPole(pole.second);
 
                 announcePoleFor(pole.first, pole.first->getTeam());
                 if (pole.first)
@@ -1820,6 +1824,9 @@ void ServerLobby::asynchronousUpdate()
                         StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
+            // Add placeholder players for live join
+            addLiveJoinPlaceholder(players);
+
             for (unsigned i = 0; i < players.size(); i++)
             {
                 std::shared_ptr<NetworkPlayerProfile>& player = players[i];
@@ -1836,8 +1843,6 @@ void ServerLobby::asynchronousUpdate()
             }
             getHitCaptureLimit();
 
-            // Add placeholder players for live join
-            addLiveJoinPlaceholder(players);
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
@@ -5675,8 +5680,12 @@ void ServerLobby::handlePlayerDisconnection() const
 /** Add reserved players for live join later if required.
  */
 void ServerLobby::addLiveJoinPlaceholder(
-    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const
+    std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+    unsigned int push_front_blue,
+    unsigned int push_front_red) const
 {
+    assert(push_front_blue <= 7);
+    assert(push_front_red <= 7);
     if (!ServerConfig::m_live_players || !RaceManager::get()->supportsLiveJoining())
         return;
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_FREE_FOR_ALL)
@@ -5696,8 +5705,8 @@ void ServerLobby::addLiveJoinPlaceholder(
     else
     {
         // CTF or soccer, reserve at most 7 players on each team
-        int red_count = 0;
-        int blue_count = 0;
+        int red_count = (int)push_front_red;
+        int blue_count = (int)push_front_blue;
         for (unsigned i = 0; i < players.size(); i++)
         {
             if (players[i]->getTeam() == KART_TEAM_RED)
@@ -5707,6 +5716,16 @@ void ServerLobby::addLiveJoinPlaceholder(
         }
         red_count = red_count >= 7 ? 0 : 7 - red_count;
         blue_count = blue_count >= 7 ? 0 : 7 - blue_count;
+        for (unsigned int i = 0; i < push_front_red; i++)
+        {
+            players.insert(players.begin(),
+                NetworkPlayerProfile::getReservedProfile(KART_TEAM_RED));
+        }
+        for (unsigned int i = 0; i < push_front_blue; i++)
+        {
+            players.insert(players.begin(),
+                NetworkPlayerProfile::getReservedProfile(KART_TEAM_BLUE));
+        }
         for (int i = 0; i < red_count; i++)
         {
             players.push_back(

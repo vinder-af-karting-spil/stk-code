@@ -1557,10 +1557,10 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
         online_name = RaceManager::get()->getKartInfo(global_player_id)
             .getPlayerName();
     }
-
+#if 0
     const bool doPoles = RaceManager::get()->hasPolePlayers();
-    const int redPoleID = getRedPoleStartTransformID();
-    const int bluePoleID = getBluePoleStartTransformID();
+    const int redPoleID = 4;
+    const int bluePoleID = 5;
     KartTeam poleTeam = KART_TEAM_NONE;
     std::weak_ptr<NetworkPlayerProfile> npp =
         RaceManager::get()->getKartInfo(global_player_id).getNetworkPlayerProfile();
@@ -1570,11 +1570,13 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
         if (doPoles)
             poleTeam = RaceManager::get()->getPoleTeam(npp_s.get());
     }
+#endif
 
     // Notice: In blender, please set 1,3,5,7... (odd number) for blue starting position;
     // 2,4,6,8... (even number) for red.
     if (team == KART_TEAM_BLUE)
     {
+#if 0
         int def = 1 + 2 * cur_blue;
         // odd
         if (RaceManager::get()->hasBluePole())
@@ -1583,31 +1585,41 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
             if (poleTeam == KART_TEAM_BLUE) pos_index = bluePoleID;
             // the kart is not a pole kart, but it tries to claim the pole slot or past it
             else if (bluePoleID <= def)
-                pos_index = (def + 2) % RaceManager::get()->getNumberOfKarts();
+                pos_index = ((def + 1) % RaceManager::get()->getNumberOfKarts()) + 1;
+                //pos_index = def;
             // the kart claims slot that is prior the pole slot, normal behavior
             else pos_index = def;
         }
         // default
         else pos_index = def;
+#endif
+        pos_index = 1 + 2 * cur_blue;
     }
     else
     {
+#if 0
         int def = 2 + 2 * cur_red;
         // even
         if (RaceManager::get()->hasRedPole())
         {
             if (poleTeam == KART_TEAM_RED) pos_index = redPoleID;
             else if (redPoleID <= def)
-                pos_index = (def + 2) % RaceManager::get()->getNumberOfKarts();
+                pos_index = ((def + 1) % RaceManager::get()->getNumberOfKarts()) + 1;
+                //pos_index = def;
             else pos_index = def;
         }
         // default
         else pos_index = def;
+#endif
+        pos_index = 2 + 2 * cur_red;
     }
 
     // Debugging pole
-    Log::verbose("World", "Player %s gets the position of #%d.",
+    Log::verbose("World", "Player %s#%d with GID %d LID %d gets the position of #%d.",
             StringUtils::wideToUtf8(online_name).c_str(),
+            index,
+            global_player_id,
+            local_player_id,
             pos_index);
 
     btTransform init_pos = getStartTransform(pos_index - 1);

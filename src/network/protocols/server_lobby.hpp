@@ -412,7 +412,9 @@ private:
     void changeHandicap(Event* event);
     void handlePlayerDisconnection() const;
     void addLiveJoinPlaceholder(
-        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players) const;
+        std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
+        unsigned int push_front_blue = 0,
+        unsigned int push_front_red = 0) const;
     NetworkString* getLoadWorldMessage(
         std::vector<std::shared_ptr<NetworkPlayerProfile> >& players,
         bool live_join) const;

@@ -1596,12 +1596,16 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
     STKHost::getPlayersForNewGame(bool* has_always_on_spectators) const
 {
     // Forced position overrides if specified
-    bool found0, found1 = false;
-    std::size_t first_resid = 0;
-    std::size_t second_resid = 1;
-
     std::vector<std::shared_ptr<NetworkPlayerProfile> > players;
     std::lock_guard<std::mutex> lock(m_peers_mutex);
+    auto forced_first_player =
+        m_forced_first_player.expired() ? nullptr 
+        : m_forced_first_player.lock();
+
+    auto forced_second_player =
+        m_forced_second_player.expired() ? nullptr 
+        : m_forced_second_player.lock();
+
     for (auto& p : m_peers)
     {
         auto& stk_peer = p.second;
@@ -1619,32 +1623,37 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
             continue;
         for (auto& q : stk_peer->getPlayerProfiles())
         {
-            players.push_back(q);
-
-            auto forced_first_player =
-                m_forced_first_player.expired() ? nullptr 
-                : m_forced_first_player.lock();
-
-            auto forced_second_player =
-                m_forced_second_player.expired() ? nullptr 
-                : m_forced_second_player.lock();
-
-            if (forced_first_player != nullptr &&
-                    forced_first_player == q)
-            {
-                found0 = true;
-                first_resid = players.size() - 1;
-            }
 
             if (forced_second_player != nullptr &&
                     forced_second_player == q)
             {
-                found1 = true;
-                second_resid = players.size() - 1;
+                //players.insert(players.begin(), q);
+                Log::verbose("STKHost", "%s will be added to the top of the list (#2).",
+                        StringUtils::wideToUtf8(q->getName()).c_str());
+                continue;
             }
+
+            if (forced_first_player != nullptr &&
+                    forced_first_player == q)
+            {
+                //players.insert(players.begin(), q);
+                Log::verbose("STKHost", "%s will be added to the top of the list (#1).",
+                        StringUtils::wideToUtf8(q->getName()).c_str());
+                continue;
+            }
+            players.push_back(q);
         }
     }
-
+    if (forced_second_player != nullptr)
+        players.insert(players.begin(), forced_second_player);
+    if (forced_first_player != nullptr)
+        players.insert(players.begin(), forced_first_player);
+#if 0
+    if (players.size() <= 2)
+    {
+        Log::info("STKHost", "Altering player order is not necessary. There's not enough players to make a difference.");
+        return players;
+    }
     if (first_resid == second_resid && found0 && found1)
     {
         Log::error("STKHost", "Forced first and second kart positions"
@@ -1675,6 +1684,7 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
         players[second_resid] = temp;
         Log::verbose("STKHost", "Set %u player to #1.", second_resid);
     }
+#endif
 
     return players;
 }   // getPlayersForNewGame
