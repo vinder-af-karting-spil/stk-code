@@ -1565,7 +1565,7 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     std::weak_ptr<NetworkPlayerProfile> npp =
         RaceManager::get()->getKartInfo(global_player_id).getNetworkPlayerProfile();
     std::shared_ptr<NetworkPlayerProfile> npp_s = nullptr;
-    if (!npp.expired() || (npp_s = npp.lock()) != nullptr)
+    if (!npp.expired() && (npp_s = npp.lock()) != nullptr)
     {
         if (doPoles)
             poleTeam = RaceManager::get()->getPoleTeam(npp_s.get());
@@ -1583,7 +1583,7 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
             if (poleTeam == KART_TEAM_BLUE) pos_index = bluePoleID;
             // the kart is not a pole kart, but it tries to claim the pole slot or past it
             else if (bluePoleID <= def)
-                pos_index = def + 2;
+                pos_index = (def + 2) % RaceManager::get()->getNumberOfKarts();
             // the kart claims slot that is prior the pole slot, normal behavior
             else pos_index = def;
         }
@@ -1598,7 +1598,7 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
         {
             if (poleTeam == KART_TEAM_RED) pos_index = redPoleID;
             else if (redPoleID <= def)
-                pos_index = def + 2;
+                pos_index = (def + 2) % RaceManager::get()->getNumberOfKarts();
             else pos_index = def;
         }
         // default

@@ -1354,7 +1354,7 @@ void RaceManager::scheduleBenchmark()
 //---------------------------------------------------------------------------------------------
 KartTeam RaceManager::getPoleTeam(NetworkPlayerProfile* profile) const
 {
-    if (profile->getTeam() == KART_TEAM_NONE || !hasPolePlayers())
+    if (!profile || profile->getTeam() == KART_TEAM_NONE || !hasPolePlayers())
         return KART_TEAM_NONE;
 
     std::shared_ptr<NetworkPlayerProfile> blue_pole, red_pole;
