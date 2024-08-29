@@ -1644,9 +1644,17 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
             players.push_back(q);
         }
     }
-    if (forced_second_player != nullptr)
+    if (forced_second_player != nullptr &&
+            forced_second_player->getPeer()->isValidated() &&
+            !forced_second_player->getPeer()->alwaysSpectate() &&
+            !forced_second_player->getPeer()->isDisconnected() &&
+            !forced_second_player->getPeer()->isAIPeer())
         players.insert(players.begin(), forced_second_player);
-    if (forced_first_player != nullptr)
+    if (forced_first_player != nullptr &&
+            forced_first_player->getPeer()->isValidated() &&
+            !forced_first_player->getPeer()->alwaysSpectate() &&
+            !forced_first_player->getPeer()->isDisconnected() &&
+            !forced_first_player->getPeer()->isAIPeer())
         players.insert(players.begin(), forced_first_player);
 #if 0
     if (players.size() <= 2)
