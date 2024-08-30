@@ -6818,7 +6818,6 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(response, true/*reliable*/);
         delete response;
     }
-    /* is this kimden's code below? seems like only kimden can use goto */
     else if (argv[0] == "mute")
     {
         std::shared_ptr<STKPeer> player_peer;
