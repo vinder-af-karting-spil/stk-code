@@ -1751,18 +1751,16 @@ void ServerLobby::asynchronousUpdate()
                 //RaceManager::get()->setBluePole(pole.first);
                 //RaceManager::get()->setRedPole(pole.second);
 
-                announcePoleFor(pole.first, pole.first->getTeam());
+                announcePoleFor(pole.first, KART_TEAM_BLUE);
                 if (pole.first)
-                    Log::info("ServerLobby", "Pole player for team %d is %s.",
-                            pole.first->getTeam(),
+                    Log::info("ServerLobby", "Pole player for team blue is %s.",
                             StringUtils::wideToUtf8(pole.first->getName()).c_str());
                 else
                     Log::info("ServerLobby", "No pole player for first pos.");
 
                 announcePoleFor(pole.second, KART_TEAM_RED);
                 if (pole.second)
-                    Log::info("ServerLobby", "Pole player for team %d is %s.",
-                            pole.second->getTeam(),
+                    Log::info("ServerLobby", "Pole player for team red is %s.",
                             StringUtils::wideToUtf8(pole.second->getName()).c_str());
                 else
                     Log::info("ServerLobby", "No pole player for second pos.");
@@ -7295,11 +7293,7 @@ std::pair<
     std::shared_ptr<NetworkPlayerProfile>>
 ServerLobby::decidePoles()
 {
-    std::vector<std::shared_ptr<NetworkPlayerProfile>>
-        team_blue, team_red;
-
     std::shared_ptr<NetworkPlayerProfile> first, second;
-    STKHost::get()->getTeamLists(team_blue, team_red);
 
     first = decidePoleFor(m_blue_pole_votes);
     second = decidePoleFor(m_red_pole_votes);
