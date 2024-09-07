@@ -979,7 +979,9 @@ void ServerLobby::changeTeam(Event* event)
         msg->setSynchronous(true);
         msg->addUInt8(LE_CHAT);
         text += formatTeammateList(
-                STKHost::get()->getPlayerProfilesOfTeam(team));
+                STKHost::get()->getPlayerProfilesOfTeam(
+                    team == KART_TEAM_BLUE ? KART_TEAM_RED : KART_TEAM_BLUE
+                    ));
         msg->encodeString16(text);
         peer->sendPacket(msg);
         delete msg;
