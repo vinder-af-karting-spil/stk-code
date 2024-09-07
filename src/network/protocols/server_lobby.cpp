@@ -1741,7 +1741,7 @@ void ServerLobby::asynchronousUpdate()
         if (go_on_race)
         {
             // pole
-            if (isPoleEnabled())
+            if (isPoleEnabled() && (!m_red_pole_votes.empty() || !m_blue_pole_votes.empty()))
             {
                 auto pole = decidePoles();
 
