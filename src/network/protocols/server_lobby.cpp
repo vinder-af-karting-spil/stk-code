@@ -1478,7 +1478,7 @@ void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
             continue;
 
         RaceManager::MinorRaceModeType m =
-            ServerConfig::getLocalGameMode(m_game_mode.load()).first;
+            ServerConfig::getLocalGameMode(serverPtr->getServerMode()).first;
 
         responseMsg += StringUtils::getCountryFlag(serverPtr->getCountryCode());
         responseMsg += serverPtr->getName();
