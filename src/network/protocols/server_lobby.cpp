@@ -981,6 +981,8 @@ void ServerLobby::changeTeam(Event* event)
         text += formatTeammateList(
                 STKHost::get()->getPlayerProfilesOfTeam(team));
         msg->encodeString16(text);
+        peer->sendPacket(msg);
+        delete msg;
     }
 
     // At most 7 players on each team (for live join)
