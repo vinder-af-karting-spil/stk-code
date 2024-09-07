@@ -952,6 +952,37 @@ void ServerLobby::changeTeam(Event* event)
     uint8_t local_id = data.getUInt8();
     auto& player = event->getPeer()->getPlayerProfiles().at(local_id);
     auto red_blue = STKHost::get()->getAllPlayersTeamInfo();
+    const auto team = player->getTeam();
+
+    // reset pole voting if any
+    bool has_pole = false;
+    auto peer = event->getPeer();
+    auto b = m_blue_pole_votes.find(peer);
+    auto r = m_red_pole_votes.find(peer);
+    if (b != m_blue_pole_votes.cend())
+    {
+        m_blue_pole_votes.erase(b);
+        has_pole = true;
+    }
+    if (r != m_red_pole_votes.cend())
+    {
+        m_red_pole_votes.erase(r);
+        has_pole = true;
+    }
+
+    if (has_pole)
+    {
+        core::stringw text = L"Your voting has been reset since you've changed your team."
+            L" Please vote again:\n";
+        // TODO:
+        NetworkString* msg = getNetworkString();
+        msg->setSynchronous(true);
+        msg->addUInt8(LE_CHAT);
+        text += formatTeammateList(
+                STKHost::get()->getPlayerProfilesOfTeam(team));
+        msg->encodeString16(text);
+    }
+
     // At most 7 players on each team (for live join)
     if (player->getTeam() == KART_TEAM_BLUE)
     {
@@ -7213,7 +7244,6 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
 
     if (vote == 0 || teammates.size() == 0 || vote > teammates.size())
     {
-        Log::verbose("ServerLobby", "Pole vote %u is specified, invalid.", vote);
         sendStringToPeer(L"Out of range. Please select one of the listed teammates.", voter);
         return;
     }
@@ -7245,7 +7275,7 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
 //-----------------------------------------------------------------------------------------
 
 std::shared_ptr<NetworkPlayerProfile> ServerLobby::decidePoleFor(
-        const PoleVoterMap& mapping) const
+        const PoleVoterMap& mapping, const KartTeam team) const
 {
     std::shared_ptr<NetworkPlayerProfile> npp, max_npp;
     unsigned max_npp_c = 0;
@@ -7257,6 +7287,9 @@ std::shared_ptr<NetworkPlayerProfile> ServerLobby::decidePoleFor(
             continue;
 
         npp = entry.second.lock();
+        if (npp->getTeam() != team)
+            continue;
+
         auto rentry = res.find(npp);
         if (rentry == res.cend())
         {
@@ -7298,8 +7331,8 @@ ServerLobby::decidePoles()
 {
     std::shared_ptr<NetworkPlayerProfile> blue, red;
 
-    blue = decidePoleFor(m_blue_pole_votes);
-    red = decidePoleFor(m_red_pole_votes);
+    blue = decidePoleFor(m_blue_pole_votes, KART_TEAM_BLUE);
+    red = decidePoleFor(m_red_pole_votes, KART_TEAM_RED);
 
     return std::make_pair(blue, red);
 } // decidePoles

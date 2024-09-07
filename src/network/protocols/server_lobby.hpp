@@ -502,7 +502,7 @@ public:
     void setPoleEnabled(bool mode);
     void submitPoleVote(std::shared_ptr<STKPeer>& voter, unsigned int vote);
 
-    std::shared_ptr<NetworkPlayerProfile> decidePoleFor(const PoleVoterMap& mapping) const;
+    std::shared_ptr<NetworkPlayerProfile> decidePoleFor(const PoleVoterMap& mapping, KartTeam team) const;
 
     std::pair<
         std::shared_ptr<NetworkPlayerProfile>,
