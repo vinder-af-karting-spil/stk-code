@@ -983,7 +983,7 @@ void ServerLobby::changeTeam(Event* event)
                     team == KART_TEAM_BLUE ? KART_TEAM_RED : KART_TEAM_BLUE
                     ));
         msg->encodeString16(text);
-        peer->sendPacket(msg);
+        peer->sendPacket(msg, true/*reliable*/);
         delete msg;
     }
 
