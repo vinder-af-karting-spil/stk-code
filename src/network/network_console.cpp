@@ -51,9 +51,15 @@ void showHelp()
     std::cout << "kickall, Kick all players out of STKHost." << std::endl;
     std::cout << "kick #, kick # peer of STKHost." << std::endl;
     std::cout << "kickban #, kick and ban # peer of STKHost." << std::endl;
+    std::cout << "unban #, unban # peer of STKHost." << std::endl;
     std::cout << "listpeers, List all peers with host ID and IP." << std::endl;
     std::cout << "listban, List IP ban list of server." << std::endl;
     std::cout << "speedstats, Show upload and download speed." << std::endl;
+    std::cout << "setplayer name, Set permission to player." << std::endl;
+    std::cout << "setmoderator name, Set permission to moderator." 
+        << std::endl;
+    std::cout << "setadministrator name, Set permission to administrator." 
+        << std::endl;
 }   // showHelp
 
 // ----------------------------------------------------------------------------
@@ -133,7 +139,7 @@ void mainLoop(STKHost* host)
         else if (str == "kick" && str2 != "" &&
             NetworkConfig::get()->isServer())
         {
-	    std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(str2));
+            std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(str2));
             if (peer)
                 peer->kick();
             else
@@ -142,7 +148,7 @@ void mainLoop(STKHost* host)
         else if (str == "kickban" && str2 != "" &&
             NetworkConfig::get()->isServer())
         {
-	    std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(str2));
+            std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(StringUtils::utf8ToWide(str2));
             if (peer)
             {
                 peer->kick();
@@ -154,6 +160,78 @@ void mainLoop(STKHost* host)
             }
             else
                 std::cout << "Unknown player: " << str2 << std::endl;
+        }
+        else if (str == "unban" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            SocketAddress addr = str2;
+
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (sl && !addr.isIPv6())
+            {
+                sl->removeIPBanTable(addr);
+                std::cout << "IP address has been unbanned." << std::endl;
+            }
+        }
+        else if (str == "onlineban")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            std::string reason;
+            int days = -1;
+            if (ss.eof())
+                reason = "";
+            else
+            {
+                // I don't know if that will work...
+                std::string cmd = ss.str();
+                reason = cmd.substr(sizeof("onlineban") + str2.length(), cmd.length());
+                if (reason.substr(0, 4) == "days")
+                {
+                    ss.seekg(5);
+                    ss >> days;
+                }
+            }
+
+            // Add the ban
+            int res = sl->banPlayer(str2, reason, days);
+            if (res < 0 || res == 2)
+            {
+                std::cout << "Database error." << std::endl;
+                continue;
+            }
+            if (res != 0)
+            {
+                std::cout << "Player's OID has not been found in the stats." << std::endl;
+                continue;
+            }
+
+            std::cout << "Player has been banned for " << days << " days because of " <<
+                (reason.empty() ? reason : "(unspecified)") << "." << std::endl;
+            
+        }
+        else if (str == "onlineunban")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            // Remove the ban
+            int res = sl->unbanPlayer(str2);
+            if (res < 0 || res == 2)
+            {
+                std::cout << "Database error." << std::endl;
+                continue;
+            }
+            if (res != 0)
+            {
+                std::cout << "Player's OID has not been found in the stats." << std::endl;
+                continue;
+            }
+
+            std::cout << "Player has been unbanned." << std::endl;
         }
         else if (str == "listpeers")
         {
@@ -180,6 +258,108 @@ void mainLoop(STKHost* host)
                 (float)host->getUploadSpeed() / 1024.0f <<
                 "   Download speed (KBps): " <<
                 (float)host->getDownloadSpeed() / 1024.0f  << std::endl;
+        }
+        // MODERATION TOOLKIT
+        else if (str == "setplayer")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            auto player = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(str2)
+            );
+            if (player)
+            {
+                player->getPlayerProfiles()[0]->setPermissionLevel(
+                        ServerLobby::PERM_PLAYER);
+            }
+            uint32_t oid = sl->lookupOID(str2);
+            if (!oid)
+            {
+                std::cout << "Player has no recorded online id, changes are temporary." << std::endl;
+            }
+            else
+                sl->writePermissionLevelForOID(oid, ServerLobby::PERM_PLAYER);
+            std::cout << "Set " << str2 << " as player (0)." << std::endl;
+        }
+        else if (str == "setmoderator")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            auto player = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(str2)
+            );
+            if (player)
+            {
+                player->getPlayerProfiles()[0]->setPermissionLevel(
+                        ServerLobby::PERM_MODERATOR);
+            }
+            uint32_t oid = sl->lookupOID(str2);
+            if (!oid)
+            {
+                std::cout << "Player has no recorded online id, changes are temporary." << std::endl;
+            }
+            else
+                sl->writePermissionLevelForOID(oid, ServerLobby::PERM_MODERATOR);
+            std::cout << "Set " << str2 << " as moderator (80)." << std::endl;
+        }
+        else if (str == "setadministrator")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            auto player = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(str2)
+            );
+
+            if (player)
+            {
+                player->getPlayerProfiles()[0]->setPermissionLevel(
+                        ServerLobby::PERM_ADMINISTRATOR);
+            }
+            uint32_t oid = sl->lookupOID(str2);
+            if (!oid)
+            {
+                std::cout << "Player has no recorded online id, changes are temporary." << std::endl;
+            }
+            else
+                sl->writePermissionLevelForOID(oid, ServerLobby::PERM_ADMINISTRATOR);
+            std::cout << "Set " << str2 << " as administrator (100)." << std::endl;
+        }
+        else if (str == "setperm")
+        {
+            int lvl = 0;
+            ss >> lvl;
+            if (ss.bad())
+            {
+                std::cout << "Invalid permission level specified." << std::endl;
+                continue;
+            }
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            auto player = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(str2)
+            );
+
+            if (player)
+            {
+                player->getPlayerProfiles()[0]->setPermissionLevel(
+                        lvl);
+            }
+            uint32_t oid = sl->lookupOID(str2);
+            if (!oid)
+            {
+                std::cout << "Player has no recorded online id, changes are temporary." << std::endl;
+            }
+            else
+                sl->writePermissionLevelForOID(oid, lvl);
+            std::cout << "Set " << str2 << " to " << lvl << "." << std::endl;
         }
         else
         {

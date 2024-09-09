@@ -484,6 +484,28 @@ namespace ServerConfig
         "empty to disable. "
         "This table can be shared for all servers if you use the same name."));
 
+    SERVER_CFG_PREFIX IntServerConfigParam m_server_owner
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "server-owner",
+        "Online ID that owns the server and has all permissions"
+        ". (Works only when the player is validated.)"));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_permissions_table
+        SERVER_CFG_DEFAULT(StringServerConfigParam("permissions",
+        "permissions-table",
+        "Table used for defining staff players. "
+        "Contains 2 fields: int online_id and int permission_level. "
+        "Usually 0 is for regular player, 80 is for moderator, 100 is for "
+        "administrator. Note that the server owner basically has infinite "
+        "permission level."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_restrictions_table
+        SERVER_CFG_DEFAULT(StringServerConfigParam("restrictions",
+        "restrictions-table",
+        "Table used for issuing restrictions to players. "
+        "Contains 2 fields: int online_id and unsigned int restrictions. "
+        "Second field has flags: NOSPEC, NOGAME, NOCHAT, NOPCHAT, NOTEAM, "
+        "HANDICAP, KART, TRACK. In specified order, 1, 2, 4, 8, 16 etc. "));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_handling
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-handling",
         "If true this server will auto add / remove AI connected with "
