@@ -1518,13 +1518,26 @@ std::shared_ptr<STKPeer> STKHost::findPeerByHostId(uint32_t id) const
 }   // findPeerByHostId
 
 //-----------------------------------------------------------------------------
-std::shared_ptr<STKPeer>
-    STKHost::findPeerByName(const core::stringw& name,
-            const bool ignoreCase, const bool onlyPrefix) const
+std::shared_ptr<STKPeer> STKHost::findPeerByOnlineId(uint32_t id) const
 {
     std::lock_guard<std::mutex> lock(m_peers_mutex);
     auto ret = std::find_if(m_peers.begin(), m_peers.end(),
-        [name, onlyPrefix, ignoreCase](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
+        [id](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
+        {
+            return p.second->hasPlayerProfiles() && 
+                p.second->getPlayerProfiles()[0]->getOnlineId() == id;
+        });
+    return ret != m_peers.end() ? ret->second : nullptr;
+}  // findPeerByOnlineId
+//-----------------------------------------------------------------------------
+std::shared_ptr<STKPeer>
+    STKHost::findPeerByName(const core::stringw& name,
+            const bool ignoreCase, const bool onlyPrefix,
+            std::shared_ptr<NetworkPlayerProfile>* const out_ptr) const
+{
+    std::lock_guard<std::mutex> lock(m_peers_mutex);
+    auto ret = std::find_if(m_peers.begin(), m_peers.end(),
+        [name, onlyPrefix, ignoreCase, out_ptr](const std::pair<ENetPeer*, std::shared_ptr<STKPeer> >& p)
         {
             bool found = false;
             for (auto& profile : p.second->getPlayerProfiles())
@@ -1544,6 +1557,8 @@ std::shared_ptr<STKPeer>
                         )
                 {
                     found = true;
+                    if (out_ptr)
+                        *out_ptr = profile;
                     break;
                 }
             }

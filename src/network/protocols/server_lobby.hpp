@@ -20,6 +20,7 @@
 #define SERVER_LOBBY_HPP
 
 #include "network/protocols/lobby_protocol.hpp"
+#include "network/remote_kart_info.hpp"
 #include "race/race_manager.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/time.hpp"
@@ -31,6 +32,7 @@
 //#include <array>
 #include <atomic>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -89,6 +91,26 @@ public:
         ERROR_LEAVE,              // shutting down server
         EXITING
     };
+
+    /* Moderation toolkit */
+    enum ServerPermissionLevel : int
+    {
+        PERM_NONE = -100,        // no chat, nothing
+        PERM_SPECTATOR = -20,    // chat is allowed, can spectate the game
+        PERM_PRISONER = -10,     // can play the game, but unable to change teams
+        PERM_PLAYER = 0,         // can participate in the game and change teams
+        PERM_MODERATOR = 80,     // staff, allowed to change other players perm status
+                                 // (only less to the own)
+                                 // and use general moderation commands such as 
+                                 // mute, kick, ban.
+        PERM_ADMINISTRATOR = 100,// staff, can change current server's mode and toggle
+                                 // between owner-less on or off, can disable command 
+                                 // voting
+        PERM_OWNER = std::numeric_limits<int>::max(),
+                                 // Special peer, has all permissions,
+                                 // including giving the administrator permission level.
+                                 // Specified in the configuration file.
+    };
         
 private:
     struct KeyData
@@ -137,6 +159,10 @@ private:
 
     bool m_ipv6_geolocation_table_exists;
 
+    bool m_permissions_table_exists;
+
+    bool m_restrictions_table_exists;
+
     uint64_t m_last_poll_db_time;
 
     void pollDatabase();
@@ -149,6 +175,7 @@ private:
     std::string ip2Country(const SocketAddress& addr) const;
 
     std::string ipv62Country(const SocketAddress& addr) const;
+
 #endif
     void initDatabase();
 
@@ -453,6 +480,7 @@ public:
     virtual void asynchronousUpdate() OVERRIDE;
 
     void insertKartsIntoNotType(std::set<std::string>& set, const char* type) const;
+    std::set<std::string> getOtherKartsThan(const std::string& name) const;
     const char* kartRestrictedTypeName(const enum KartRestrictionMode mode) const;
     enum KartRestrictionMode getKartRestrictionMode() const { return m_kart_restriction; }
     void setKartRestrictionMode(enum KartRestrictionMode mode);
@@ -474,6 +502,7 @@ public:
     int getLobbyPlayers() const              { return m_lobby_players.load(); }
     void saveInitialItems(std::shared_ptr<NetworkItemManager> nim);
     void saveIPBanTable(const SocketAddress& addr);
+    void removeIPBanTable(const SocketAddress& addr);
     void listBanTable();
     void initServerStatsTable();
     bool isAIProfile(const std::shared_ptr<NetworkPlayerProfile>& npp) const
@@ -502,12 +531,45 @@ public:
     void setPoleEnabled(bool mode);
     void submitPoleVote(std::shared_ptr<STKPeer>& voter, unsigned int vote);
 
-    std::shared_ptr<NetworkPlayerProfile> decidePoleFor(const PoleVoterMap& mapping) const;
+    std::shared_ptr<NetworkPlayerProfile> decidePoleFor(const PoleVoterMap& mapping, KartTeam team) const;
 
     std::pair<
         std::shared_ptr<NetworkPlayerProfile>,
         std::shared_ptr<NetworkPlayerProfile>> decidePoles();
     void announcePoleFor(std::shared_ptr<NetworkPlayerProfile>& p, KartTeam team) const;
+
+    /* Moderation toolkit */
+    bool moderationToolkitAvailable()
+    {
+#ifdef ENABLE_SQLITE3
+        return m_permissions_table_exists;
+#else
+        return false;
+#endif
+    }
+    int getPeerPermissionLevel(STKPeer* p);
+    int loadPermissionLevelForOID(uint32_t online_id);
+    int loadPermissionLevelForUsername(const core::stringw& name);
+    void writePermissionLevelForOID(uint32_t online_id, int lvl);
+    void writePermissionLevelForUsername(const core::stringw& name, int lvl);
+    uint32_t loadRestrictionsForOID(uint32_t online_id);
+    uint32_t loadRestrictionsForUsername(const core::stringw& name);
+    void writeRestrictionsForOID(uint32_t online_id, uint32_t flags);
+    void writeRestrictionsForUsername(const core::stringw& name, uint32_t flags);
+    void sendNoPermissionToPeer(STKPeer* p);
+    const char* getPermissionLevelName(int lvl) const;
+    ServerPermissionLevel getPermissionLevelByName(const std::string& name) const;
+    const char* getRestrictionName(PlayerRestriction prf) const;
+    const std::string formatRestrictions(PlayerRestriction prf) const;
+    PlayerRestriction getRestrictionValue(const std::string& restriction) const;
+    void forceChangeTeam(NetworkPlayerProfile* player, KartTeam team);
+    void forceChangeHandicap(NetworkPlayerProfile* player, HandicapLevel lvl);
+    uint32_t lookupOID(const std::string& name);
+    uint32_t lookupOID(const core::stringw& name);
+    int banPlayer(const std::string& name, const std::string& reason, int days = -1);
+    int unbanPlayer(const std::string& name);
+    const std::string formatBanList(unsigned int page = 0, unsigned int psize = 8);
+    const std::string formatBanInfo(const std::string& name);
 
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
