@@ -124,9 +124,11 @@ void LobbyProtocol::configRemoteKart(
     for (unsigned int i = 0; i < players.size(); i++)
     {
         const std::shared_ptr<NetworkPlayerProfile>& profile = players[i];
+#if 0
         Log::verbose("ServerLobby", "ConfigRemoteKart i=%u, profileName->getName()=%s",
                 i,
                 StringUtils::wideToUtf8(profile->getName()).c_str());
+#endif
         bool is_local = profile->isLocalPlayer();
         // All non-local players are created here. This means all players
         // on the server, and all non-local players on a client (the local

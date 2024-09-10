@@ -361,6 +361,56 @@ void mainLoop(STKHost* host)
                 sl->writePermissionLevelForOID(oid, lvl);
             std::cout << "Set " << str2 << " to " << lvl << "." << std::endl;
         }
+        else if (str == "restrict")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            std::string playername, restrictionname;
+            ss >> restrictionname;
+            if (ss.bad())
+            {
+                std::cout << "Specify name of the restriction: nospec, nogame, nochat, nopchat, noteam, handicap, kart, track"
+                    << std::endl;
+                continue;
+            }
+            ss >> playername;
+            if (ss.bad())
+            {
+                std::cout << "Specify the name of the player for the restriction to be applied to." << std::endl;
+                continue;
+            }
+            bool state = str2 == "on";
+            PlayerRestriction restriction = sl->getRestrictionValue(
+                    restrictionname);
+            if (restriction == PRF_OK && state)
+            {
+                std::cout << "Invalid name for restriction: " + restrictionname + ".";
+                continue;
+            }
+            
+            auto target = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(playername), true, true);
+            uint32_t target_r = sl->loadRestrictionsForUsername(
+                    StringUtils::utf8ToWide(playername)
+                    );
+
+            if (target && target->hasPlayerProfiles() &&
+                    target->getPlayerProfiles()[0]->getOnlineId() != 0)
+            {
+            auto& targetPlayer = target->getPlayerProfiles()[0];
+            if (!state && restriction == PRF_OK)
+                targetPlayer->clearRestrictions();
+            else if (state)
+                targetPlayer->addRestriction(restriction);
+            else
+                targetPlayer->removeRestriction(restriction);
+            sl->writeRestrictionsForUsername(
+                    targetPlayer->getName(),
+                    targetPlayer->getRestrictions());
+            }
+
+        }
         else
         {
             std::cout << "Unknown command: " << str << std::endl;

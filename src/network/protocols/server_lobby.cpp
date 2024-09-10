@@ -1919,13 +1919,11 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[1]player #0 is %s",
                         StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[1]player #1 is %s",
                         StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
@@ -1955,13 +1953,11 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[2]player #0 is %s",
                         StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[2]player #1 is %s",
                         StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
@@ -2001,13 +1997,11 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[3]player #0 is %s",
                         StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[3]player #1 is %s",
                         StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
@@ -8383,7 +8377,6 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
         "SELECT online_id FROM %s WHERE username = ? LIMIT 1;",
         m_server_stats_table
     );
-    Log::verbose("lookupOID", "Do: %s", query.c_str());
     sqlite3_stmt* stmt = NULL;
     int res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
     if (res != SQLITE_OK || !stmt)
@@ -8404,13 +8397,11 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     if (res == SQLITE_ROW)
     {
         uint32_t ret = sqlite3_column_int(stmt, 0);
-        Log::verbose("lookupOID", "oid for player %s is %u", name.c_str(), ret);
         sqlite3_finalize(stmt);
         return ret;
     }
     if (res == SQLITE_DONE)
     {
-        Log::verbose("lookupOID", "no oid for player: %s", name.c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;
