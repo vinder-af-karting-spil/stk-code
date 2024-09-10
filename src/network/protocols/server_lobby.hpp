@@ -356,28 +356,6 @@ private:
     void handleChat(Event* event);
     void unregisterServer(bool now,
         std::weak_ptr<ServerLobby> sl = std::weak_ptr<ServerLobby>());
-    void updatePlayerList(bool update_when_reset_server = false);
-    void updateServerOwner();
-    void handleServerConfiguration(Event* event);
-    void updateTracksForMode();
-    bool checkPeersReady(bool ignore_ai_peer) const;
-    bool checkPeersCanPlay(bool ignore_ai_peer) const;
-    char checkPeersCanPlayAndReady(bool ignore_ai_peer) const;
-    void resetPeersReady()
-    {
-        for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
-        {
-            if (it->first.expired())
-            {
-                it = m_peers_ready.erase(it);
-            }
-            else
-            {
-                it->second = false;
-                it++;
-            }
-        }
-    }
     void addPeerConnection(const std::string& addr_str)
     {
         m_pending_peer_connection[addr_str] = StkTime::getMonoTimeMs();
@@ -478,6 +456,29 @@ public:
     virtual void setup() OVERRIDE;
     virtual void update(int ticks) OVERRIDE;
     virtual void asynchronousUpdate() OVERRIDE;
+
+    void updatePlayerList(bool update_when_reset_server = false);
+    void updateServerOwner();
+    void updateTracksForMode();
+    bool checkPeersReady(bool ignore_ai_peer) const;
+    bool checkPeersCanPlay(bool ignore_ai_peer) const;
+    char checkPeersCanPlayAndReady(bool ignore_ai_peer) const;
+    void handleServerConfiguration(Event* event);
+    void resetPeersReady()
+    {
+        for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)
+        {
+            if (it->first.expired())
+            {
+                it = m_peers_ready.erase(it);
+            }
+            else
+            {
+                it->second = false;
+                it++;
+            }
+        }
+    }
 
     void insertKartsIntoNotType(std::set<std::string>& set, const char* type) const;
     std::set<std::string> getOtherKartsThan(const std::string& name) const;

@@ -7663,12 +7663,14 @@ unmute_error:
 
         const KartProperties* kart =
             kart_properties_manager->getKart(argv[1]);
-        if (!kart || kart->isAddon())
+        if ((!kart || kart->isAddon()) && argv[1] != "off")
         {
             msg = "Kart does not exist or is an addon kart: " + argv[1] + ".";
             sendStringToPeer(msg, peer);
             return;
         }
+        else
+            kart = nullptr;
 
         std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
         auto t_peer = STKHost::get()->findPeerByName(
@@ -7699,6 +7701,54 @@ unmute_error:
                     StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[2]);
             sendStringToPeer(msg, peer);
         }
+    }
+    else if (argv[0] == "sethandicap")
+    {
+        std::string msg;
+        if (!player || player->getPermissionLevel() < 80)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        if (argv.size() < 3)
+        {
+            msg = "Usage: /sethandicap [none/count/medium] [player]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        HandicapLevel handicap = HANDICAP_NONE;
+        
+        if (argv[1] == "count")
+        {
+            handicap = HANDICAP_COUNT;
+        }
+        else if (argv[1] == "medium")
+        {
+            handicap = HANDICAP_MEDIUM;
+        }
+        else if (argv[1] != "none")
+        {
+            msg = "Specify either count, medium or none for second argument.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        std::shared_ptr<NetworkPlayerProfile> player = nullptr;
+        auto peer = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true, &player);
+        if (!player || !peer || !peer->hasPlayerProfiles())
+        {
+            msg = "Invalid target player: " + argv[2];
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        
+        player->setHandicap(handicap);
+        updatePlayerList();
+
+        msg = "Player handicap has been updated.";
+        sendStringToPeer(msg, peer);
     }
     else
     {
