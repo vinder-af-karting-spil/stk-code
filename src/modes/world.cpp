@@ -1615,12 +1615,14 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     }
 
     // Debugging pole
+#if 0
     Log::verbose("World", "Player %s#%d with GID %d LID %d gets the position of #%d.",
             StringUtils::wideToUtf8(online_name).c_str(),
             index,
             global_player_id,
             local_player_id,
             pos_index);
+#endif
 
     btTransform init_pos = getStartTransform(pos_index - 1);
     m_kart_position_map[index] = (unsigned)(pos_index - 1);

@@ -1919,14 +1919,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[1]player #0 is %s",
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[1]player #1 is %s",
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
 
@@ -1955,14 +1951,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[2]player #0 is %s",
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[2]player #1 is %s",
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
             // Add placeholder players for live join
@@ -2001,14 +1993,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                Log::verbose("ServerLobby", "[3]player #0 is %s",
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                Log::verbose("ServerLobby", "[3]player #1 is %s",
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
@@ -7676,12 +7664,14 @@ unmute_error:
 
         const KartProperties* kart =
             kart_properties_manager->getKart(argv[1]);
-        if (!kart || kart->isAddon())
+        if ((!kart || kart->isAddon()) && argv[1] != "off")
         {
             msg = "Kart does not exist or is an addon kart: " + argv[1] + ".";
             sendStringToPeer(msg, peer);
             return;
         }
+        else
+            kart = nullptr;
 
         std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
         auto t_peer = STKHost::get()->findPeerByName(
@@ -7712,6 +7702,54 @@ unmute_error:
                     StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[2]);
             sendStringToPeer(msg, peer);
         }
+    }
+    else if (argv[0] == "sethandicap")
+    {
+        std::string msg;
+        if (!player || player->getPermissionLevel() < 80)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        if (argv.size() < 3)
+        {
+            msg = "Usage: /sethandicap [none/count/medium] [player]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        HandicapLevel handicap = HANDICAP_NONE;
+        
+        if (argv[1] == "count")
+        {
+            handicap = HANDICAP_COUNT;
+        }
+        else if (argv[1] == "medium")
+        {
+            handicap = HANDICAP_MEDIUM;
+        }
+        else if (argv[1] != "none")
+        {
+            msg = "Specify either count, medium or none for second argument.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        std::shared_ptr<NetworkPlayerProfile> player = nullptr;
+        auto peer = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true, &player);
+        if (!player || !peer || !peer->hasPlayerProfiles())
+        {
+            msg = "Invalid target player: " + argv[2];
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        
+        player->setHandicap(handicap);
+        updatePlayerList();
+
+        msg = "Player handicap has been updated.";
+        sendStringToPeer(msg, peer);
     }
     else
     {
@@ -8384,7 +8422,6 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
         "SELECT online_id FROM %s WHERE username = ? LIMIT 1;",
         m_server_stats_table
     );
-    Log::verbose("lookupOID", "Do: %s", query.c_str());
     sqlite3_stmt* stmt = NULL;
     int res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
     if (res != SQLITE_OK || !stmt)
@@ -8405,13 +8442,11 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     if (res == SQLITE_ROW)
     {
         uint32_t ret = sqlite3_column_int(stmt, 0);
-        Log::verbose("lookupOID", "oid for player %s is %u", name.c_str(), ret);
         sqlite3_finalize(stmt);
         return ret;
     }
     if (res == SQLITE_DONE)
     {
-        Log::verbose("lookupOID", "no oid for player: %s", name.c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;

@@ -16,8 +16,12 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+#include "karts/kart_properties.hpp"
+#include "karts/kart_properties_manager.hpp"
 #include "network/network_config.hpp"
 #include "network/network_player_profile.hpp"
+#include "network/network_string.hpp"
+#include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
 #include "network/socket_address.hpp"
 #include "network/stk_host.hpp"
@@ -360,6 +364,209 @@ void mainLoop(STKHost* host)
             else
                 sl->writePermissionLevelForOID(oid, lvl);
             std::cout << "Set " << str2 << " to " << lvl << "." << std::endl;
+        }
+        else if (str == "restrict")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            std::string playername, restrictionname;
+            ss >> restrictionname;
+            if (ss.bad())
+            {
+                std::cout << "Specify name of the restriction: nospec, nogame, nochat, nopchat, noteam, handicap, kart, track"
+                    << std::endl;
+                continue;
+            }
+            ss >> playername;
+            if (ss.bad())
+            {
+                std::cout << "Specify the name of the player for the restriction to be applied to." << std::endl;
+                continue;
+            }
+            bool state = str2 == "on";
+            PlayerRestriction restriction = sl->getRestrictionValue(
+                    restrictionname);
+            if (restriction == PRF_OK && state)
+            {
+                std::cout << "Invalid name for restriction: " + restrictionname + ".";
+                continue;
+            }
+            
+            auto target = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(playername), true, true);
+            uint32_t target_r = sl->loadRestrictionsForUsername(
+                    StringUtils::utf8ToWide(playername)
+                    );
+
+            if (target && target->hasPlayerProfiles() &&
+                    target->getPlayerProfiles()[0]->getOnlineId() != 0)
+            {
+                auto& targetPlayer = target->getPlayerProfiles()[0];
+                if (!state && restriction == PRF_OK)
+                    targetPlayer->clearRestrictions();
+                else if (state)
+                    targetPlayer->addRestriction(restriction);
+                else
+                    targetPlayer->removeRestriction(restriction);
+                sl->writeRestrictionsForUsername(
+                        targetPlayer->getName(),
+                        targetPlayer->getRestrictions());
+            }
+
+            uint32_t online_id = sl->lookupOID(playername);
+            if (online_id)
+            {
+                sl->writeRestrictionsForUsername(
+                        StringUtils::utf8ToWide(playername), 
+                        state ? target_r | restriction : target_r & ~restriction);
+                std::cout << "Set " << restrictionname << " to " << str2 << " for player " << 
+                    playername << ". " << std::endl;
+                continue;
+            }
+        }
+        else if (str == "setteam")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            // str2 is the team name
+            KartTeam team = KART_TEAM_NONE;
+            std::string playername;
+            ss >> playername;
+            if (ss.bad())
+            {
+                std::cout << "Specify player name." << std::endl;
+                continue;
+            }
+            
+            if (str2 == "blue")
+                team = KART_TEAM_BLUE;
+            else if (str2 == "red")
+                team = KART_TEAM_RED;
+            else if (str2 != "none")
+            {
+                std::cout << "Specify either blue, red or none for second argument." << std::endl;
+                continue;
+            }
+
+            std::shared_ptr<NetworkPlayerProfile> player = nullptr;
+            auto peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(playername), true, true, &player);
+            if (!player || !peer || !peer->hasPlayerProfiles())
+            {
+                std::cout << "Invalid target player: " << playername << std::endl;
+                continue;
+            }
+            
+            player->setTeam(team);
+            sl->updatePlayerList();
+
+            std::cout << "Set player team to " << str2 << " for " << 
+                StringUtils::wideToUtf8(player->getName())<< std::endl;
+        }
+        else if (str == "setkart")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            // str2 is the kart name
+            std::string playername;
+            ss >> playername;
+            if (ss.bad())
+            {
+                std::cout << "Specify player name." << std::endl;
+                continue;
+            }
+
+            const KartProperties* kart =
+                kart_properties_manager->getKart(str2);
+            if ((!kart || kart->isAddon()) && str2 != "off")
+            {
+                std::cout << "Kart \"" << str2 << "\" does not exist or is not a standard kart." \
+                    << std::endl;
+                continue;
+            }
+
+            std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
+            auto t_peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(playername), true, true, &t_player);
+            if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
+            {
+                std::cout << "Invalid target player: " << playername << std::endl;
+                continue;
+            }
+
+            if (str2 == "off")
+            {
+                NetworkString* tmsg = sl->getNetworkString();
+                tmsg->setSynchronous(true);
+                tmsg->addUInt8(LobbyProtocol::LE_CHAT);
+                tmsg->encodeString16(
+                        L"You can choose any kart now.");
+                t_peer->sendPacket(tmsg, true/*reliable*/);
+                delete tmsg;
+
+                t_player->unforceKart();
+                std::cout << "No longer forcing a kart for " << playername << "." << std::endl;
+                return;
+            }
+            else
+            {
+                std::string targetmsg = "Your kart is " + str2 + " now.";
+                NetworkString* tmsg = sl->getNetworkString();
+                tmsg->setSynchronous(true);
+                tmsg->addUInt8(LobbyProtocol::LE_CHAT);
+                tmsg->encodeString16(
+                        L"You can choose any kart now.");
+                t_peer->sendPacket(tmsg, true/*reliable*/);
+                delete tmsg;
+                t_player->forceKart(str2);
+                std::cout << "Made " <<StringUtils::wideToUtf8(t_player->getName()) <<
+                    " use kart " << str2 << "." << std::endl;
+            }
+
+        }
+        else if (str == "sethandicap")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            // str2 is the team name
+            HandicapLevel handicap = HANDICAP_NONE;
+            std::string playername;
+            ss >> playername;
+            if (ss.bad())
+            {
+                std::cout << "Specify player name." << std::endl;
+                continue;
+            }
+            
+            if (str2 == "count")
+                handicap = HANDICAP_COUNT;
+            else if (str2 == "medium")
+                handicap = HANDICAP_MEDIUM;
+            else if (str2 != "none")
+            {
+                std::cout << "Specify either count, medium or none for second argument." << std::endl;
+                continue;
+            }
+
+            std::shared_ptr<NetworkPlayerProfile> player = nullptr;
+            auto peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(playername), true, true, &player);
+            if (!player || !peer || !peer->hasPlayerProfiles())
+            {
+                std::cout << "Invalid target player: " << playername << std::endl;
+                continue;
+            }
+            
+            player->setHandicap(handicap);
+            sl->updatePlayerList();
+
+            std::cout << "Set player handicap to " << str2 << " for " << 
+                StringUtils::wideToUtf8(player->getName())<< std::endl;
         }
         else
         {
