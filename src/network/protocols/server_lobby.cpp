@@ -7445,19 +7445,21 @@ unmute_error:
         if (argv.size() >= 4 && argv[2] == "days")
         {
             days = std::stoi(argv[3]);
-            reason = cmd.substr(
-                    argv[0].length() +
-                    argv[1].length() + 
-                    argv[2].length() +
-                    //                 v possible bug here
-                    argv[3].length() + 4, cmd.length());
+            const size_t length = 
+                argv[0].length() +
+                argv[1].length() +
+                argv[2].length() +
+                argv[3].length() +
+                // changeme
+                4;
+            reason = cmd.substr(std::min(length, cmd.length()), cmd.length());
         }
         else 
         {
-            reason = cmd.substr(
+            reason = cmd.substr(std::min(
                     argv[0].length() +
                     //                 v too
-                    argv[1].length() + 2, cmd.length());
+                    argv[1].length() + 2, cmd.length()), cmd.length());
         }
         // get target
         int32_t trg_permlvl = loadPermissionLevelForUsername(
@@ -7482,7 +7484,7 @@ unmute_error:
             msg = "Player's online id is not known in the database.";
             sendStringToPeer(msg, peer);
         }
-        else
+        else if (res == 2)
         {
             msg = "Failed to ban the player, check the network console.";
             sendStringToPeer(msg, peer);
@@ -7506,7 +7508,7 @@ unmute_error:
         int res;
         if ((res = unbanPlayer(argv[1])) == 0)
         {
-            msg = "Banned player " + argv[1] + ".";
+            msg = "Unbanned player " + argv[1] + ".";
             sendStringToPeer(msg, peer);
         }
         else if (res == 1)
@@ -7514,9 +7516,9 @@ unmute_error:
             msg = "Player's online id is not known in the database.";
             sendStringToPeer(msg, peer);
         }
-        else
+        else if (res == 2)
         {
-            msg = "Failed to ban the player, check the network console.";
+            msg = "Failed to unban the player, check the network console.";
             sendStringToPeer(msg, peer);
         }
     }
@@ -8574,7 +8576,7 @@ int ServerLobby::banPlayer(const std::string& name, const std::string& reason, c
     res = sqlite3_step(stmt);
     if (res != SQLITE_DONE)
     {
-    Log::error("ServerLobby", "Error in banPlayer, step returned %d: %s",
+        Log::error("ServerLobby", "Error in banPlayer, step returned %d: %s",
             res, sqlite3_errmsg(m_db));
         sqlite3_finalize(stmt);
         return 2;
