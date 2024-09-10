@@ -8833,7 +8833,9 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
         return PERM_PLAYER;
 
     std::string query = StringUtils::insertValues(
-            "SELECT online_id FROM %s WHERE username = ?;",
+            "SELECT p.level FROM %s AS p"
+            " INNER JOIN %s AS s (p.online_id = s.online_id) WHERE s.username = ?;",
+            ServerConfig::m_permissions_table.c_str(),
             m_server_stats_table
             );
     sqlite3_stmt* stmt = NULL;
