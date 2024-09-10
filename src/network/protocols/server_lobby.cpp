@@ -2998,19 +2998,8 @@ void ServerLobby::startSelection(const Event *event)
     {
         if (!peer->isValidated() || peer->isWaitingForGame())
             continue;
-        if (peer->hasPlayerProfiles() && peer->getPlayerProfiles().size() == 1
-                && !peer->getPlayerProfiles()[0]->getForcedKart().empty())
-        {
-            //AAATODO
-            auto karts = getOtherKartsThan(
-                    peer->getPlayerProfiles()[0]->getForcedKart());
-            peer->eraseServerKarts(m_available_kts.first,
-                karts);
-        }
-        else
-        {
-            peer->eraseServerKarts(m_available_kts.first, karts_erase);
-        }
+
+        peer->eraseServerKarts(m_available_kts.first, karts_erase);
         peer->eraseServerTracks(m_available_kts.second, tracks_erase);
         if (peer->alwaysSpectate())
             always_spectate_peers.insert(peer.get());
@@ -3214,31 +3203,68 @@ void ServerLobby::startSelection(const Event *event)
     }
 
     startVotingPeriod(ServerConfig::m_voting_timeout);
-    NetworkString *ns = getNetworkString(1);
-    // Start selection - must be synchronous since the receiver pushes
-    // a new screen, which must be done from the main thread.
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_START_SELECTION)
-       .addFloat(ServerConfig::m_voting_timeout)
-       .addUInt8(m_game_setup->isGrandPrixStarted() ? 1 : 0)
-       .addUInt8((ServerConfig::m_auto_game_time_ratio > 0.0f ||
-        m_fixed_laps != -1) ? 1 : 0)
-       .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
-
     const auto& all_k = m_available_kts.first;
     const auto& all_t = m_available_kts.second;
-    ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
-    for (const std::string& kart : all_k)
-    {
-        ns->encodeString(kart);
-    }
-    for (const std::string& track : all_t)
-    {
-        ns->encodeString(track);
-    }
+#if 0
+#endif
 
-    sendMessageToPeers(ns, /*reliable*/true);
-    delete ns;
+    for (auto peer : peers)
+    {
+        auto profiles = peer->getPlayerProfiles();
+        bool hasEnforcedKart = 
+            peer->hasPlayerProfiles() && profiles.size() == 1 
+            && !profiles[0]->getForcedKart().empty();
+        // INSERT YOUR SETKART HERE
+        NetworkString *ns = getNetworkString(1);
+        // Start selection - must be synchronous since the receiver pushes
+        // a new screen, which must be done from the main thread.
+        ns->setSynchronous(true);
+        ns->addUInt8(LE_START_SELECTION)
+           .addFloat(ServerConfig::m_voting_timeout)
+           .addUInt8(m_game_setup->isGrandPrixStarted() ? 1 : 0)
+           .addUInt8((ServerConfig::m_auto_game_time_ratio > 0.0f ||
+            m_fixed_laps != -1) ? 1 : 0)
+           .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
+
+        if (hasEnforcedKart)
+            ns->addUInt16(1);
+        else
+            ns->addUInt16((uint16_t)all_k.size());
+        ns->addUInt16((uint16_t)all_t.size());
+
+        if (hasEnforcedKart)
+            ns->encodeString(profiles[0]->getForcedKart());
+        else
+            for (const std::string& kart : all_k)
+            {
+                ns->encodeString(kart);
+            }
+        for (const std::string& track : all_t)
+        {
+            ns->encodeString(track);
+        }
+
+        peer->sendPacket(ns, true/*reliable*/);
+        delete ns;
+    }
+    //sendMessageToPeers(ns, /*reliable*/true);
+#if 0
+    STKHost::get()->sendPacketToAllPeersWith([this](STKPeer* peer)
+    {
+        if (peer->hasPlayerProfiles() && peer->getPlayerProfiles().size() == 1
+                && !peer->getPlayerProfiles()[0]->getForcedKart().empty())
+        {
+            //AAATODO
+            Log::verbose("ServerLobby", "setKart is used: %s", 
+                    peer->getPlayerProfiles()[0]->getForcedKart().c_str());
+            auto karts = getOtherKartsThan(
+                    peer->getPlayerProfiles()[0]->getForcedKart());
+            peer->eraseServerKarts(m_available_kts.first,
+                karts);
+        }
+        return true;
+    }, ns);
+#endif
 
     m_state = SELECTING;
     if (!always_spectate_peers.empty())
@@ -6063,8 +6089,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
         ns.decodeString(&kart);
         const bool isStandardKart = kart.find("addon_") == std::string::npos;
 
-        if (player->hasRestriction(PRF_KART) 
-                && !player->getForcedKart().empty()
+        if (!player->getForcedKart().empty()
                 && kart != player->getForcedKart())
         {
             Log::verbose("ServerLobby",
