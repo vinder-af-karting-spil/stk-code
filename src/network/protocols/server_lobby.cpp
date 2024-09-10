@@ -7561,6 +7561,19 @@ unmute_error:
 
         auto target = STKHost::get()->findPeerByName(
                 StringUtils::utf8ToWide(argv[3]), true, true);
+        int target_permlvl = loadPermissionLevelForUsername(
+                StringUtils::utf8ToWide(argv[3]));
+        uint32_t target_r = loadRestrictionsForUsername(
+                StringUtils::utf8ToWide(argv[3])
+                );
+        if ((player->getPermissionLevel() < target_permlvl) &&
+                ServerConfig::m_server_owner > 0 &&
+                ServerConfig::m_server_owner != player->getOnlineId())
+        {
+            msg = "You can only apply restrictions to a player that has lower permission level than yours.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
         if (target && target->hasPlayerProfiles() &&
                 target->getPlayerProfiles()[0]->getOnlineId() != 0)
         {
@@ -7582,22 +7595,22 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
-        int target_permlvl = loadPermissionLevelForUsername(
-                StringUtils::utf8ToWide(argv[3]));
-        uint32_t target_r = loadRestrictionsForUsername(
-                StringUtils::utf8ToWide(argv[3])
-                );
-        if ((player->getPermissionLevel() < target_permlvl) &&
-                ServerConfig::m_server_owner > 0 &&
-                ServerConfig::m_server_owner != player->getOnlineId())
+        
+        uint32_t online_id = lookupOID(argv[3]);
+        if (!target && online_id)
         {
-            msg = "You can only apply restrictions to a player that has lower permission level than yours.";
+            writeRestrictionsForUsername(
+                    StringUtils::utf8ToWide(argv[3]), 
+                    state ? target_r | restriction : target_r & ~restriction);
+            msg = StringUtils::insertValues(
+                    "Set %s to %s for offline player %s.",
+                    getRestrictionName(restriction),
+                    argv[1],
+                    argv[3].c_str());
             sendStringToPeer(msg, peer);
             return;
         }
-        writeRestrictionsForUsername(
-                StringUtils::utf8ToWide(argv[3]), 
-                state ? target_r | restriction : target_r & ~restriction);
+        else
         {
             msg = "Invalid target player: " + argv[2];
             sendStringToPeer(msg, peer);
