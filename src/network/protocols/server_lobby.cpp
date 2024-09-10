@@ -7534,6 +7534,7 @@ unmute_error:
     }
     else if (argv[0] == "restrict" || argv[0] == "punish")
     {
+        Log::verbose("ServerLobby", "/restrict: debug -2");
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
@@ -7547,6 +7548,7 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
+        Log::verbose("ServerLobby", "/restrict: debug -1");
 
         PlayerRestriction restriction = getRestrictionValue(
                 argv[2]);
@@ -7559,6 +7561,7 @@ unmute_error:
             return;
         }
 
+        Log::verbose("ServerLobby", "/restrict: debug 0");
         auto target = STKHost::get()->findPeerByName(
                 StringUtils::utf8ToWide(argv[3]), true, true);
         int target_permlvl = loadPermissionLevelForUsername(
