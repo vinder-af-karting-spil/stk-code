@@ -7598,7 +7598,7 @@ unmute_error:
         }
         
         uint32_t online_id = lookupOID(argv[3]);
-        if (!target && online_id)
+        if (online_id)
         {
             writeRestrictionsForUsername(
                     StringUtils::utf8ToWide(argv[3]), 
@@ -8280,12 +8280,15 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
         return 0;
 
     int res;
+    Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 1");
     std::string query = StringUtils::insertValues(
         "SELECT flags FROM %s AS r INNER JOIN %s AS s ON (r.online_id = s.online_id) WHERE username = ?;",
         ServerConfig::m_restrictions_table.c_str(),
         m_server_stats_table);
     sqlite3_stmt* stmt = NULL;
+    Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 2");
     res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
+    Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 3");
     if (res != SQLITE_OK || !stmt)
     {
         Log::error("ServerLobby", "loadRestrictionsForUsername failure: %s",
@@ -8294,6 +8297,7 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
     }
     res = sqlite3_bind_text(stmt, 1, 
             StringUtils::wideToUtf8(name).c_str(), -1, SQLITE_TRANSIENT);
+    Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 4");
     if (res != SQLITE_OK)
     {
         Log::error("ServerLobby::loadRestrictionsForUsername", "Failed to bind %s.",
@@ -8301,14 +8305,17 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
         return PRF_OK;
     }
 
+    Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 5");
     res = sqlite3_step(stmt);
     if (res == SQLITE_DONE)
     {
+        Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 6");
         sqlite3_finalize(stmt);
         return PRF_OK;
     }
     if (res == SQLITE_ROW)
     {
+        Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 7");
         sqlite3_finalize(stmt);
         uint32_t flags = sqlite3_column_int(stmt, 0);
         return flags;
@@ -8316,6 +8323,7 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
     Log::error("ServerLobby", "loadRestrictionsForUsername failed to dispatch: %s",
             sqlite3_errmsg(m_db));
     sqlite3_finalize(stmt);
+        Log::verbose("ServerLobby::loadRestrictionsForUsername", "debug 8");
     return PRF_OK;
 #else
     return 0;
@@ -8802,6 +8810,7 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
             );
     sqlite3_stmt* stmt = NULL;
     int res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
+    Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 1");
     if (res != SQLITE_OK || !stmt)
     {
         Log::error("ServerLobby::loadPermissionLevelForUsername", "Unable to prepare the statement: %d, %s",
@@ -8809,22 +8818,28 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
         return PERM_PLAYER;
     }
 
+    Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 2");
     res = sqlite3_bind_text(stmt, 1, StringUtils::wideToUtf8(name).c_str(), -1, SQLITE_TRANSIENT);
+    Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 3");
     if (res != SQLITE_OK)
     {
-        Log::error("ServerLobby::unbanPlayer", "Failed to bind arg #1.");
+        Log::error("ServerLobby::loadPermissionLevelForUsername", "Failed to bind arg #1.");
         return PERM_PLAYER;
     }
 
+    Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 4");
     res = sqlite3_step(stmt);
+    Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 5");
     if (res == SQLITE_DONE)
     {
+        Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 6");
         // nothing found
         sqlite3_finalize(stmt);
         return PERM_PLAYER;
     }
     else if (res == SQLITE_ROW)
     {
+        Log::verbose("ServerLobby::loadPermissionLevelForUsername", "debug 7");
         uint32_t result = sqlite3_column_int(stmt, 0);
         sqlite3_finalize(stmt);
         return result;
