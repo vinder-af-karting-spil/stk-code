@@ -8137,7 +8137,8 @@ int ServerLobby::loadPermissionLevelForOID(const uint32_t online_id)
     char* errmsg;
     std::string query = StringUtils::insertValues(
         "SELECT level FROM %s WHERE online_id = %u;",
-        ServerConfig::m_permissions_table.c_str());
+        ServerConfig::m_permissions_table.c_str(),
+        online_id);
     res = sqlite3_exec(m_db, query.c_str(),
             [](void* ptr, int amount, char** data, char** columns) {
                 int* target = (int*)ptr;
@@ -8210,7 +8211,8 @@ uint32_t ServerLobby::loadRestrictionsForOID(const uint32_t online_id)
     char* errmsg;
     std::string query = StringUtils::insertValues(
         "SELECT flags FROM %s WHERE online_id = %u;",
-        ServerConfig::m_restrictions_table.c_str());
+        ServerConfig::m_restrictions_table.c_str(),
+        online_id);
     res = sqlite3_exec(m_db, query.c_str(),
             [](void* ptr, int amount, char** data, char** columns) {
                 uint32_t* target = (uint32_t*)ptr;
