@@ -4370,6 +4370,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     for (unsigned i = 0; i < player_count; i++)
     {
         core::stringw name;
+        int permlvl;
+        uint32_t restrictions;
         data.decodeStringW(&name);
         // 30 to make it consistent with stk-addons max user name length
         if (name.empty())
@@ -4378,8 +4380,16 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             name = name.subString(0, 30);
         float default_kart_color = data.getFloat();
         HandicapLevel handicap = (HandicapLevel)data.getUInt8();
-        int permlvl = loadPermissionLevelForOID(online_id);
-        uint32_t restrictions = loadRestrictionsForOID(online_id);
+        if (ServerConfig::m_server_owner > 0 && 
+                online_id == ServerConfig::m_server_owner)
+        {
+            permlvl = std::numeric_limits<int>::max();
+        }
+        else
+        {
+            permlvl = loadPermissionLevelForOID(online_id);
+        }
+        restrictions = loadRestrictionsForOID(online_id);
 
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
@@ -7570,8 +7580,24 @@ unmute_error:
                     argv[1],
                     StringUtils::wideToUtf8(targetPlayer->getName()).c_str());
             sendStringToPeer(msg, peer);
+            return;
         }
-        else
+        int target_permlvl = loadPermissionLevelForUsername(
+                StringUtils::utf8ToWide(argv[3]));
+        uint32_t target_r = loadRestrictionsForUsername(
+                StringUtils::utf8ToWide(argv[3])
+                );
+        if ((player->getPermissionLevel() < target_permlvl) &&
+                ServerConfig::m_server_owner > 0 &&
+                ServerConfig::m_server_owner != player->getOnlineId())
+        {
+            msg = "You can only apply restrictions to a player that has lower permission level than yours.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        writeRestrictionsForUsername(
+                StringUtils::utf8ToWide(argv[3]), 
+                state ? target_r | restriction : target_r & ~restriction);
         {
             msg = "Invalid target player: " + argv[2];
             sendStringToPeer(msg, peer);
@@ -7643,10 +7669,10 @@ unmute_error:
             return;
         }
 
-        std::shared_ptr<NetworkPlayerProfile> player = nullptr;
-        auto peer = STKHost::get()->findPeerByName(
-                StringUtils::utf8ToWide(argv[2]), true, true, &player);
-        if (!player || !peer || !peer->hasPlayerProfiles())
+        std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
+        auto t_peer = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
+        if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             msg = "Invalid target player: " + argv[2];
             sendStringToPeer(msg, peer);
@@ -7655,17 +7681,21 @@ unmute_error:
 
         if (argv[1] == "off")
         {
-            player->unforceKart();
+            std::string targetmsg = "You can choose any kart now.";
+            sendStringToPeer(targetmsg, t_peer);
+            t_player->unforceKart();
             msg = "No longer forcing a kart for " + argv[2] + ".";
             sendStringToPeer(msg, peer);
             return;
         }
         else
         {
-            player->forceKart(argv[2]);
+            std::string targetmsg = "Your kart is " + argv[2] + " now.";
+            sendStringToPeer(targetmsg, t_peer);
+            t_player->forceKart(argv[2]);
             msg = StringUtils::insertValues(
                     "Made %s use kart %s.",
-                    StringUtils::wideToUtf8(player->getName()).c_str(), argv[2]);
+                    StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[2]);
             sendStringToPeer(msg, peer);
         }
     }
@@ -8132,14 +8162,13 @@ int ServerLobby::loadPermissionLevelForOID(const uint32_t online_id)
             && online_id == ServerConfig::m_server_owner)
         return std::numeric_limits<int>::max();
 
-    int res, lvl;
-    lvl = 0;
+    int lvl = 0;
     char* errmsg;
     std::string query = StringUtils::insertValues(
         "SELECT level FROM %s WHERE online_id = %u;",
         ServerConfig::m_permissions_table.c_str(),
         online_id);
-    res = sqlite3_exec(m_db, query.c_str(),
+    sqlite3_exec(m_db, query.c_str(),
             [](void* ptr, int amount, char** data, char** columns) {
                 int* target = (int*)ptr;
                 *target = std::atoi(data[0]);
@@ -8151,7 +8180,7 @@ int ServerLobby::loadPermissionLevelForOID(const uint32_t online_id)
         sqlite3_free(errmsg);
         return 0;
     }
-    return res;
+    return lvl;
 #else
     return 0;
 #endif
