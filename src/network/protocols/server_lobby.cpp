@@ -1919,12 +1919,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
 
@@ -1953,12 +1951,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
             // Add placeholder players for live join
@@ -1997,12 +1993,10 @@ void ServerLobby::asynchronousUpdate()
             if (players.size() > 0)
             {
                 auto player1 = players[0];
-                        StringUtils::wideToUtf8(player1->getName()).c_str());
             }
             if (players.size() > 1)
             {
                 auto player2 = players[1];
-                        StringUtils::wideToUtf8(player2->getName()).c_str());
             }
 
             NetworkString* load_world_message = getLoadWorldMessage(players,
