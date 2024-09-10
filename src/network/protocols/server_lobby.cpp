@@ -8299,13 +8299,13 @@ uint32_t ServerLobby::loadRestrictionsForOID(const uint32_t online_id)
                 *target = std::atol(data[0]);
                 return 0;
             }, &lvl, &errmsg);
-    if (errmsg)
+    if (res != SQLITE_OK && errmsg)
     {
         Log::error("ServerLobby", "loadRestrictionsForOID failure: %s", errmsg);
         sqlite3_free(errmsg);
         return 0;
     }
-    return res;
+    return lvl;
 #else
     return 0;
 #endif
