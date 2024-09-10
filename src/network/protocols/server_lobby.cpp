@@ -3234,13 +3234,11 @@ void ServerLobby::startSelection(const Event *event)
 
         if (hasEnforcedKart)
         {
-            Log::verbose("ServerLobby", "forced kart: %s", profiles[0]->getForcedKart().c_str());
             ns->encodeString(profiles[0]->getForcedKart());
         }
         else
             for (const std::string& kart : all_k)
             {
-                Log::verbose("ServerLobby", "not forced kart: %s", kart.c_str());
                 ns->encodeString(kart);
             }
         for (const std::string& track : all_t)
@@ -7724,12 +7722,12 @@ unmute_error:
         }
         else
         {
-            std::string targetmsg = "Your kart is " + argv[2] + " now.";
+            std::string targetmsg = "Your kart is " + argv[1] + " now.";
             sendStringToPeer(targetmsg, t_peer);
-            t_player->forceKart(argv[2]);
+            t_player->forceKart(argv[1]);
             msg = StringUtils::insertValues(
                     "Made %s use kart %s.",
-                    StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[2]);
+                    StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[1]);
             sendStringToPeer(msg, peer);
         }
     }
