@@ -8340,6 +8340,7 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
         "SELECT online_id FROM %s WHERE username = ? LIMIT 1;",
         m_server_stats_table
     );
+    Log::verbose("lookupOID", "Do: %s", query.c_str());
     sqlite3_stmt* stmt = NULL;
     int res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
     if (res != SQLITE_OK || !stmt)
@@ -8360,11 +8361,13 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     if (res == SQLITE_ROW)
     {
         uint32_t ret = sqlite3_column_int(stmt, 1);
+        Log::verbose("oid for player %s is %u", name.c_str(), ret);
         sqlite3_finalize(stmt);
         return ret;
     }
     if (res == SQLITE_DONE)
     {
+        Log::verbose("no oid for player: %s", name.c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;
