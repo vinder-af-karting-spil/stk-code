@@ -7535,7 +7535,6 @@ unmute_error:
     }
     else if (argv[0] == "restrict" || argv[0] == "punish")
     {
-        Log::verbose("ServerLobby", "/restrict: debug -2");
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
@@ -7549,7 +7548,6 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
-        Log::verbose("ServerLobby", "/restrict: debug -1 %s", argv[3].c_str());
 
         PlayerRestriction restriction = getRestrictionValue(
                 argv[2]);
@@ -7562,81 +7560,61 @@ unmute_error:
             return;
         }
 
-        Log::verbose("ServerLobby", "/restrict: debug 0");
         auto target = STKHost::get()->findPeerByName(
                 StringUtils::utf8ToWide(argv[3]), true, true);
-        Log::verbose("ServerLobby", "/restrict: debug 0.1");
         int target_permlvl = loadPermissionLevelForUsername(
                 StringUtils::utf8ToWide(argv[3]));
-        Log::verbose("ServerLobby", "/restrict: debug 0.2");
         uint32_t target_r = loadRestrictionsForUsername(
                 StringUtils::utf8ToWide(argv[3])
                 );
-        Log::verbose("ServerLobby", "/restrict: debug 1");
         if ((player->getPermissionLevel() < target_permlvl) &&
                 ServerConfig::m_server_owner > 0 &&
                 ServerConfig::m_server_owner != player->getOnlineId())
         {
-            Log::verbose("ServerLobby", "/restrict: debug 2");
             msg = "You can only apply restrictions to a player that has lower permission level than yours.";
             sendStringToPeer(msg, peer);
             return;
         }
-        Log::verbose("ServerLobby", "/restrict: debug 3");
         if (target && target->hasPlayerProfiles() &&
                 target->getPlayerProfiles()[0]->getOnlineId() != 0)
         {
-            Log::verbose("ServerLobby", "/restrict: debug 4");
             auto& targetPlayer = target->getPlayerProfiles()[0];
-            Log::verbose("ServerLobby", "/restrict: debug 5");
             if (argv[1] == "off" && argv[2] == "all")
                 targetPlayer->clearRestrictions();
             else if (state)
                 targetPlayer->addRestriction(restriction);
             else
                 targetPlayer->removeRestriction(restriction);
-            Log::verbose("ServerLobby", "/restrict: debug 6");
             writeRestrictionsForUsername(
                     targetPlayer->getName(),
                     targetPlayer->getRestrictions());
-            Log::verbose("ServerLobby", "/restrict: debug 7");
             msg = StringUtils::insertValues(
                     "Set %s to %s for player %s.",
                     getRestrictionName(restriction),
                     argv[1],
                     StringUtils::wideToUtf8(targetPlayer->getName()).c_str());
-            Log::verbose("ServerLobby", "/restrict: debug 8");
             sendStringToPeer(msg, peer);
-            Log::verbose("ServerLobby", "/restrict: debug 9");
             return;
         }
         
-        Log::verbose("ServerLobby", "/restrict: debug 10");
         uint32_t online_id = lookupOID(argv[3]);
         if (online_id)
         {
-            Log::verbose("ServerLobby", "/restrict: debug 11");
             writeRestrictionsForUsername(
                     StringUtils::utf8ToWide(argv[3]), 
                     state ? target_r | restriction : target_r & ~restriction);
-            Log::verbose("ServerLobby", "/restrict: debug 12");
             msg = StringUtils::insertValues(
                     "Set %s to %s for offline player %s.",
                     getRestrictionName(restriction),
                     argv[1],
                     argv[3].c_str());
-            Log::verbose("ServerLobby", "/restrict: debug 13");
             sendStringToPeer(msg, peer);
-            Log::verbose("ServerLobby", "/restrict: debug 14");
             return;
         }
         else
         {
-            Log::verbose("ServerLobby", "/restrict: debug 15");
             msg = "Invalid target player: " + argv[2];
-            Log::verbose("ServerLobby", "/restrict: debug 16");
             sendStringToPeer(msg, peer);
-            Log::verbose("ServerLobby", "/restrict: debug 17");
         }
     }
     else if (argv[0] == "setteam")
@@ -8307,46 +8285,34 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
         ServerConfig::m_restrictions_table.c_str(),
         m_server_stats_table);
     sqlite3_stmt* stmt = NULL;
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 1");
     res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 2");
     if (res != SQLITE_OK || !stmt)
     {
         Log::error("ServerLobby", "loadRestrictionsForUsername failure: %s",
                 sqlite3_errmsg(m_db));
         return PRF_OK;
     }
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 3");
     res = sqlite3_bind_text(stmt, 1, 
             StringUtils::wideToUtf8(name).c_str(), -1, SQLITE_TRANSIENT);
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 4");
     if (res != SQLITE_OK)
     {
         Log::error("ServerLobby::loadRestrictionsForUsername", "Failed to bind %s.",
             name.c_str());
         return PRF_OK;
     }
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 5");
 
     res = sqlite3_step(stmt);
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 6");
     if (res == SQLITE_DONE)
     {
-        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 7");
         sqlite3_finalize(stmt);
-        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 8");
         return PRF_OK;
     }
     if (res == SQLITE_ROW)
     {
-        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 9");
-        sqlite3_finalize(stmt);
-        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 10");
         uint32_t flags = sqlite3_column_int(stmt, 0);
-        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 11");
+        sqlite3_finalize(stmt);
         return flags;
     }
-    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 12");
     Log::error("ServerLobby", "loadRestrictionsForUsername failed to dispatch: %s",
             sqlite3_errmsg(m_db));
     sqlite3_finalize(stmt);
