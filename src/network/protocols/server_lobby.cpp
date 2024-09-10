@@ -7548,7 +7548,7 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
-        Log::verbose("ServerLobby", "/restrict: debug -1");
+        Log::verbose("ServerLobby", "/restrict: debug -1 %s", argv[3].c_str());
 
         PlayerRestriction restriction = getRestrictionValue(
                 argv[2]);
@@ -7564,8 +7564,10 @@ unmute_error:
         Log::verbose("ServerLobby", "/restrict: debug 0");
         auto target = STKHost::get()->findPeerByName(
                 StringUtils::utf8ToWide(argv[3]), true, true);
+        Log::verbose("ServerLobby", "/restrict: debug 0.1");
         int target_permlvl = loadPermissionLevelForUsername(
                 StringUtils::utf8ToWide(argv[3]));
+        Log::verbose("ServerLobby", "/restrict: debug 0.2");
         uint32_t target_r = loadRestrictionsForUsername(
                 StringUtils::utf8ToWide(argv[3])
                 );
