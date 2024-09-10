@@ -8307,34 +8307,46 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
         ServerConfig::m_restrictions_table.c_str(),
         m_server_stats_table);
     sqlite3_stmt* stmt = NULL;
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 1");
     res = sqlite3_prepare_v2(m_db, query.c_str(), query.size(), &stmt, NULL);
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 2");
     if (res != SQLITE_OK || !stmt)
     {
         Log::error("ServerLobby", "loadRestrictionsForUsername failure: %s",
                 sqlite3_errmsg(m_db));
         return PRF_OK;
     }
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 3");
     res = sqlite3_bind_text(stmt, 1, 
             StringUtils::wideToUtf8(name).c_str(), -1, SQLITE_TRANSIENT);
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 4");
     if (res != SQLITE_OK)
     {
         Log::error("ServerLobby::loadRestrictionsForUsername", "Failed to bind %s.",
             name.c_str());
         return PRF_OK;
     }
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 5");
 
     res = sqlite3_step(stmt);
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 6");
     if (res == SQLITE_DONE)
     {
+        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 7");
         sqlite3_finalize(stmt);
+        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 8");
         return PRF_OK;
     }
     if (res == SQLITE_ROW)
     {
+        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 9");
         sqlite3_finalize(stmt);
+        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 10");
         uint32_t flags = sqlite3_column_int(stmt, 0);
+        Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 11");
         return flags;
     }
+    Log::verbose("ServerLobby", "loadRestrictionsForUsername debug 12");
     Log::error("ServerLobby", "loadRestrictionsForUsername failed to dispatch: %s",
             sqlite3_errmsg(m_db));
     sqlite3_finalize(stmt);
