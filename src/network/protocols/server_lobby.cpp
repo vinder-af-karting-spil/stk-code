@@ -3233,10 +3233,14 @@ void ServerLobby::startSelection(const Event *event)
         ns->addUInt16((uint16_t)all_t.size());
 
         if (hasEnforcedKart)
+        {
+            Log::verbose("ServerLobby", "forced kart: %s", profiles[0]->getForcedKart().c_str());
             ns->encodeString(profiles[0]->getForcedKart());
+        }
         else
             for (const std::string& kart : all_k)
             {
+                Log::verbose("ServerLobby", "not forced kart: %s", kart.c_str());
                 ns->encodeString(kart);
             }
         for (const std::string& track : all_t)
