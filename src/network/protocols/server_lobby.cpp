@@ -8587,14 +8587,6 @@ int ServerLobby::banPlayer(const std::string& name, const std::string& reason, c
         // nothing is done
         return 1;
     }
-    if (res > 1)
-    {
-        // multiple players are banned?
-        Log::error("ServerLobby::banPlayer",
-                "Multiple players were banned (%d rows affected)", res);
-        sqlite3_finalize(stmt);
-        return 2;
-    }
 
     sqlite3_finalize(stmt);
     // player is banned, attempt to kick the player if there's one online
@@ -8654,6 +8646,7 @@ int ServerLobby::unbanPlayer(const std::string& name)
         // nothing is done, which means player wasn't banned
         return 1;
     }
+#if 0
     if (res > 1)
     {
         // multiple players are banned?
@@ -8662,6 +8655,7 @@ int ServerLobby::unbanPlayer(const std::string& name)
         sqlite3_finalize(stmt);
         return 2;
     }
+#endif
 
     sqlite3_finalize(stmt);
     return 0;
