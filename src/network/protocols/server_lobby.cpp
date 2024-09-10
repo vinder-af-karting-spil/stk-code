@@ -8362,13 +8362,13 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     if (res == SQLITE_ROW)
     {
         uint32_t ret = sqlite3_column_int(stmt, 1);
-        Log::verbose("oid for player %s is %u", name.c_str(), ret);
+        Log::verbose("lookupOID", "oid for player %s is %u", name.c_str(), ret);
         sqlite3_finalize(stmt);
         return ret;
     }
     if (res == SQLITE_DONE)
     {
-        Log::verbose("no oid for player: %s", name.c_str());
+        Log::verbose("lookupOID", "no oid for player: %s", name.c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;
