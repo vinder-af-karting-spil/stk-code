@@ -8267,7 +8267,7 @@ uint32_t ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
     if (res == SQLITE_ROW)
     {
         sqlite3_finalize(stmt);
-        uint32_t flags = sqlite3_column_int(stmt, 1);
+        uint32_t flags = sqlite3_column_int(stmt, 0);
         return flags;
     }
     Log::error("ServerLobby", "loadRestrictionsForUsername failed to dispatch: %s",
@@ -8361,7 +8361,7 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     res = sqlite3_step(stmt);
     if (res == SQLITE_ROW)
     {
-        uint32_t ret = sqlite3_column_int(stmt, 1);
+        uint32_t ret = sqlite3_column_int(stmt, 0);
         Log::verbose("lookupOID", "oid for player %s is %u", name.c_str(), ret);
         sqlite3_finalize(stmt);
         return ret;
@@ -8620,7 +8620,7 @@ const std::string ServerLobby::formatBanList(unsigned int page,
     if (res == SQLITE_ROW)
     {
         sqlite3_finalize(stmt);
-        pages = sqlite3_column_int64(stmt, 1);
+        pages = sqlite3_column_int64(stmt, 0);
     }
     else
     {
@@ -8656,25 +8656,25 @@ const std::string ServerLobby::formatBanList(unsigned int page,
 
     while ((res = sqlite3_step(stmt)) == SQLITE_ROW)
     {
-        unsigned int online_id = sqlite3_column_int(stmt, 1);
-        const unsigned char* username = sqlite3_column_text(stmt, 2);
+        unsigned int online_id = sqlite3_column_int(stmt, 0);
+        const unsigned char* username = sqlite3_column_text(stmt, 1);
         const unsigned char* reason;
-        if (sqlite3_column_type(stmt, 3) == SQLITE_NULL)
+        if (sqlite3_column_type(stmt, 2) == SQLITE_NULL)
         {
             reason = (const unsigned char*)"[UNSPECIFIED]";
         }
         else
         {
-            reason = sqlite3_column_text(stmt, 3);
+            reason = sqlite3_column_text(stmt, 2);
         }
 
         result += StringUtils::insertValues(
                 "[%u] %s: %s", online_id, username, reason);
 
-        if (sqlite3_column_type(stmt, 4) != SQLITE_NULL)
+        if (sqlite3_column_type(stmt, 3) != SQLITE_NULL)
         {
             result += (std::string(" (expires in ") +
-                    std::to_string(sqlite3_column_int(stmt, 4))
+                    std::to_string(sqlite3_column_int(stmt, 3))
                     + " days).");
         }
         result += "\n";
@@ -8727,13 +8727,13 @@ const std::string ServerLobby::formatBanInfo(const std::string& name)
     {
         std::string result = StringUtils::insertValues(
             "Online ID: %u, %s banned because: %s, days: %s",
-            sqlite3_column_int(stmt, 1),
-            sqlite3_column_text(stmt, 2),
-            (sqlite3_column_type(stmt, 3) == SQLITE_TEXT) ?
-                sqlite3_column_text(stmt, 3) :
+            sqlite3_column_int(stmt, 0),
+            sqlite3_column_text(stmt, 1),
+            (sqlite3_column_type(stmt, 2) == SQLITE_TEXT) ?
+                sqlite3_column_text(stmt, 2) :
                 (const unsigned char*)"[UNSPECIFIED]",
-            (sqlite3_column_type(stmt, 4) == SQLITE_INTEGER) ?
-                std::to_string(sqlite3_column_int(stmt, 4)) :
+            (sqlite3_column_type(stmt, 3) == SQLITE_INTEGER) ?
+                std::to_string(sqlite3_column_int(stmt, 3)) :
                 "[FOREVER]");
         sqlite3_finalize(stmt);
         return result;
@@ -8782,7 +8782,7 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
     }
     else if (res == SQLITE_ROW)
     {
-        uint32_t result = sqlite3_column_int(stmt, 1);
+        uint32_t result = sqlite3_column_int(stmt, 0);
         sqlite3_finalize(stmt);
         return result;
     }
@@ -8878,6 +8878,7 @@ PlayerRestriction ServerLobby::getRestrictionValue(
         return PRF_ITEMS;
     if (restriction == "ok")
         return PRF_OK;
+    return PRF_OK;
 }
 const std::string ServerLobby::formatRestrictions(PlayerRestriction prf) const
 {
