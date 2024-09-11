@@ -4410,7 +4410,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         }
         restrictions = loadRestrictionsForOID(online_id);
         if (restrictions & PRF_HANDICAP)
-            handicap = 
+            handicap = HANDICAP_MEDIUM;
 
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
