@@ -7638,6 +7638,93 @@ unmute_error:
             sendStringToPeer(msg, peer);
         }
     }
+    else if (argv[0] == "nospec" ||
+             argv[0] == "nogame" ||
+             argv[0] == "nochat" ||
+             argv[0] == "nopchat" ||
+             argv[0] == "noteam"
+             )
+    {
+        std::string msg;
+        if (!player || player->getPermissionLevel() < 80)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        if (argv.size() < 3)
+        {
+            msg = "Usage: /[nospec/nogame/nochat/nopchat/noteam] [on] [player]."
+                " Or /restrict off all [player] to remove all restrictions.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        PlayerRestriction restriction = getRestrictionValue(
+                argv[0]);
+        bool state = argv[1] == "on";
+
+        if (restriction == PRF_OK && state)
+        {
+            msg = "Invalid name for restriction: " + argv[0] + ".";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        auto target = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true);
+        int target_permlvl = loadPermissionLevelForUsername(
+                StringUtils::utf8ToWide(argv[2]));
+        uint32_t target_r = loadRestrictionsForUsername(
+                StringUtils::utf8ToWide(argv[2])
+                );
+        if ((player->getPermissionLevel() < target_permlvl) &&
+                ServerConfig::m_server_owner > 0 &&
+                ServerConfig::m_server_owner != player->getOnlineId())
+        {
+            msg = "You can only apply restrictions to a player that has lower permission level than yours.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (target && target->hasPlayerProfiles() &&
+                target->getPlayerProfiles()[0]->getOnlineId() != 0)
+        {
+            auto& targetPlayer = target->getPlayerProfiles()[0];
+            if (state)
+                targetPlayer->addRestriction(restriction);
+            else
+                targetPlayer->removeRestriction(restriction);
+            writeRestrictionsForUsername(
+                    targetPlayer->getName(),
+                    targetPlayer->getRestrictions());
+            msg = StringUtils::insertValues(
+                    "Set %s to %s for player %s.",
+                    getRestrictionName(restriction),
+                    argv[1],
+                    StringUtils::wideToUtf8(targetPlayer->getName()).c_str());
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        
+        uint32_t online_id = lookupOID(argv[3]);
+        if (online_id)
+        {
+            writeRestrictionsForUsername(
+                    StringUtils::utf8ToWide(argv[3]), 
+                    state ? target_r | restriction : target_r & ~restriction);
+            msg = StringUtils::insertValues(
+                    "Set %s to %s for offline player %s.",
+                    getRestrictionName(restriction),
+                    argv[1],
+                    argv[3].c_str());
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else
+        {
+            msg = "Invalid target player: " + argv[2];
+            sendStringToPeer(msg, peer);
+        }
+    }
     else if (argv[0] == "setteam")
     {
         std::string msg;
