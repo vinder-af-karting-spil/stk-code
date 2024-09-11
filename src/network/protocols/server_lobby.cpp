@@ -7665,7 +7665,7 @@ unmute_error:
 
         std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
         auto t_peer = STKHost::get()->findPeerByName(
-                StringUtils::utf8ToWide(argv[2]), true, true, &player);
+                StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             msg = "Invalid target player: " + argv[2];
