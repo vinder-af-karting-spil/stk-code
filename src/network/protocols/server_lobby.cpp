@@ -7662,21 +7662,21 @@ unmute_error:
             team = KART_TEAM_RED;
         }
 
-        std::shared_ptr<NetworkPlayerProfile> player = nullptr;
-        auto peer = STKHost::get()->findPeerByName(
+        std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
+        auto t_peer = STKHost::get()->findPeerByName(
                 StringUtils::utf8ToWide(argv[2]), true, true, &player);
-        if (!player || !peer || !peer->hasPlayerProfiles())
+        if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             msg = "Invalid target player: " + argv[2];
-            sendStringToPeer(msg, peer);
+            sendStringToPeer(msg, t_peer);
             return;
         }
         
-        player->setTeam(team);
+        t_player->setTeam(team);
         updatePlayerList();
 
         msg = "Player team has been updated.";
-        sendStringToPeer(msg, peer);
+        sendStringToPeer(msg, t_peer);
     }
     else if (argv[0] == "setkart")
     {
