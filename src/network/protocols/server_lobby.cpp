@@ -4409,6 +4409,8 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             permlvl = loadPermissionLevelForOID(online_id);
         }
         restrictions = loadRestrictionsForOID(online_id);
+        if (restrictions & PRF_HANDICAP)
+            handicap = HANDICAP_MEDIUM;
 
         auto player = std::make_shared<NetworkPlayerProfile>
             (peer, i == 0 && !online_name.empty() && !peer->isAIPeer() ?
@@ -7563,7 +7565,7 @@ unmute_error:
         }
         if (argv.size() < 4)
         {
-            msg = "Usage: /restrict [on/off] [nospec/nogame/nochat/nopchat/noteam/handicap/kart/track] [player]."
+            msg = "Usage: /restrict [on/off] [nospec/nogame/nochat/nopchat/noteam/handicap/track] [player]."
                 " Or /restrict off all [player] to remove all restrictions.";
             sendStringToPeer(msg, peer);
             return;
@@ -7669,7 +7671,7 @@ unmute_error:
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             msg = "Invalid target player: " + argv[2];
-            sendStringToPeer(msg, t_peer);
+            sendStringToPeer(msg, peer);
             return;
         }
         
@@ -7677,7 +7679,7 @@ unmute_error:
         updatePlayerList();
 
         msg = "Player team has been updated.";
-        sendStringToPeer(msg, t_peer);
+        sendStringToPeer(msg, peer);
     }
     else if (argv[0] == "setkart")
     {
@@ -8953,8 +8955,6 @@ const char*
             return "handicap";
         case PRF_TRACK:
             return "track";
-        case PRF_KART:
-            return "kart";
         case PRF_ITEMS:
             return "items";
         case PRF_OK:
@@ -8978,8 +8978,6 @@ PlayerRestriction ServerLobby::getRestrictionValue(
         return PRF_HANDICAP;
     if (restriction == "track")
         return PRF_TRACK;
-    if (restriction == "kart")
-        return PRF_KART;
     if (restriction == "items")
         return PRF_ITEMS;
     if (restriction == "ok")
