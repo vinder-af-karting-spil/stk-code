@@ -3210,6 +3210,9 @@ void ServerLobby::startSelection(const Event *event)
 
     for (auto peer : peers)
     {
+        if (!peer->isValidated() || peer->isWaitingForGame())
+            continue;
+
         auto profiles = peer->getPlayerProfiles();
         bool hasEnforcedKart = 
             peer->hasPlayerProfiles() && profiles.size() == 1 
