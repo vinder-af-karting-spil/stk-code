@@ -2998,19 +2998,8 @@ void ServerLobby::startSelection(const Event *event)
     {
         if (!peer->isValidated() || peer->isWaitingForGame())
             continue;
-        if (peer->hasPlayerProfiles() && peer->getPlayerProfiles().size() == 1
-                && !peer->getPlayerProfiles()[0]->getForcedKart().empty())
-        {
-            //AAATODO
-            auto karts = getOtherKartsThan(
-                    peer->getPlayerProfiles()[0]->getForcedKart());
-            peer->eraseServerKarts(m_available_kts.first,
-                karts);
-        }
-        else
-        {
-            peer->eraseServerKarts(m_available_kts.first, karts_erase);
-        }
+
+        peer->eraseServerKarts(m_available_kts.first, karts_erase);
         peer->eraseServerTracks(m_available_kts.second, tracks_erase);
         if (peer->alwaysSpectate())
             always_spectate_peers.insert(peer.get());
@@ -3214,31 +3203,70 @@ void ServerLobby::startSelection(const Event *event)
     }
 
     startVotingPeriod(ServerConfig::m_voting_timeout);
-    NetworkString *ns = getNetworkString(1);
-    // Start selection - must be synchronous since the receiver pushes
-    // a new screen, which must be done from the main thread.
-    ns->setSynchronous(true);
-    ns->addUInt8(LE_START_SELECTION)
-       .addFloat(ServerConfig::m_voting_timeout)
-       .addUInt8(m_game_setup->isGrandPrixStarted() ? 1 : 0)
-       .addUInt8((ServerConfig::m_auto_game_time_ratio > 0.0f ||
-        m_fixed_laps != -1) ? 1 : 0)
-       .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
-
     const auto& all_k = m_available_kts.first;
     const auto& all_t = m_available_kts.second;
-    ns->addUInt16((uint16_t)all_k.size()).addUInt16((uint16_t)all_t.size());
-    for (const std::string& kart : all_k)
-    {
-        ns->encodeString(kart);
-    }
-    for (const std::string& track : all_t)
-    {
-        ns->encodeString(track);
-    }
+#if 0
+#endif
 
-    sendMessageToPeers(ns, /*reliable*/true);
-    delete ns;
+    for (auto peer : peers)
+    {
+        auto profiles = peer->getPlayerProfiles();
+        bool hasEnforcedKart = 
+            peer->hasPlayerProfiles() && profiles.size() == 1 
+            && !profiles[0]->getForcedKart().empty();
+        // INSERT YOUR SETKART HERE
+        NetworkString *ns = getNetworkString(1);
+        // Start selection - must be synchronous since the receiver pushes
+        // a new screen, which must be done from the main thread.
+        ns->setSynchronous(true);
+        ns->addUInt8(LE_START_SELECTION)
+           .addFloat(ServerConfig::m_voting_timeout)
+           .addUInt8(m_game_setup->isGrandPrixStarted() ? 1 : 0)
+           .addUInt8((ServerConfig::m_auto_game_time_ratio > 0.0f ||
+            m_fixed_laps != -1) ? 1 : 0)
+           .addUInt8(ServerConfig::m_track_voting ? 1 : 0);
+
+        if (hasEnforcedKart)
+            ns->addUInt16(1);
+        else
+            ns->addUInt16((uint16_t)all_k.size());
+        ns->addUInt16((uint16_t)all_t.size());
+
+        if (hasEnforcedKart)
+        {
+            ns->encodeString(profiles[0]->getForcedKart());
+        }
+        else
+            for (const std::string& kart : all_k)
+            {
+                ns->encodeString(kart);
+            }
+        for (const std::string& track : all_t)
+        {
+            ns->encodeString(track);
+        }
+
+        peer->sendPacket(ns, true/*reliable*/);
+        delete ns;
+    }
+    //sendMessageToPeers(ns, /*reliable*/true);
+#if 0
+    STKHost::get()->sendPacketToAllPeersWith([this](STKPeer* peer)
+    {
+        if (peer->hasPlayerProfiles() && peer->getPlayerProfiles().size() == 1
+                && !peer->getPlayerProfiles()[0]->getForcedKart().empty())
+        {
+            //AAATODO
+            Log::verbose("ServerLobby", "setKart is used: %s", 
+                    peer->getPlayerProfiles()[0]->getForcedKart().c_str());
+            auto karts = getOtherKartsThan(
+                    peer->getPlayerProfiles()[0]->getForcedKart());
+            peer->eraseServerKarts(m_available_kts.first,
+                karts);
+        }
+        return true;
+    }, ns);
+#endif
 
     m_state = SELECTING;
     if (!always_spectate_peers.empty())
@@ -6063,8 +6091,7 @@ void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
         ns.decodeString(&kart);
         const bool isStandardKart = kart.find("addon_") == std::string::npos;
 
-        if (player->hasRestriction(PRF_KART) 
-                && !player->getForcedKart().empty()
+        if (!player->getForcedKart().empty()
                 && kart != player->getForcedKart())
         {
             Log::verbose("ServerLobby",
@@ -7446,19 +7473,21 @@ unmute_error:
         if (argv.size() >= 4 && argv[2] == "days")
         {
             days = std::stoi(argv[3]);
-            reason = cmd.substr(
-                    argv[0].length() +
-                    argv[1].length() + 
-                    argv[2].length() +
-                    //                 v possible bug here
-                    argv[3].length() + 4, cmd.length());
+            const size_t length = 
+                argv[0].length() +
+                argv[1].length() +
+                argv[2].length() +
+                argv[3].length() +
+                // changeme
+                4;
+            reason = cmd.substr(std::min(length, cmd.length()), cmd.length());
         }
         else 
         {
-            reason = cmd.substr(
+            reason = cmd.substr(std::min(
                     argv[0].length() +
                     //                 v too
-                    argv[1].length() + 2, cmd.length());
+                    argv[1].length() + 2, cmd.length()), cmd.length());
         }
         // get target
         int32_t trg_permlvl = loadPermissionLevelForUsername(
@@ -7483,7 +7512,7 @@ unmute_error:
             msg = "Player's online id is not known in the database.";
             sendStringToPeer(msg, peer);
         }
-        else
+        else if (res == 2)
         {
             msg = "Failed to ban the player, check the network console.";
             sendStringToPeer(msg, peer);
@@ -7507,7 +7536,7 @@ unmute_error:
         int res;
         if ((res = unbanPlayer(argv[1])) == 0)
         {
-            msg = "Banned player " + argv[1] + ".";
+            msg = "Unbanned player " + argv[1] + ".";
             sendStringToPeer(msg, peer);
         }
         else if (res == 1)
@@ -7515,9 +7544,9 @@ unmute_error:
             msg = "Player's online id is not known in the database.";
             sendStringToPeer(msg, peer);
         }
-        else
+        else if (res == 2)
         {
-            msg = "Failed to ban the player, check the network console.";
+            msg = "Failed to unban the player, check the network console.";
             sendStringToPeer(msg, peer);
         }
     }
@@ -7694,12 +7723,12 @@ unmute_error:
         }
         else
         {
-            std::string targetmsg = "Your kart is " + argv[2] + " now.";
+            std::string targetmsg = "Your kart is " + argv[1] + " now.";
             sendStringToPeer(targetmsg, t_peer);
-            t_player->forceKart(argv[2]);
+            t_player->forceKart(argv[1]);
             msg = StringUtils::insertValues(
                     "Made %s use kart %s.",
-                    StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[2]);
+                    StringUtils::wideToUtf8(t_player->getName()).c_str(), argv[1]);
             sendStringToPeer(msg, peer);
         }
     }
@@ -8300,13 +8329,13 @@ uint32_t ServerLobby::loadRestrictionsForOID(const uint32_t online_id)
                 *target = std::atol(data[0]);
                 return 0;
             }, &lvl, &errmsg);
-    if (errmsg)
+    if (res != SQLITE_OK && errmsg)
     {
         Log::error("ServerLobby", "loadRestrictionsForOID failure: %s", errmsg);
         sqlite3_free(errmsg);
         return 0;
     }
-    return res;
+    return lvl;
 #else
     return 0;
 #endif
@@ -8575,7 +8604,7 @@ int ServerLobby::banPlayer(const std::string& name, const std::string& reason, c
     res = sqlite3_step(stmt);
     if (res != SQLITE_DONE)
     {
-    Log::error("ServerLobby", "Error in banPlayer, step returned %d: %s",
+        Log::error("ServerLobby", "Error in banPlayer, step returned %d: %s",
             res, sqlite3_errmsg(m_db));
         sqlite3_finalize(stmt);
         return 2;
@@ -8585,14 +8614,6 @@ int ServerLobby::banPlayer(const std::string& name, const std::string& reason, c
         sqlite3_finalize(stmt);
         // nothing is done
         return 1;
-    }
-    if (res > 1)
-    {
-        // multiple players are banned?
-        Log::error("ServerLobby::banPlayer",
-                "Multiple players were banned (%d rows affected)", res);
-        sqlite3_finalize(stmt);
-        return 2;
     }
 
     sqlite3_finalize(stmt);
@@ -8653,6 +8674,7 @@ int ServerLobby::unbanPlayer(const std::string& name)
         // nothing is done, which means player wasn't banned
         return 1;
     }
+#if 0
     if (res > 1)
     {
         // multiple players are banned?
@@ -8661,6 +8683,7 @@ int ServerLobby::unbanPlayer(const std::string& name)
         sqlite3_finalize(stmt);
         return 2;
     }
+#endif
 
     sqlite3_finalize(stmt);
     return 0;
@@ -8832,7 +8855,9 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
         return PERM_PLAYER;
 
     std::string query = StringUtils::insertValues(
-            "SELECT online_id FROM %s WHERE username = ?;",
+            "SELECT p.level FROM %s AS p"
+            " INNER JOIN %s AS s (p.online_id = s.online_id) WHERE s.username = ?;",
+            ServerConfig::m_permissions_table.c_str(),
             m_server_stats_table
             );
     sqlite3_stmt* stmt = NULL;
