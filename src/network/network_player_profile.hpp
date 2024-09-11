@@ -45,7 +45,7 @@ enum PlayerRestriction: uint32_t
     PRF_NOPCHAT = 8, //!< Player is unable to send private chat messages
     PRF_NOTEAM = 16, //!< Player profiles of the peer cannot change teams
     PRF_HANDICAP = 32, //!< Player is unable to toggle the handicap
-    PRF_KART = 64, //!< Player is unable to select the kart by themselved
+    //PRF_KART = 64, //!< Player is unable to select the kart by themselved
     PRF_TRACK = 128, //!< Player is unable to vote for the track
     PRF_ITEMS = 256, //!< Player is unable to pick up items in game
 };  // PlayerRestriction
