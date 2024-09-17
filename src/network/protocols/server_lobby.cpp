@@ -7115,15 +7115,16 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (argv[0] == "feature")
+    else if (!ServerConfig::m_feature_filepath.toString().empty() && 
+            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm"))
     {
-        if (!player || player->hasRestriction(PRF_NOPCHAT) ||
+        if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
         {
             sendNoPermissionToPeer(peer.get());
             return;
         }
-        const size_t _cmd_size = sizeof("feature");
+        const size_t _cmd_size = argv[0].length() + 1;
         NetworkString* chat = getNetworkString();
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
@@ -7182,6 +7183,78 @@ void ServerLobby::handleServerCommand(Event* event,
 
         // inform success
         response = "Thanks for your suggestion! Your suggestion has been recorded, and we will review it at some point.";
+        chat->encodeString16(response);
+        peer->sendPacket(chat, true/*reliable*/);
+        delete chat;
+    }
+    else if (!ServerConfig::m_reports_filepath.toString().empty() && 
+            (argv[0] == "report" || argv[0] == "tell" || argv[0] == "rp"))
+    {
+        if (!player || player->hasRestriction(PRF_NOCHAT) ||
+                player->getPermissionLevel() <= PERM_NONE)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        const size_t _cmd_size = argv[0].length() + 1;
+        NetworkString* chat = getNetworkString();
+        chat->addUInt8(LE_CHAT);
+        chat->setSynchronous(true);
+        irr::core::stringw response;
+
+        // ensure there is a message specified "feature" = 7 characters long,
+        // 1 whitespace, and 5 is the minimum
+        if (cmd.length() < _cmd_size + 5)
+        {
+            response = L"You need to specify the message that is at least 5 characters long.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+
+        // open a file, for append
+        std::fstream file(
+                ServerConfig::m_reports_filepath, std::ios_base::app );
+        if (file.fail() || file.bad())
+        {
+            response = L"Failed to record a report. Input/output error (1). Please inform the administrator.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        std::string player_name;
+        if (!peer->hasPlayerProfiles())
+            player_name = "(unknown)";
+        else
+            player_name = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+
+        // TODO: check if player can send the feature at all
+        const std::time_t now = std::chrono::system_clock::to_time_t(
+                std::chrono::system_clock::now());
+
+        // write current date and time
+        char datetime[20];
+        std::strftime(datetime, 20, "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+        file << datetime;
+
+        // other details
+        std::string suggestionMsg = cmd.substr(_cmd_size);
+        file << " [" << player_name << "]: " << suggestionMsg << std::endl;
+
+        file.flush();
+        if (!file.good())
+        {
+            response = "Failed to record a report. Input/output error (2). Please inform the administrator.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+
+        // inform success
+        response = "Thank you for your report. We will review it at some point and take appropriate action if applicable.";
         chat->encodeString16(response);
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
