@@ -190,7 +190,11 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_feature_filepath
         SERVER_CFG_DEFAULT(StringServerConfigParam("features.txt",
-        "feature-filepath", "File to log the /feature (message) messages into from players."));
+        "feature-filepath", "File to log the /inform (message) messages into from players."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_reports_filepath
+        SERVER_CFG_DEFAULT(StringServerConfigParam("report.txt",
+        "reports-filepath", "File to log the /report (message) messages into from players."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_chat
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "chat",
