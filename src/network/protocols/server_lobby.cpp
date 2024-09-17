@@ -3954,6 +3954,7 @@ void ServerLobby::clientDisconnected(Event* event)
 
     writeDisconnectInfoTable(event->getPeer());
 
+    auto peer = event->getPeer();
     // On last player
     if (!STKHost::get()->getPeerCount())
     {
@@ -3962,7 +3963,6 @@ void ServerLobby::clientDisconnected(Event* event)
     }
     else 
     {
-        auto peer = event->getPeer();
         auto b = m_blue_pole_votes.find(peer);
         auto r = m_red_pole_votes.find(peer);
         if (b != m_blue_pole_votes.cend())
@@ -3971,6 +3971,28 @@ void ServerLobby::clientDisconnected(Event* event)
             m_red_pole_votes.erase(r);
         RaceManager::get()->resetPoleProfile(event->getPeer());
     }
+    // reset player command votings
+    if (ServerConfig::m_command_voting && peer->hasPlayerProfiles())
+    {
+        auto pname = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+        for (auto cmd : m_command_voters)
+        {
+            auto found = std::find(cmd.second.cbegin(), cmd.second.cend(),
+                    pname);
+            if (found == cmd.second.cend())
+                continue;
+
+            // the player name is deleted from the voted command
+            cmd.second.erase(found);
+        }
+    }
+    // send a message to the wrapper
+    if (peer->hasPlayerProfiles())
+        Log::verbose("ServerLobby", "playerleave %s %d",
+                StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName()).c_str(),
+                peer->getPlayerProfiles()[0]->getOnlineId());
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
@@ -4609,6 +4631,11 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             }
         }
     );
+    if (peer->hasPlayerProfiles())
+        Log::verbose("ServerLobby", "playerjoin %s %d",
+                StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName()).c_str(),
+                peer->getPlayerProfiles()[0]->getOnlineId());
 #endif
 }   // handleUnencryptedConnection
 
@@ -7574,7 +7601,7 @@ unmute_error:
                 argv[2]);
         bool state = argv[1] == "on";
 
-        if (restriction == PRF_OK && state)
+        if ((restriction == PRF_OK) && state)
         {
             msg = "Invalid name for restriction: " + argv[2] + ".";
             sendStringToPeer(msg, peer);
@@ -7705,17 +7732,17 @@ unmute_error:
             return;
         }
         
-        uint32_t online_id = lookupOID(argv[3]);
+        uint32_t online_id = lookupOID(argv[2]);
         if (online_id)
         {
             writeRestrictionsForUsername(
-                    StringUtils::utf8ToWide(argv[3]), 
+                    StringUtils::utf8ToWide(argv[2]), 
                     state ? target_r | restriction : target_r & ~restriction);
             msg = StringUtils::insertValues(
                     "Set %s to %s for offline player %s.",
                     getRestrictionName(restriction),
                     argv[1],
-                    argv[3].c_str());
+                    argv[2].c_str());
             sendStringToPeer(msg, peer);
             return;
         }
@@ -8075,6 +8102,17 @@ void ServerLobby::setPoleEnabled(bool mode)
     }
     else 
     {
+        const std::string item = "pole on";
+        // delete command votes for "pole on"
+        for (auto& voter : m_command_voters) {
+            auto cmd_i = std::find(voter.second.cbegin(), voter.second.cend(),
+                    item);
+            if (cmd_i == voter.second.cend())
+                // nothing to erase, no vote.
+                continue;
+
+            voter.second.erase(cmd_i);
+        }
         std::string resp("Pole has been disabled.");
         sendStringToAllPeers(resp);
     }
