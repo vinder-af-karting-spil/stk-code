@@ -3954,6 +3954,7 @@ void ServerLobby::clientDisconnected(Event* event)
 
     writeDisconnectInfoTable(event->getPeer());
 
+    auto peer = event->getPeer();
     // On last player
     if (!STKHost::get()->getPeerCount())
     {
@@ -3962,7 +3963,6 @@ void ServerLobby::clientDisconnected(Event* event)
     }
     else 
     {
-        auto peer = event->getPeer();
         auto b = m_blue_pole_votes.find(peer);
         auto r = m_red_pole_votes.find(peer);
         if (b != m_blue_pole_votes.cend())
@@ -3971,6 +3971,28 @@ void ServerLobby::clientDisconnected(Event* event)
             m_red_pole_votes.erase(r);
         RaceManager::get()->resetPoleProfile(event->getPeer());
     }
+    // reset player command votings
+    if (ServerConfig::m_command_voting && peer->hasPlayerProfiles())
+    {
+        auto pname = StringUtils::wideToUtf8(
+                peer->getPlayerProfiles()[0]->getName());
+        for (auto cmd : m_command_voters)
+        {
+            auto found = std::find(cmd.second.cbegin(), cmd.second.cend(),
+                    pname);
+            if (found == cmd.second.cend())
+                continue;
+
+            // the player name is deleted from the voted command
+            cmd.second.erase(found);
+        }
+    }
+    // send a message to the wrapper
+    if (peer->hasPlayerProfiles())
+        Log::verbose("ServerLobby", "playerleave %s %d",
+                StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName()).c_str(),
+                peer->getPlayerProfiles()[0]->getOnlineId());
 }   // clientDisconnected
 
 //-----------------------------------------------------------------------------
@@ -4609,6 +4631,11 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             }
         }
     );
+    if (peer->hasPlayerProfiles())
+        Log::verbose("ServerLobby", "playerjoin %s %d",
+                StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName()).c_str(),
+                peer->getPlayerProfiles()[0]->getOnlineId());
 #endif
 }   // handleUnencryptedConnection
 
@@ -7575,7 +7602,7 @@ unmute_error:
                 argv[2]);
         bool state = argv[1] == "on";
 
-        if (restriction == PRF_OK && state)
+        if ((restriction == PRF_OK) && state)
         {
             msg = "Invalid name for restriction: " + argv[2] + ".";
             sendStringToPeer(msg, peer);
@@ -7630,6 +7657,93 @@ unmute_error:
                     getRestrictionName(restriction),
                     argv[1],
                     argv[3].c_str());
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else
+        {
+            msg = "Invalid target player: " + argv[2];
+            sendStringToPeer(msg, peer);
+        }
+    }
+    else if (argv[0] == "nospec" ||
+             argv[0] == "nogame" ||
+             argv[0] == "nochat" ||
+             argv[0] == "nopchat" ||
+             argv[0] == "noteam"
+             )
+    {
+        std::string msg;
+        if (!player || player->getPermissionLevel() < 80)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        if (argv.size() < 3)
+        {
+            msg = "Usage: /[nospec/nogame/nochat/nopchat/noteam] [on] [player]."
+                " Or /restrict off all [player] to remove all restrictions.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        PlayerRestriction restriction = getRestrictionValue(
+                argv[0]);
+        bool state = argv[1] == "on";
+
+        if (restriction == PRF_OK && state)
+        {
+            msg = "Invalid name for restriction: " + argv[0] + ".";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        auto target = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true);
+        int target_permlvl = loadPermissionLevelForUsername(
+                StringUtils::utf8ToWide(argv[2]));
+        uint32_t target_r = loadRestrictionsForUsername(
+                StringUtils::utf8ToWide(argv[2])
+                );
+        if ((player->getPermissionLevel() < target_permlvl) &&
+                ServerConfig::m_server_owner > 0 &&
+                ServerConfig::m_server_owner != player->getOnlineId())
+        {
+            msg = "You can only apply restrictions to a player that has lower permission level than yours.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (target && target->hasPlayerProfiles() &&
+                target->getPlayerProfiles()[0]->getOnlineId() != 0)
+        {
+            auto& targetPlayer = target->getPlayerProfiles()[0];
+            if (state)
+                targetPlayer->addRestriction(restriction);
+            else
+                targetPlayer->removeRestriction(restriction);
+            writeRestrictionsForUsername(
+                    targetPlayer->getName(),
+                    targetPlayer->getRestrictions());
+            msg = StringUtils::insertValues(
+                    "Set %s to %s for player %s.",
+                    getRestrictionName(restriction),
+                    argv[1],
+                    StringUtils::wideToUtf8(targetPlayer->getName()).c_str());
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        
+        uint32_t online_id = lookupOID(argv[2]);
+        if (online_id)
+        {
+            writeRestrictionsForUsername(
+                    StringUtils::utf8ToWide(argv[2]), 
+                    state ? target_r | restriction : target_r & ~restriction);
+            msg = StringUtils::insertValues(
+                    "Set %s to %s for offline player %s.",
+                    getRestrictionName(restriction),
+                    argv[1],
+                    argv[2].c_str());
             sendStringToPeer(msg, peer);
             return;
         }
@@ -7989,6 +8103,17 @@ void ServerLobby::setPoleEnabled(bool mode)
     }
     else 
     {
+        const std::string item = "pole on";
+        // delete command votes for "pole on"
+        for (auto& voter : m_command_voters) {
+            auto cmd_i = std::find(voter.second.cbegin(), voter.second.cend(),
+                    item);
+            if (cmd_i == voter.second.cend())
+                // nothing to erase, no vote.
+                continue;
+
+            voter.second.erase(cmd_i);
+        }
         std::string resp("Pole has been disabled.");
         sendStringToAllPeers(resp);
     }
