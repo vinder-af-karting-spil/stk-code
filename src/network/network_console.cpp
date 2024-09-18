@@ -132,6 +132,94 @@ void mainLoop(STKHost* host)
         {
             host->requestShutdown();
         }
+        else if (str == "heavyparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            sl->setKartRestrictionMode(
+                state ? ServerLobby::HEAVY : ServerLobby::NONE);
+
+            std::string message("Heavy party is now ");
+            if (state)
+            {
+                message += "ACTIVE. Only heavy karts can be chosen.";
+            }
+            else
+            {
+                message += "INACTIVE. All karts can be chosen.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "mediumparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            sl->setKartRestrictionMode(
+                state ? ServerLobby::MEDIUM : ServerLobby::NONE);
+
+            std::string message("Medium party is now ");
+            if (state)
+            {
+                message += "ACTIVE. Only medium karts can be chosen.";
+            }
+            else
+            {
+                message += "INACTIVE. All karts can be chosen.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "lightparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            sl->setKartRestrictionMode(
+                state ? ServerLobby::LIGHT : ServerLobby::NONE);
+
+            std::string message("Light party is now ");
+            if (state)
+            {
+                message += "ACTIVE. Only light karts (as primarily) can be chosen.";
+            }
+            else
+            {
+                message += "INACTIVE. All karts can be chosen.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "bowlparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            RaceManager::get()->setPowerupSpecialModifier(
+                    state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
+
+            std::string message("Bowling party is now ");
+            if (state)
+            {
+                message += "ACTIVE. Bonus boxes only give 3 bowling balls.";
+            }
+            else
+            {
+                message += "INACTIVE. All standard items as normal.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
         else if (str == "kickall")
         {
             auto peers = host->getPeers();
@@ -177,7 +265,8 @@ void mainLoop(STKHost* host)
                 std::cout << "IP address has been unbanned." << std::endl;
             }
         }
-        else if (str == "onlineban")
+        else if (str == "onlineban" && str2 != "" &&
+            NetworkConfig::get()->isServer())
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)

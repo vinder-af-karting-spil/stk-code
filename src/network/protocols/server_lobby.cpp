@@ -23,6 +23,7 @@
 #include "irrMath.h"
 #include "irrString.h"
 #include "items/network_item_manager.hpp"
+#include "items/powerup.hpp"
 #include "items/powerup_manager.hpp"
 #include "karts/abstract_kart.hpp"
 #include "karts/controller/player_controller.hpp"
@@ -7333,6 +7334,47 @@ void ServerLobby::handleServerCommand(Event* event,
         else
         {
             message += "INACTIVE. All karts can be chosen.";
+        }
+
+        sendStringToAllPeers(message);
+    }
+    else if (argv[0] == "bowlparty" || argv[0] == "bp")
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+
+        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+        auto rm = RaceManager::get();
+        rm->setPowerupSpecialModifier(
+                state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
+        std::string message("Bowling party is now ");
+        if (state)
+        {
+            message += "ACTIVE. Bonus boxes only give 3 bowling balls.";
+        }
+        else
+        {
+            message += "INACTIVE. All standard items as normal.";
         }
 
         sendStringToAllPeers(message);

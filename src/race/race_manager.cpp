@@ -131,6 +131,8 @@ RaceManager::RaceManager()
     m_ai_superpower      = SUPERPOWER_NONE;
     m_track_number       = 0;
     m_coin_target        = 0;
+    m_powerup_special_modifier
+                         = Powerup::TSM_NONE;
     m_started_from_overworld = false;
     m_have_kart_last_position_on_overworld = false;
     m_num_local_players = 0;
@@ -1429,4 +1431,8 @@ void RaceManager::clearPoles()
 {
     m_blue_pole.reset();
     m_red_pole.reset();
+}
+void RaceManager::setPowerupSpecialModifier(const Powerup::SpecialModifier modifier)
+{
+    m_powerup_special_modifier = modifier;
 }

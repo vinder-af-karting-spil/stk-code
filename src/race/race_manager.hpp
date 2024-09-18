@@ -34,6 +34,7 @@
 
 #include "network/network_player_profile.hpp"
 #include "network/remote_kart_info.hpp"
+#include "items/powerup.hpp"
 #include "race/grand_prix_data.hpp"
 #include "utils/vec3.hpp"
 #include "utils/types.hpp"
@@ -303,6 +304,9 @@ private:
     std::weak_ptr<NetworkPlayerProfile>
                                      m_blue_pole,
                                      m_red_pole;
+
+    /** TierS' Powerup Special Modifier */
+    Powerup::SpecialModifier         m_powerup_special_modifier;
 
     /** The selected difficulty. */
     Difficulty                       m_difficulty;
@@ -982,6 +986,9 @@ public:
     void resetPoleProfile(std::shared_ptr<NetworkPlayerProfile>& profile);
     void resetPoleProfile(STKPeer* peer);
     void clearPoles();
+
+    Powerup::SpecialModifier getPowerupSpecialModifier() const { return m_powerup_special_modifier; }
+    void setPowerupSpecialModifier(Powerup::SpecialModifier modifier);
 };   // RaceManager
 
 #endif
