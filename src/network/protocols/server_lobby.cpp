@@ -9185,7 +9185,7 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
 
     std::string query = StringUtils::insertValues(
             "SELECT p.level FROM %s AS p"
-            " INNER JOIN %s AS s (p.online_id = s.online_id) WHERE s.username = ?;",
+            " INNER JOIN %s AS s ON (p.online_id = s.online_id) WHERE s.username = ?;",
             ServerConfig::m_permissions_table.c_str(),
             m_server_stats_table
             );
