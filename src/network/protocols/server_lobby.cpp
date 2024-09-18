@@ -8449,15 +8449,19 @@ void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer>& peer) const
     NetworkString* pkt = getNetworkString();
     pkt->setSynchronous(true);
     pkt->addUInt8(LE_CHAT);
-    std::string msg = "\n---===---";
+    std::string msg;
 
     // add stuff here
     addKartRestrictionMessage(msg);
     addPowerupSMMessage(msg);
 
-    msg += "\n---===---";
-    pkt->encodeString16(StringUtils::utf8ToWide(msg));
-    peer->sendPacket(pkt, true/*reliable*/);
+    if (!msg.empty())
+    {
+        msg.insert(0, "\n---===---");
+        msg        += "\n---===---";
+        pkt->encodeString16(StringUtils::utf8ToWide(msg));
+        peer->sendPacket(pkt, true/*reliable*/);
+    }
     delete pkt;
 }
 void ServerLobby::addKartRestrictionMessage(std::string& msg) const
