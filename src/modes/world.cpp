@@ -35,6 +35,7 @@
 #include "io/file_manager.hpp"
 #include "input/device_manager.hpp"
 #include "input/keyboard_device.hpp"
+#include "items/powerup.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/controller/battle_ai.hpp"
 #include "karts/ghost_kart.hpp"
@@ -491,6 +492,9 @@ std::shared_ptr<AbstractKart> World::createKart
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));
+    /** TierS: bowlparty and other powerup modifiers */
+    new_kart->getPowerup()->setSpecialModifier(
+            RaceManager::get()->getPowerupSpecialModifier());
     Controller *controller = NULL;
     switch(kart_type)
     {
@@ -1646,6 +1650,10 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));
+
+    /** TierS: bowlparty and other powerup modifiers */
+    new_kart->getPowerup()->setSpecialModifier(
+            RaceManager::get()->getPowerupSpecialModifier());
     Controller *controller = NULL;
 
     switch(kart_type)
