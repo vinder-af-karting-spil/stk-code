@@ -110,7 +110,6 @@ bool DemoWorld::isRaceOver()
 {
     if (m_schedule_interrupt_race)
     {
-        m_schedule_interrupt_race = false;
         return true;
     }
 
