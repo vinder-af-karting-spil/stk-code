@@ -608,7 +608,7 @@ void mainLoop(STKHost* host)
                 tmsg->setSynchronous(true);
                 tmsg->addUInt8(LobbyProtocol::LE_CHAT);
                 tmsg->encodeString16(
-                        L"You can choose any kart now.");
+                        StringUtils::utf8ToWide(targetmsg));
                 t_peer->sendPacket(tmsg, true/*reliable*/);
                 delete tmsg;
                 t_player->forceKart(str2);
