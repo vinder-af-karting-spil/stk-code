@@ -285,6 +285,7 @@ void mainLoop(STKHost* host)
                 std::cout << "Cannot broadcast empty message" << std::endl;
                 continue;
             }
+            sl->sendStringToAllPeers(message);
         }
         else if (str == "kickall")
         {
