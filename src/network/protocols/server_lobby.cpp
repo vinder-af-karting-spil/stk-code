@@ -8437,37 +8437,51 @@ void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer>& peer) const
 {
     NetworkString* pkt = getNetworkString();
     pkt->setSynchronous(true);
+    pkt->addUInt8(LE_CHAT);
+    std::string msg = "\n---===---";
 
     // add stuff here
-    addKartRestrictionMessage(pkt);
+    addKartRestrictionMessage(msg);
+    addPowerupSMMessage(msg);
 
+    msg += "\n---===---";
+    pkt->encodeString16(StringUtils::utf8ToWide(msg));
     peer->sendPacket(pkt, true/*reliable*/);
     delete pkt;
 }
-NetworkString* ServerLobby::addKartRestrictionMessage(NetworkString* ns) const
+void ServerLobby::addKartRestrictionMessage(std::string& msg) const
 {
     if (m_kart_restriction == NONE)
-        return ns;
+        return;
 
-    ns->addUInt8(LE_CHAT);
-    core::stringw msg = L"\n---===---\n";
     switch (m_kart_restriction)
     {
         case HEAVY:
-            msg += L"HEAVY PARTY is ACTIVE! Only heavy karts can be chosen";
+            msg += "HEAVY PARTY is ACTIVE! Only heavy karts can be chosen";
             break;
         case MEDIUM:
-            msg += L"MEDIUM PARTY is ACTIVE! Only medium karts can be chosen";
+            msg += "MEDIUM PARTY is ACTIVE! Only medium karts can be chosen";
             break;
         case LIGHT:
-            msg += L"LIGHT INSURANCE is ACTIVE! Only light karts can be chosen, to ensure better experience.";
+            msg += "LIGHT INSURANCE is ACTIVE! Only light karts can be chosen, to ensure better experience.";
             break;
         case NONE:
             break;
     }
-    msg += L"\n---===---";
-    ns->encodeString16(msg);
-    return ns;
+}
+void ServerLobby::addPowerupSMMessage(std::string& msg) const
+{
+    if (RaceManager::get()->getPowerupSpecialModifier() == Powerup::TSM_NONE)
+        return;
+
+    switch (RaceManager::get()->getPowerupSpecialModifier())
+    {
+        case Powerup::TSM_BOWLPARTY:
+            msg += "BOWL PARTY is ACTIVE! All boxes give";
+            break;
+        default:
+            break;
+    }
 }
 int ServerLobby::getPeerPermissionLevel(STKPeer* p)
 {
