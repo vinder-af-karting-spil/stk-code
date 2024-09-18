@@ -7638,7 +7638,10 @@ unmute_error:
             return;
         }
 
-        World* w = dynamic_cast<World*>(World::getWorld());
+        World* w = World::getWorld();
+        if (!w)
+            return;
+
         w->scheduleInterruptRace();
 
         NetworkString* const ns = getNetworkString();
