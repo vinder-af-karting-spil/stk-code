@@ -8472,13 +8472,13 @@ void ServerLobby::addKartRestrictionMessage(std::string& msg) const
     switch (m_kart_restriction)
     {
         case HEAVY:
-            msg += "HEAVY PARTY is ACTIVE! Only heavy karts can be chosen";
+            msg += "HEAVY PARTY is ACTIVE! Only heavy karts can be chosen\n";
             break;
         case MEDIUM:
-            msg += "MEDIUM PARTY is ACTIVE! Only medium karts can be chosen";
+            msg += "MEDIUM PARTY is ACTIVE! Only medium karts can be chosen\n";
             break;
         case LIGHT:
-            msg += "LIGHT INSURANCE is ACTIVE! Only light karts can be chosen, to ensure better experience.";
+            msg += "LIGHT INSURANCE is ACTIVE! Only light karts can be chosen, to ensure better experience.\n";
             break;
         case NONE:
             break;
@@ -8492,7 +8492,7 @@ void ServerLobby::addPowerupSMMessage(std::string& msg) const
     switch (RaceManager::get()->getPowerupSpecialModifier())
     {
         case Powerup::TSM_BOWLPARTY:
-            msg += "BOWL PARTY is ACTIVE! All boxes give";
+            msg += "BOWL PARTY is ACTIVE! All boxes give 3 bowling balls.\n";
             break;
         default:
             break;
