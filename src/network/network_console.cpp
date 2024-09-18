@@ -29,6 +29,7 @@
 #include "network/protocols/server_lobby.hpp"
 #include "utils/time.hpp"
 #include "utils/vs.hpp"
+#include "modes/world.hpp"
 #include "main_loop.hpp"
 
 #include <iostream>
@@ -219,6 +220,71 @@ void mainLoop(STKHost* host)
                 message += "INACTIVE. All standard items as normal.";
             }
             sl->sendStringToAllPeers(message);
+        }
+        else if (str == "start" && NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (!STKHost::get()->getPeerCount())
+            {
+                std::cout << "No players online." << std::endl;
+                continue;
+            }
+
+            sl->startSelection();
+            std::cout << "Made the game start." << std::endl;
+        }
+        else if (str == "end" && NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (!sl->isRacing())
+            {
+                std::cout << "Game is not active." << std::endl;
+                continue;
+            }
+
+            World* w = World::getWorld();
+            if (!w)
+                continue;
+
+            w->scheduleInterruptRace();
+
+            NetworkString* const ns = sl->getNetworkString();
+            ns->setSynchronous(true);
+            ns->addUInt8(ServerLobby::LE_CHAT);
+            ns->encodeString16("The game has been interrupted.");
+
+            STKHost::get()->sendPacketToAllPeersWith([](STKPeer* p)
+                {
+                    return !p->isWaitingForGame();
+                }, ns, true/*reliable*/);
+            std::cout << "Made the game end." << std::endl;
+        }
+        else if (str == "bc" || str == "broadcast")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            std::string message;
+
+            if (ss.eof())
+                continue;
+            else
+            {
+                // I don't know if that will work...
+                std::string cmd = ss.str();
+                message = cmd.substr(std::min(str.length() + 1, cmd.length()), cmd.length());
+            }
+            if (message.empty())
+            {
+                std::cout << "Cannot broadcast empty message" << std::endl;
+                continue;
+            }
         }
         else if (str == "kickall")
         {
@@ -599,7 +665,7 @@ void mainLoop(STKHost* host)
 
                 t_player->unforceKart();
                 std::cout << "No longer forcing a kart for " << playername << "." << std::endl;
-                return;
+                continue;
             }
             else
             {
