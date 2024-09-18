@@ -111,20 +111,7 @@ public:
                                  // including giving the administrator permission level.
                                  // Specified in the configuration file.
     };
-        
-private:
-    struct KeyData
-    {
-        std::string m_aes_key;
-        std::string m_aes_iv;
-        irr::core::stringw m_name;
-        std::string m_country_code;
-        bool m_tried = false;
-    };
-    bool m_player_reports_table_exists;
-
     // When used outside of server lobby context, migrate it to somewhere else.
-
     enum KartRestrictionMode : int 
     {
         NONE,                   // All karts can be played
@@ -143,6 +130,17 @@ private:
         VANILLA_MEDIUM,
         VANILLA_HEAVY, */
     };
+        
+private:
+    struct KeyData
+    {
+        std::string m_aes_key;
+        std::string m_aes_iv;
+        irr::core::stringw m_name;
+        std::string m_country_code;
+        bool m_tried = false;
+    };
+    bool m_player_reports_table_exists;
 
 #ifdef ENABLE_SQLITE3
     sqlite3* m_db;
