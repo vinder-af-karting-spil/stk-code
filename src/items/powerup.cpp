@@ -581,6 +581,7 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     switch (m_special_modifier)
     {
         case TSM_BOWLPARTY:
+            m_number = 0;
             set(PowerupManager::POWERUP_BOWLING, 3);
             return;
         default:
