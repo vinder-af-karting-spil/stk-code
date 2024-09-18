@@ -131,14 +131,15 @@ World::World() : WorldStatus()
     m_magic_number = 0xB01D6543;
 #endif
 
-    m_race_gui           = NULL;
-    m_saved_race_gui     = NULL;
-    m_use_highscores     = true;
-    m_schedule_pause     = false;
-    m_schedule_unpause   = false;
-    m_schedule_exit_race = false;
-    m_schedule_tutorial  = false;
-    m_is_network_world   = false;
+    m_race_gui                  = NULL;
+    m_saved_race_gui            = NULL;
+    m_use_highscores            = true;
+    m_schedule_pause            = false;
+    m_schedule_unpause          = false;
+    m_schedule_exit_race        = false;
+    m_schedule_interrupt_race   = false;
+    m_schedule_tutorial         = false;
+    m_is_network_world          = false;
 
     m_stop_music_when_dialog_open = true;
 
