@@ -3961,6 +3961,8 @@ void ServerLobby::clientDisconnected(Event* event)
     {
         setKartRestrictionMode(NONE);
         setPoleEnabled(false);
+        RaceManager::get()->setPowerupSpecialModifier(
+            Powerup::TSM_NONE);
     }
     else 
     {
