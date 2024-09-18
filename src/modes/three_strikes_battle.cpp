@@ -217,7 +217,6 @@ bool ThreeStrikesBattle::kartHit(int kart_id, int hitter)
 {
     if (m_schedule_interrupt_race)
     {
-        m_schedule_interrupt_race = false;
         return true;
     }
 
