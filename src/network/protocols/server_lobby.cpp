@@ -8457,8 +8457,8 @@ void ServerLobby::sendCurrentModifiers(std::shared_ptr<STKPeer>& peer) const
 
     if (!msg.empty())
     {
-        msg.insert(0, "\n---===---");
-        msg        += "\n---===---";
+        msg.insert(0, "\n---===---\n");
+        msg        += "---===---\n";
         pkt->encodeString16(StringUtils::utf8ToWide(msg));
         peer->sendPacket(pkt, true/*reliable*/);
     }
