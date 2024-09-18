@@ -8426,10 +8426,15 @@ void ServerLobby::sendCurrentModifiers(STKPeer* const peer) const
 {
     NetworkString* pkt = getNetworkString();
     pkt->setSynchronous(true);
+    pkt->addUInt8(LE_CHAT);
+    std::string msg = "\n---===---";
 
     // add stuff here
-    addKartRestrictionMessage(pkt);
+    addKartRestrictionMessage(msg);
+    addPowerupSMMessage(msg);
 
+    msg += "\n---===---";
+    pkt->encodeString16(StringUtils::utf8ToWide(msg));
     peer->sendPacket(pkt, true/*reliable*/);
     delete pkt;
 }
