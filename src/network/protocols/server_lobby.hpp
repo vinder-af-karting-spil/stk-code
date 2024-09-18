@@ -522,7 +522,8 @@ public:
     void sendWANListToPeer(std::shared_ptr<STKPeer> peer);
     bool voteForCommand(std::shared_ptr<STKPeer>& peer, std::string command);
     NetworkString* addRandomInstalladdonMessage(NetworkString* ns) const;
-    NetworkString* addKartRestrictionMessage(NetworkString* ns) const;
+    void addKartRestrictionMessage(std::string& msg) const;
+    void addPowerupSMMessage(std::string& msg) const;
     const std::string getRandomAddon(RaceManager::MinorRaceModeType m=RaceManager::MINOR_MODE_NONE) const;
     bool isPoleEnabled() const { return m_pole_enabled; }
     core::stringw formatTeammateList(
