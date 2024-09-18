@@ -7602,6 +7602,59 @@ unmute_error:
             sendStringToPeer(msg, peer);
         }
     }
+    else if (argv[0] == "start")
+    {
+        if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+
+        startSelection();
+    }
+    else if (argv[0] == "end")
+    {
+        if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+
+        // if the game is even active
+        if (!isRacing())
+        {
+            std::string msg = "Game is not active.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        World* w = dynamic_cast<World*>(World::getWorld());
+        w->scheduleInterruptRace();
+
+        NetworkString* const ns = getNetworkString();
+        ns->setSynchronous(true);
+        ns->addUInt8(LE_CHAT);
+        ns->encodeString16("The game has been interrupted.");
+
+        STKHost::get()->sendPacketToAllPeersWith([](STKPeer* p)
+            {
+                return !p->isWaitingForGame();
+            }, ns, true/*reliable*/);
+        if (peer->isWaitingForGame())
+            peer->sendPacket(ns, true/*reliable*/);
+
+        delete ns;
+    }
     else if (argv[0] == "ban")
     {
         std::string msg;
