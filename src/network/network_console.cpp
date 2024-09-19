@@ -287,6 +287,44 @@ void mainLoop(STKHost* host)
             }
             sl->sendStringToAllPeers(message);
         }
+        else if (str == "to" || str == "dm")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            std::string message;
+
+            if (ss.eof())
+                continue;
+            else
+            {
+                // I don't know if that will work...
+                std::string cmd = ss.str();
+                const size_t start = str.length() + str2.length() + 2;
+                message = cmd.substr(std::min(start, cmd.length()), cmd.length());
+            }
+            if (message.empty())
+            {
+                std::cout << "Cannot send empty direct message" << std::endl;
+                continue;
+            }
+
+            std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(str2), true, true);
+            if (!peer)
+            {
+                std::cout << "Player is not online." << std::endl;
+                continue;
+            }
+            sl->sendStringToPeer(message, peer);
+
+            if (!peer->hasPlayerProfiles())
+                std::cout << "Message sent to the peer." << std::endl;
+            else
+                std::cout << "Message sent to " <<
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()
+                    ) << "." << std::endl;
+        }
         else if (str == "kickall")
         {
             auto peers = host->getPeers();
