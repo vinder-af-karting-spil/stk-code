@@ -7527,8 +7527,9 @@ unmute_error:
         core::stringw res = (
             L"/showcommands|commands|cmds /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
-            L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /feature "
-            L"/heavyparty|hp /mediumparty|mp /scanservers|online /mute /unmute /listmute /pole"
+            L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /inform "
+            L"/report /heavyparty|hp /mediumparty|mp /scanservers|online /mute /unmute /listmute /pole"
+            L" /bowlparty"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
