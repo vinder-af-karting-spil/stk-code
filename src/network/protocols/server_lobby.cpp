@@ -8103,11 +8103,13 @@ unmute_error:
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
         std::shared_ptr<STKPeer> target_peer;
+        Log::verbose("ServerLobby", "Argv size %d", argv.size());
         if (argv.size() == 3)
             target_peer = peer;
         if (argv.size() == 4)
             target_peer = STKHost::get()->findPeerByName(
-                        StringUtils::utf8ToWide(argv[3])
+                        StringUtils::utf8ToWide(argv[3]),
+                        true, true
                         );
         else
         {
