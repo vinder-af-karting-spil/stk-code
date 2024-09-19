@@ -287,7 +287,7 @@ void mainLoop(STKHost* host)
             }
             sl->sendStringToAllPeers(message);
         }
-        else if (str == "to" || str == "dm")
+        else if ((str == "to" || str == "dm") && str2 != "")
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
