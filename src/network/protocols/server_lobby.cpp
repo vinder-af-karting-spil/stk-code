@@ -8126,7 +8126,7 @@ unmute_error:
         }
         const std::set<unsigned int>& k_ids
             = target_peer->getAvailableKartIDs();
-        if (peer->isWaitingForGame() || k_ids.empty())
+        if (target_peer->isWaitingForGame() || k_ids.empty())
         {
             std::string msg = "Player is not in the game or has no available karts.";
             sendStringToPeer(msg, peer);
@@ -8135,7 +8135,7 @@ unmute_error:
         else if (k_ids.size() > 1)
         {
             Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
-                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+                    StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
         }
         unsigned int a = *k_ids.begin();
         target = w->getKart(a);
@@ -8211,7 +8211,7 @@ unmute_error:
         }
         const std::set<unsigned int>& k_ids
             = target_peer->getAvailableKartIDs();
-        if (peer->isWaitingForGame() || k_ids.empty())
+        if (target_peer->isWaitingForGame() || k_ids.empty())
         {
             std::string msg = "Player is not in the game or has no available karts.";
             sendStringToPeer(msg, peer);
@@ -8220,7 +8220,7 @@ unmute_error:
         else if (k_ids.size() > 1)
         {
             Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
-                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+                    StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
         }
         unsigned int a = *k_ids.begin();
         target = w->getKart(a);
