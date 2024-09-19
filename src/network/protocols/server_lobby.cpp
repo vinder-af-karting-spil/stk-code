@@ -8106,7 +8106,7 @@ unmute_error:
         Log::verbose("ServerLobby", "Argv size %d", argv.size());
         if (argv.size() == 3)
             target_peer = peer;
-        if (argv.size() == 4)
+        else if (argv.size() == 4)
             target_peer = STKHost::get()->findPeerByName(
                         StringUtils::utf8ToWide(argv[3]),
                         true, true
