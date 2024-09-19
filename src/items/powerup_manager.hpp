@@ -160,6 +160,7 @@ private:
 
 public:
     static void unitTesting();
+    static PowerupManager::PowerupType getPowerupFromName(const std::string &query);
 
                   PowerupManager  ();
                  ~PowerupManager  ();

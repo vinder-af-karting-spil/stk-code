@@ -707,3 +707,55 @@ void PowerupManager::unitTesting()
         assert(count[i] == wd.m_weights_for_section[section][i]);
     }
 }   // unitTesting
+PowerupManager::PowerupType PowerupManager::getPowerupFromName(const std::string &query)
+{
+    if (query == "boost" 
+        || query == "speed")
+        return POWERUP_ZIPPER;
+
+    if (StringUtils::startsWith(query, "bu") ||
+        StringUtils::startsWith(query, "g"))
+    {
+        return POWERUP_BUBBLEGUM;
+    }
+    if (StringUtils::startsWith(query, "swi") ||
+        StringUtils::startsWith(query, "cha"))
+    {
+        return POWERUP_SWITCH;
+    }
+    if (StringUtils::startsWith(query, "c"))
+    {
+        return POWERUP_CAKE;
+    }
+    if (StringUtils::startsWith(query, "bas") ||
+        StringUtils::startsWith(query, "r"))
+    {
+        return POWERUP_RUBBERBALL;
+    }
+    if (StringUtils::startsWith(query, "bo") ||
+        StringUtils::startsWith(query, "ba"))
+    {
+        return POWERUP_BOWLING;
+    }
+    if (StringUtils::startsWith(query, "z"))
+    {
+        return POWERUP_ZIPPER;
+    }
+    if (StringUtils::startsWith(query, "pl"))
+    {
+        return POWERUP_PLUNGER;
+    }
+    if (StringUtils::startsWith(query, "sw"))
+    {
+        return POWERUP_SWATTER;
+    }
+    if (StringUtils::startsWith(query, "pa"))
+    {
+        return POWERUP_PARACHUTE;
+    }
+    if (StringUtils::startsWith(query, "a"))
+    {
+        return POWERUP_ANVIL;
+    }
+    return POWERUP_NOTHING;
+}
