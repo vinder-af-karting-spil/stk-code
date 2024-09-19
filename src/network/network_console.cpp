@@ -16,6 +16,7 @@
 //  along with this program; if not, write to the Free Software
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+#include "karts/abstract_kart.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
 #include "network/network_config.hpp"
@@ -761,6 +762,163 @@ void mainLoop(STKHost* host)
 
             std::cout << "Set player handicap to " << str2 << " for " << 
                 StringUtils::wideToUtf8(player->getName())<< std::endl;
+        }
+        // CHEATS
+        if (str == "hackitem" || str == "hki")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (!sl->isRacing())
+            {
+                std::cout << "The game is not running." << std::endl;
+                continue;
+            }
+
+            World* w = World::getWorld();
+            if (!w)
+            {
+                std::cout << "World is not available right now." << std::endl;
+                continue;
+            }
+            AbstractKart* target;
+            if (str2.empty())
+            {
+                std::cout << "Specify quantity." << std::endl;
+                continue;
+            }
+            float quantity = std::stof(str2);
+
+            std::string player_name;
+            ss >> player_name;
+            if (ss.eof() || ss.bad())
+            {
+                std::cout << "Specify player name." << std::endl;
+                continue;
+            }
+
+            // 2 arguments: item quantity: give to yourself
+            // 3 arguments: item quantity player: give to player
+            std::shared_ptr<STKPeer> target_peer;
+            target_peer = STKHost::get()->findPeerByName(
+                        StringUtils::utf8ToWide(player_name),
+                        true, true
+                        );
+
+            if (!target_peer)
+            {
+                std::cout << "Player is not online." << std::endl;
+                continue;
+            }
+            const std::set<unsigned int>& k_ids
+                = target_peer->getAvailableKartIDs();
+            if (target_peer->isWaitingForGame() || k_ids.empty())
+            {
+                std::cout << "Player is not in the game or has no available karts."
+                    << std::endl;
+                continue;
+            }
+            else if (k_ids.size() > 1)
+            {
+                Log::warn("NetworkConsole", "hackitem: Player %s has multiple kart IDs.", 
+                        StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                continue;
+            }
+            unsigned int a = *k_ids.begin();
+            target = w->getKart(a);
+
+            if (type == PowerupManager::POWERUP_NOTHING)
+                quantity = 0;
+
+            // set the powerup
+            target->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+            target->setPowerup(type, quantity);
+            std::string msgtarget = "Your powerup has been changed.";
+            sl->sendStringToPeer(msgtarget, target_peer);
+            std::string msg = StringUtils::insertValues(
+                "Changed powerup for player %s.",
+                StringUtils::wideToUtf8(
+                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+            std::cout << msg << std::endl;
+
+        }
+        if (str == "hacknitro" || str == "hkn")
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (!sl->isRacing())
+            {
+                std::cout << "The game is not running." << std::endl;
+                continue;
+            }
+
+            World* w = World::getWorld();
+            if (!w)
+            {
+                std::cout << "World is not available right now." << std::endl;
+                continue;
+            }
+            AbstractKart* target;
+            float quantity = 0.0f;
+            ss >> quantity;
+            if (ss.eof() || ss.bad())
+            {
+                std::cout << "Specify quantity." << std::endl;
+                continue;
+            }
+
+            std::string player_name;
+            ss >> player_name;
+            if (ss.eof() || ss.bad())
+            {
+                std::cout << "Specify player name." << std::endl;
+                continue;
+            }
+
+            // 2 arguments: item quantity: give to yourself
+            // 3 arguments: item quantity player: give to player
+            std::shared_ptr<STKPeer> target_peer;
+            target_peer = STKHost::get()->findPeerByName(
+                        StringUtils::utf8ToWide(player_name),
+                        true, true
+                        );
+
+            if (!target_peer)
+            {
+                std::cout << "Player is not online." << std::endl;
+                continue;
+            }
+            const std::set<unsigned int>& k_ids
+                = target_peer->getAvailableKartIDs();
+            if (target_peer->isWaitingForGame() || k_ids.empty())
+            {
+                std::cout << "Player is not in the game or has no available karts."
+                    << std::endl;
+                continue;
+            }
+            else if (k_ids.size() > 1)
+            {
+                Log::warn("NetworkConsole", "hackitem: Player %s has multiple kart IDs.", 
+                        StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                continue;
+            }
+            unsigned int a = *k_ids.begin();
+            target = w->getKart(a);
+
+            // set the nitro
+            target->setEnergy(.0f);
+            target->setEnergy(quantity);
+            std::string msgtarget = "Your nitro has been changed.";
+            sl->sendStringToPeer(msgtarget, target_peer);
+            std::string msg = StringUtils::insertValues(
+                "Changed nitro for player %s.",
+                StringUtils::wideToUtf8(
+                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+            std::cout << msg << std::endl;
+
         }
         else
         {
