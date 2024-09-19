@@ -8071,6 +8071,90 @@ unmute_error:
         msg = "Player handicap has been updated.";
         sendStringToPeer(msg, peer);
     }
+    // CHEATS
+    else if (argv[0] == "hackitem" || argv[0] == "hki")
+    {
+        // can only use it during the game
+        if (player->getPermissionLevel() < 100)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+
+        // only during the game
+        if (!isRacing())
+        {
+            std::string msg = "The game is not running.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        World* w = World::getWorld();
+        if (!w)
+        {
+            std::string msg = "World is not available right now.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        AbstractKart* target;
+        PowerupManager::PowerupType type;
+        unsigned char quantity = 1;
+
+        // 2 arguments: item quantity: give to yourself
+        // 3 arguments: item quantity player: give to player
+        std::shared_ptr<STKPeer> target_peer;
+        if (argv.size() == 3)
+            target_peer = peer;
+        if (argv.size() == 4)
+            target_peer = STKHost::get()->findPeerByName(
+                        StringUtils::utf8ToWide(argv[3])
+                        );
+        else
+        {
+            std::string msg = "Usage: /hackitem (item) (quantity) [player]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if (!target_peer)
+        {
+            std::string msg = "Player is not online.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        const std::set<unsigned int>& k_ids
+            = target_peer->getAvailableKartIDs();
+        if (peer->isWaitingForGame() || k_ids.empty())
+        {
+            std::string msg = "Player is not in the game or has no available karts.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (k_ids.size() > 1)
+        {
+            Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+        unsigned int a = *k_ids.begin();
+        target = w->getKart(a);
+        type = PowerupManager::getPowerupFromName(argv[1]);
+        quantity = std::stoi(argv[2]);
+
+        if (type == PowerupManager::POWERUP_NOTHING)
+            quantity = 0;
+
+        // set the powerup
+        target->setPowerup(type, quantity);
+        std::string msgtarget = "Your powerup has been changed.";
+        sendStringToPeer(msgtarget, target_peer);
+        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        {
+            std::string msg = StringUtils::insertValues(
+                "Changed powerup for player %s.",
+                StringUtils::wideToUtf8(
+                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+    }
     else
     {
         std::string msg = "Unknown command: ";
