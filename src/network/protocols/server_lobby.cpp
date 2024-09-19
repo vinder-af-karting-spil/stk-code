@@ -8146,6 +8146,7 @@ unmute_error:
             quantity = 0;
 
         // set the powerup
+        target->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
         target->setPowerup(type, quantity);
         std::string msgtarget = "Your powerup has been changed.";
         sendStringToPeer(msgtarget, target_peer);
