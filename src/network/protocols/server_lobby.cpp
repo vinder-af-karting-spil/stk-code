@@ -8098,7 +8098,7 @@ unmute_error:
         }
         AbstractKart* target;
         PowerupManager::PowerupType type;
-        unsigned char quantity = 1;
+        float quantity = 0.0f;
 
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
@@ -8113,7 +8113,7 @@ unmute_error:
                         );
         else
         {
-            std::string msg = "Usage: /hackitem (item) (quantity) [player]";
+            std::string msg = "Usage: /hackitem (item) (quantity.0) [player]";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -8157,6 +8157,88 @@ unmute_error:
                 StringUtils::wideToUtf8(
                     target_peer->getPlayerProfiles()[0]->getName()).c_str());
         }
+    }
+    else if (argv[0] == "hacknitro" || argv[0] == "hkn")
+    {
+        // can only use it during the game
+        if (player->getPermissionLevel() < 100)
+        {
+            sendNoPermissionToPeer(peer.get());
+            return;
+        }
+
+        // only during the game
+        if (!isRacing())
+        {
+            std::string msg = "The game is not running.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        World* w = World::getWorld();
+        if (!w)
+        {
+            std::string msg = "World is not available right now.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        AbstractKart* target;
+        unsigned char quantity = 1;
+
+        // 2 arguments: item quantity: give to yourself
+        // 3 arguments: item quantity player: give to player
+        std::shared_ptr<STKPeer> target_peer;
+        Log::verbose("ServerLobby", "Argv size %d", argv.size());
+        if (argv.size() == 2)
+            target_peer = peer;
+        else if (argv.size() == 3)
+            target_peer = STKHost::get()->findPeerByName(
+                        StringUtils::utf8ToWide(argv[2]),
+                        true, true
+                        );
+        else
+        {
+            std::string msg = "Usage: /hacknitro (quantity) [player]";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if (!target_peer)
+        {
+            std::string msg = "Player is not online.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        const std::set<unsigned int>& k_ids
+            = target_peer->getAvailableKartIDs();
+        if (peer->isWaitingForGame() || k_ids.empty())
+        {
+            std::string msg = "Player is not in the game or has no available karts.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (k_ids.size() > 1)
+        {
+            Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+        unsigned int a = *k_ids.begin();
+        target = w->getKart(a);
+        quantity = std::stof(argv[1]);
+
+        // set the powerup
+        target->setEnergy(0.0);
+        target->setEnergy(quantity);
+        std::string msgtarget = "Your nitro has been changed.";
+        sendStringToPeer(msgtarget, target_peer);
+        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        {
+            std::string msg = StringUtils::insertValues(
+                "Changed nitro for player %s.",
+                StringUtils::wideToUtf8(
+                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+
     }
     else
     {
