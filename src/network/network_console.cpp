@@ -764,7 +764,7 @@ void mainLoop(STKHost* host)
                 StringUtils::wideToUtf8(player->getName())<< std::endl;
         }
         // CHEATS
-        if (str == "hackitem" || str == "hki")
+        else if (str == "hackitem" || str == "hki")
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
@@ -860,7 +860,7 @@ void mainLoop(STKHost* host)
             std::cout << msg << std::endl;
 
         }
-        if (str == "hacknitro" || str == "hkn")
+        else if (str == "hacknitro" || str == "hkn")
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
