@@ -796,7 +796,7 @@ void mainLoop(STKHost* host)
             std::cout << "debug 1" << std::endl;
             unsigned int quantity;
             ss >> quantity;
-            if (ss.eof() || ss.bad())
+            if (ss.bad())
             {
                 std::cout << "Wrong quantity." << std::endl;
                 continue;
@@ -805,7 +805,7 @@ void mainLoop(STKHost* host)
 
             std::string player_name;
             ss >> player_name;
-            if (ss.eof() || ss.bad())
+            if (ss.bad())
             {
                 std::cout << "Specify player name." << std::endl;
                 continue;
@@ -889,7 +889,7 @@ void mainLoop(STKHost* host)
 
             std::string player_name;
             ss >> player_name;
-            if (ss.eof() || ss.bad())
+            if (ss.bad())
             {
                 std::cout << "Specify player name." << std::endl;
                 continue;
