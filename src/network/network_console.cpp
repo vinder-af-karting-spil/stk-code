@@ -793,7 +793,9 @@ void mainLoop(STKHost* host)
                 std::cout << "Specify quantity." << std::endl;
                 continue;
             }
+            std::cout << "debug 1" << std::endl;
             float quantity = std::stof(str2);
+            std::cout << "debug 2" << std::endl;
 
             std::string player_name;
             ss >> player_name;
@@ -802,6 +804,7 @@ void mainLoop(STKHost* host)
                 std::cout << "Specify player name." << std::endl;
                 continue;
             }
+            std::cout << "debug 3" << std::endl;
 
             // 2 arguments: item quantity: give to yourself
             // 3 arguments: item quantity player: give to player
@@ -810,12 +813,14 @@ void mainLoop(STKHost* host)
                         StringUtils::utf8ToWide(player_name),
                         true, true
                         );
+            std::cout << "debug 4" << std::endl;
 
             if (!target_peer)
             {
                 std::cout << "Player is not online." << std::endl;
                 continue;
             }
+            std::cout << "debug 5" << std::endl;
             const std::set<unsigned int>& k_ids
                 = target_peer->getAvailableKartIDs();
             if (target_peer->isWaitingForGame() || k_ids.empty())
@@ -830,19 +835,24 @@ void mainLoop(STKHost* host)
                         StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
                 continue;
             }
+            std::cout << "debug 6" << std::endl;
             unsigned int a = *k_ids.begin();
             target = w->getKart(a);
             PowerupManager::PowerupType type =
                 PowerupManager::getPowerupFromName(str2);
 
+            std::cout << "debug 7" << std::endl;
             if (type == PowerupManager::POWERUP_NOTHING)
                 quantity = 0;
 
             // set the powerup
             target->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+            std::cout << "debug 8" << std::endl;
             target->setPowerup(type, quantity);
+            std::cout << "debug 9" << std::endl;
             std::string msgtarget = "Your powerup has been changed.";
             sl->sendStringToPeer(msgtarget, target_peer);
+            std::cout << "debug 10" << std::endl;
             std::string msg = StringUtils::insertValues(
                 "Changed powerup for player %s.",
                 StringUtils::wideToUtf8(
