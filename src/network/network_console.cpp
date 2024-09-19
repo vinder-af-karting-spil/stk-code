@@ -794,7 +794,13 @@ void mainLoop(STKHost* host)
                 continue;
             }
             std::cout << "debug 1" << std::endl;
-            float quantity = std::stof(str2);
+            unsigned int quantity;
+            ss >> quantity;
+            if (ss.eof() || ss.bad())
+            {
+                std::cout << "Wrong quantity." << std::endl;
+                continue;
+            }
             std::cout << "debug 2" << std::endl;
 
             std::string player_name;
@@ -879,13 +885,7 @@ void mainLoop(STKHost* host)
                 continue;
             }
             AbstractKart* target;
-            float quantity = 0.0f;
-            ss >> quantity;
-            if (ss.eof() || ss.bad())
-            {
-                std::cout << "Specify quantity." << std::endl;
-                continue;
-            }
+            float quantity = std::stof(str2);
 
             std::string player_name;
             ss >> player_name;
