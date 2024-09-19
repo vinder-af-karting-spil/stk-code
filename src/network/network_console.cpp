@@ -775,6 +775,11 @@ void mainLoop(STKHost* host)
                 std::cout << "The game is not running." << std::endl;
                 continue;
             }
+            if (str2.empty())
+            {
+                std::cout << "Specify powerup type." << std::endl;
+                continue;
+            }
 
             World* w = World::getWorld();
             if (!w)
@@ -827,6 +832,8 @@ void mainLoop(STKHost* host)
             }
             unsigned int a = *k_ids.begin();
             target = w->getKart(a);
+            PowerupManager::PowerupType type =
+                PowerupManager::getPowerupFromName(str2);
 
             if (type == PowerupManager::POWERUP_NOTHING)
                 quantity = 0;
