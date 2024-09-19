@@ -3516,6 +3516,9 @@ void ServerLobby::checkRaceFinished()
     setKartRestrictionMode(NONE);
     // Remove pole mode after the game is over
     setPoleEnabled(false);
+    // no powerup modifiers after each game
+    RaceManager::get()->setPowerupSpecialModifier(
+            Powerup::TSM_NONE);
 }   // checkRaceFinished
 
 //-----------------------------------------------------------------------------
