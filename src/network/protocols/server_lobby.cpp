@@ -904,6 +904,7 @@ void ServerLobby::handleChat(Event* event)
         {
             NetworkString* const response = getNetworkString();
             response->setSynchronous(true);
+            // TODO: shadow mute
             response->addUInt8(LE_CHAT).encodeString16(L"You are not allowed to send chat messages.");
             sender->sendPacket(response, true/*reliable*/);
             delete response;
@@ -3984,13 +3985,15 @@ void ServerLobby::clientDisconnected(Event* event)
                 peer->getPlayerProfiles()[0]->getName());
         for (auto cmd : m_command_voters)
         {
-            auto found = std::find(cmd.second.cbegin(), cmd.second.cend(),
+            auto found = std::find(cmd.second.begin(), cmd.second.end(),
                     pname);
-            if (found == cmd.second.cend())
+            if (found == cmd.second.end())
                 continue;
 
             // the player name is deleted from the voted command
             cmd.second.erase(found);
+
+            //Log::verbose("ServerLobby", "", ...);
         }
     }
     // send a message to the wrapper
@@ -7370,6 +7373,13 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
         auto rm = RaceManager::get();
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
+                state)
+        {
+            std::string msg = "Bowling party is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
         rm->setPowerupSpecialModifier(
                 state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
         std::string message("Bowling party is now ");
@@ -7965,7 +7975,7 @@ unmute_error:
             return;
         }
         
-        t_player->setTeam(team);
+        forceChangeTeam(t_player.get(), team);
         updatePlayerList();
 
         msg = "Player team has been updated.";
@@ -8450,15 +8460,18 @@ void ServerLobby::setPoleEnabled(bool mode)
     {
         const std::string item = "pole on";
         // delete command votes for "pole on"
+#if 0
         for (auto& voter : m_command_voters) {
-            auto cmd_i = std::find(voter.second.cbegin(), voter.second.cend(),
+            auto cmd_i = std::find(voter.second.begin(), voter.second.end(),
                     item);
-            if (cmd_i == voter.second.cend())
+            if (cmd_i == voter.second.end())
                 // nothing to erase, no vote.
                 continue;
 
             voter.second.erase(cmd_i);
         }
+#endif
+        m_command_voters[item].clear();
         std::string resp("Pole has been disabled.");
         sendStringToAllPeers(resp);
     }
