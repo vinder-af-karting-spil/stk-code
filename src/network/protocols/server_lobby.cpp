@@ -904,7 +904,14 @@ void ServerLobby::handleChat(Event* event)
         {
             NetworkString* const response = getNetworkString();
             response->setSynchronous(true);
-            response->addUInt8(LE_CHAT).encodeString16(L"You are not allowed to send chat messages.");
+            response->addUInt8(LE_CHAT);
+
+            // very evil if you ask
+            if (ServerConfig::m_shadow_nochat)
+                response->encodeString16(message);
+            else
+                response->encodeString16(L"You are not allowed to send chat messages.");
+
             sender->sendPacket(response, true/*reliable*/);
             delete response;
             return;
@@ -3984,13 +3991,15 @@ void ServerLobby::clientDisconnected(Event* event)
                 peer->getPlayerProfiles()[0]->getName());
         for (auto cmd : m_command_voters)
         {
-            auto found = std::find(cmd.second.cbegin(), cmd.second.cend(),
+            auto found = std::find(cmd.second.begin(), cmd.second.end(),
                     pname);
-            if (found == cmd.second.cend())
+            if (found == cmd.second.end())
                 continue;
 
             // the player name is deleted from the voted command
             cmd.second.erase(found);
+
+            //Log::verbose("ServerLobby", "", ...);
         }
     }
     // send a message to the wrapper
@@ -6786,7 +6795,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 player->getPermissionLevel() < 60) 
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         int limit = std::stoi(argv[1]);
@@ -6857,7 +6866,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -6939,7 +6948,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7012,7 +7021,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 80))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         std::string player_name;
@@ -7039,7 +7048,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7087,7 +7096,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7127,7 +7136,7 @@ void ServerLobby::handleServerCommand(Event* event,
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         const size_t _cmd_size = argv[0].length() + 1;
@@ -7199,7 +7208,7 @@ void ServerLobby::handleServerCommand(Event* event,
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         const size_t _cmd_size = argv[0].length() + 1;
@@ -7273,13 +7282,20 @@ void ServerLobby::handleServerCommand(Event* event,
             auto chat = getNetworkString();
             chat->setSynchronous(true);
             chat->addUInt8(LE_CHAT);
-            response = "Specify on or off as a second argument.";
+            response = L"Specify on or off as a second argument.";
             chat->encodeString16(response);
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
             return;
         }
         bool state = argv[1] == "on";
+
+        if (state == (getKartRestrictionMode() == HEAVY))
+        {
+            std::string msg = "Heavy party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
@@ -7288,7 +7304,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         m_kart_restriction = state ? HEAVY : NONE;
@@ -7320,6 +7336,13 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         bool state = argv[1] == "on";
 
+        if (state == (getKartRestrictionMode() == MEDIUM))
+        {
+            std::string msg = "Medium party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7327,7 +7350,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         m_kart_restriction = state ? MEDIUM : NONE;
@@ -7358,6 +7381,14 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
         bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY))
+        {
+            std::string msg = "Bowling party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
@@ -7366,10 +7397,16 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
-        auto rm = RaceManager::get();
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
+                state)
+        {
+            std::string msg = "Bowling party is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
         rm->setPowerupSpecialModifier(
                 state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
         std::string message("Bowling party is now ");
@@ -7389,7 +7426,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* response = getNetworkString();
@@ -7567,6 +7604,13 @@ unmute_error:
         }
         bool state = argv[1] == "on";
 
+        if (state == isPoleEnabled())
+        {
+            std::string msg = "Pole voting is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7574,7 +7618,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7585,7 +7629,7 @@ unmute_error:
     {
         if (!player || player->getPermissionLevel() < 50)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7608,6 +7652,12 @@ unmute_error:
     }
     else if (argv[0] == "start")
     {
+        if (m_state.load() != WAITING_FOR_START_GAME)
+        {
+            std::string msg = "The game has already been started.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7615,7 +7665,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7623,6 +7673,14 @@ unmute_error:
     }
     else if (argv[0] == "end")
     {
+        // if the game is even active
+        if (!isRacing())
+        {
+            std::string msg = "Game is not active.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7630,15 +7688,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
-            return;
-        }
-
-        // if the game is even active
-        if (!isRacing())
-        {
-            std::string msg = "Game is not active.";
-            sendStringToPeer(msg, peer);
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7667,7 +7717,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7731,7 +7781,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7763,7 +7813,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 4)
@@ -7852,7 +7902,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -7934,7 +7984,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -7965,7 +8015,7 @@ unmute_error:
             return;
         }
         
-        t_player->setTeam(team);
+        forceChangeTeam(t_player.get(), team);
         updatePlayerList();
 
         msg = "Player team has been updated.";
@@ -7976,7 +8026,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -8032,7 +8082,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -8075,13 +8125,13 @@ unmute_error:
         msg = "Player handicap has been updated.";
         sendStringToPeer(msg, peer);
     }
-    // CHEATS
+    // CHEATS (Please, do not use me in real games)
     else if (argv[0] == "hackitem" || argv[0] == "hki")
     {
-        // can only use it during the game
+        // admin only
         if (player->getPermissionLevel() < 100)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -8102,7 +8152,7 @@ unmute_error:
         }
         AbstractKart* target;
         PowerupManager::PowerupType type;
-        float quantity = 0.0f;
+        unsigned int quantity = 0;
 
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
@@ -8154,12 +8204,22 @@ unmute_error:
         target->setPowerup(type, quantity);
         std::string msgtarget = "Your powerup has been changed.";
         sendStringToPeer(msgtarget, target_peer);
-        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        if (target_peer->hasPlayerProfiles())
         {
-            std::string msg = StringUtils::insertValues(
-                "Changed powerup for player %s.",
+            // report to the log
+            Log::warn("ServerLobby", "HACKITEM %s(ID=%d) %d for %s by %s",
+                argv[1].c_str(), type, quantity, 
                 StringUtils::wideToUtf8(
-                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                target_peer->getPlayerProfiles()[0]->getName()).c_str(),
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+            if (peer != target_peer)
+            {
+                std::string msg = StringUtils::insertValues(
+                    "Changed powerup for player %s.",
+                    StringUtils::wideToUtf8(
+                        target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                sendStringToPeer(msg, peer);
+            }
         }
     }
     else if (argv[0] == "hacknitro" || argv[0] == "hkn")
@@ -8167,7 +8227,7 @@ unmute_error:
         // can only use it during the game
         if (player->getPermissionLevel() < 100)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -8187,7 +8247,7 @@ unmute_error:
             return;
         }
         AbstractKart* target;
-        unsigned char quantity = 1;
+        float quantity = 0.0f;
 
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
@@ -8223,7 +8283,7 @@ unmute_error:
         }
         else if (k_ids.size() > 1)
         {
-            Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
+            Log::warn("ServerLobby", "hacknitro: Player %s has multiple kart IDs.", 
                     StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
         }
         unsigned int a = *k_ids.begin();
@@ -8235,12 +8295,21 @@ unmute_error:
         target->setEnergy(quantity);
         std::string msgtarget = "Your nitro has been changed.";
         sendStringToPeer(msgtarget, target_peer);
-        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        if (target_peer->hasPlayerProfiles())
         {
-            std::string msg = StringUtils::insertValues(
-                "Changed nitro for player %s.",
-                StringUtils::wideToUtf8(
-                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+            // report to the log
+            Log::warn("ServerLobby", "HACKNITRO %f for %s by %s",
+                quantity, 
+                StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str(),
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+            if (peer != target_peer)
+            {
+                std::string msg = StringUtils::insertValues(
+                    "Changed nitro for player %s.",
+                    StringUtils::wideToUtf8(
+                        target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                sendStringToPeer(msg, peer);
+            }
         }
 
     }
@@ -8450,15 +8519,18 @@ void ServerLobby::setPoleEnabled(bool mode)
     {
         const std::string item = "pole on";
         // delete command votes for "pole on"
+#if 0
         for (auto& voter : m_command_voters) {
-            auto cmd_i = std::find(voter.second.cbegin(), voter.second.cend(),
+            auto cmd_i = std::find(voter.second.begin(), voter.second.end(),
                     item);
-            if (cmd_i == voter.second.cend())
+            if (cmd_i == voter.second.end())
                 // nothing to erase, no vote.
                 continue;
 
             voter.second.erase(cmd_i);
         }
+#endif
+        m_command_voters[item].clear();
         std::string resp("Pole has been disabled.");
         sendStringToAllPeers(resp);
     }
@@ -8934,12 +9006,20 @@ void ServerLobby::writeRestrictionsForUsername(const core::stringw& name, const 
         });
 #endif
 }
-void ServerLobby::sendNoPermissionToPeer(STKPeer* p)
+void ServerLobby::sendNoPermissionToPeer(STKPeer* p, const std::vector<std::string>& argv)
 {
     NetworkString* const msg = getNetworkString();
     msg->setSynchronous(true);
-    msg->addUInt8(LE_CHAT).encodeString16(
-            L"You are not allowed to run this command.");
+    msg->addUInt8(LE_CHAT);
+    if (ServerConfig::m_permission_message.toString().empty() && argv.size() >= 1)
+    {
+        core::stringw msg_ = L"Unknown command: ";
+        msg_ += StringUtils::utf8ToWide(argv[0]);
+        msg->encodeString16(msg_);
+    }
+    else
+        msg->encodeString16(
+                StringUtils::utf8ToWide(ServerConfig::m_permission_message));
     p->sendPacket(msg, true/*reliable*/);
     delete msg;
 }

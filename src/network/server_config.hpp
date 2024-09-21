@@ -510,6 +510,17 @@ namespace ServerConfig
         "Second field has flags: NOSPEC, NOGAME, NOCHAT, NOPCHAT, NOTEAM, "
         "HANDICAP, KART, TRACK. In specified order, 1, 2, 4, 8, 16 etc. "));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_permission_message
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "You are not allowed to run this command.",
+        "permission-message",
+        "Message to show to a player with insufficient permissions "
+        "tries to use a restricted command."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_shadow_nochat
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "shadow-nochat",
+        "Players restricted from chatting/DM won't be aware of it."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_handling
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-handling",
         "If true this server will auto add / remove AI connected with "

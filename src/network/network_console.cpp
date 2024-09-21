@@ -654,7 +654,7 @@ void mainLoop(STKHost* host)
                 continue;
             }
             
-            player->setTeam(team);
+            sl->forceChangeTeam(player.get(), team);
             sl->updatePlayerList();
 
             std::cout << "Set player team to " << str2 << " for " << 
