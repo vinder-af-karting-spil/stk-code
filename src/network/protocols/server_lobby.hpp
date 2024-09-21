@@ -556,7 +556,7 @@ public:
     uint32_t loadRestrictionsForUsername(const core::stringw& name);
     void writeRestrictionsForOID(uint32_t online_id, uint32_t flags);
     void writeRestrictionsForUsername(const core::stringw& name, uint32_t flags);
-    void sendNoPermissionToPeer(STKPeer* p);
+    void sendNoPermissionToPeer(STKPeer* p, const std::vector<std::string>& argv);
     const char* getPermissionLevelName(int lvl) const;
     ServerPermissionLevel getPermissionLevelByName(const std::string& name) const;
     const char* getRestrictionName(PlayerRestriction prf) const;

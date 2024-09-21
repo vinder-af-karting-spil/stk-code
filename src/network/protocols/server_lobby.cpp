@@ -904,8 +904,14 @@ void ServerLobby::handleChat(Event* event)
         {
             NetworkString* const response = getNetworkString();
             response->setSynchronous(true);
-            // TODO: shadow mute
-            response->addUInt8(LE_CHAT).encodeString16(L"You are not allowed to send chat messages.");
+            response->addUInt8(LE_CHAT);
+
+            // very evil if you ask
+            if (ServerConfig::m_shadow_nochat)
+                response->encodeString16(message);
+            else
+                response->encodeString16(L"You are not allowed to send chat messages.");
+
             sender->sendPacket(response, true/*reliable*/);
             delete response;
             return;
@@ -6789,7 +6795,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 player->getPermissionLevel() < 60) 
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         int limit = std::stoi(argv[1]);
@@ -6860,7 +6866,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -6942,7 +6948,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7015,7 +7021,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 80))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         std::string player_name;
@@ -7042,7 +7048,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7090,7 +7096,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* chat = getNetworkString();
@@ -7130,7 +7136,7 @@ void ServerLobby::handleServerCommand(Event* event,
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         const size_t _cmd_size = argv[0].length() + 1;
@@ -7202,7 +7208,7 @@ void ServerLobby::handleServerCommand(Event* event,
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         const size_t _cmd_size = argv[0].length() + 1;
@@ -7298,7 +7304,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         m_kart_restriction = state ? HEAVY : NONE;
@@ -7344,7 +7350,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         m_kart_restriction = state ? MEDIUM : NONE;
@@ -7391,7 +7397,7 @@ void ServerLobby::handleServerCommand(Event* event,
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
@@ -7420,7 +7426,7 @@ void ServerLobby::handleServerCommand(Event* event,
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         NetworkString* response = getNetworkString();
@@ -7612,7 +7618,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7623,7 +7629,7 @@ unmute_error:
     {
         if (!player || player->getPermissionLevel() < 50)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7659,7 +7665,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7682,7 +7688,7 @@ unmute_error:
         else if (m_server_owner.lock() != peer &&
                 (!player || player->getPermissionLevel() < 100))
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -7711,7 +7717,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7775,7 +7781,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 2)
@@ -7807,7 +7813,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 4)
@@ -7896,7 +7902,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -7978,7 +7984,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -8020,7 +8026,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -8076,7 +8082,7 @@ unmute_error:
         std::string msg;
         if (!player || player->getPermissionLevel() < 80)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
         if (argv.size() < 3)
@@ -8119,13 +8125,13 @@ unmute_error:
         msg = "Player handicap has been updated.";
         sendStringToPeer(msg, peer);
     }
-    // CHEATS
+    // CHEATS (Please, do not use me in real games)
     else if (argv[0] == "hackitem" || argv[0] == "hki")
     {
-        // can only use it during the game
+        // admin only
         if (player->getPermissionLevel() < 100)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -8198,12 +8204,22 @@ unmute_error:
         target->setPowerup(type, quantity);
         std::string msgtarget = "Your powerup has been changed.";
         sendStringToPeer(msgtarget, target_peer);
-        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        if (target_peer->hasPlayerProfiles())
         {
-            std::string msg = StringUtils::insertValues(
-                "Changed powerup for player %s.",
+            // report to the log
+            Log::warn("ServerLobby", "HACKITEM %s(ID=%d) %d for %s by %s",
+                argv[1].c_str(), type, quantity, 
                 StringUtils::wideToUtf8(
-                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                target_peer->getPlayerProfiles()[0]->getName()).c_str(),
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+            if (peer != target_peer)
+            {
+                std::string msg = StringUtils::insertValues(
+                    "Changed powerup for player %s.",
+                    StringUtils::wideToUtf8(
+                        target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                sendStringToPeer(msg, peer);
+            }
         }
     }
     else if (argv[0] == "hacknitro" || argv[0] == "hkn")
@@ -8211,7 +8227,7 @@ unmute_error:
         // can only use it during the game
         if (player->getPermissionLevel() < 100)
         {
-            sendNoPermissionToPeer(peer.get());
+            sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
 
@@ -8267,7 +8283,7 @@ unmute_error:
         }
         else if (k_ids.size() > 1)
         {
-            Log::warn("ServerLobby", "hackitem: Player %s has multiple kart IDs.", 
+            Log::warn("ServerLobby", "hacknitro: Player %s has multiple kart IDs.", 
                     StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str());
         }
         unsigned int a = *k_ids.begin();
@@ -8281,10 +8297,19 @@ unmute_error:
         sendStringToPeer(msgtarget, target_peer);
         if (peer != target_peer && target_peer->hasPlayerProfiles())
         {
-            std::string msg = StringUtils::insertValues(
-                "Changed nitro for player %s.",
-                StringUtils::wideToUtf8(
-                    target_peer->getPlayerProfiles()[0]->getName()).c_str());
+            // report to the log
+            Log::warn("ServerLobby", "HACKNITRO %d for %s by %s",
+                quantity, 
+                StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str(),
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+            if (peer != target_peer)
+            {
+                std::string msg = StringUtils::insertValues(
+                    "Changed nitro for player %s.",
+                    StringUtils::wideToUtf8(
+                        target_peer->getPlayerProfiles()[0]->getName()).c_str());
+                sendStringToPeer(msg, peer);
+            }
         }
 
     }
@@ -8981,12 +9006,20 @@ void ServerLobby::writeRestrictionsForUsername(const core::stringw& name, const 
         });
 #endif
 }
-void ServerLobby::sendNoPermissionToPeer(STKPeer* p)
+void ServerLobby::sendNoPermissionToPeer(STKPeer* p, const std::vector<std::string>& argv)
 {
     NetworkString* const msg = getNetworkString();
     msg->setSynchronous(true);
-    msg->addUInt8(LE_CHAT).encodeString16(
-            L"You are not allowed to run this command.");
+    msg->addUInt8(LE_CHAT);
+    if (ServerConfig::m_permission_message.toString().empty() && argv.size() >= 1)
+    {
+        core::stringw msg_ = L"Unknown command: ";
+        msg_ += StringUtils::utf8ToWide(argv[0]);
+        msg->encodeString16(msg_);
+    }
+    else
+        msg->encodeString16(
+                StringUtils::utf8ToWide(ServerConfig::m_permission_message));
     p->sendPacket(msg, true/*reliable*/);
     delete msg;
 }
