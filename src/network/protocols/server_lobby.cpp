@@ -7798,6 +7798,8 @@ unmute_error:
         int32_t trg_permlvl = loadPermissionLevelForUsername(
             StringUtils::utf8ToWide(argv[1]));
         int32_t sender_permlvl = player->getPermissionLevel();
+        Log::verbose("ServerLobby", "sender_permlvl = %d, trg_permlvl = %d",
+                sender_permlvl, trg_permlvl);
 
         if (trg_permlvl >= sender_permlvl)
         {
@@ -9105,6 +9107,8 @@ uint32_t ServerLobby::lookupOID(const std::string& name)
     }
     if (res == SQLITE_DONE)
     {
+        Log::verbose("ServerLobby", "lookupOID: %s not found.",
+                name.c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;
@@ -9146,11 +9150,16 @@ uint32_t ServerLobby::lookupOID(const core::stringw& name)
     if (res == SQLITE_ROW)
     {
         uint32_t ret = sqlite3_column_int(stmt, 1);
+        Log::verbose("ServerLobby", "lookupOID: %s = %d.",
+                StringUtils::wideToUtf8(name).c_str(),
+                ret);
         sqlite3_finalize(stmt);
         return ret;
     }
     if (res == SQLITE_DONE)
     {
+        Log::verbose("ServerLobby", "lookupOID: %s not found.",
+                StringUtils::wideToUtf8(name).c_str());
         sqlite3_finalize(stmt);
         // not found
         return 0;
