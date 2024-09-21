@@ -7258,7 +7258,6 @@ void ServerLobby::handleServerCommand(Event* event,
         // other details
         std::string suggestionMsg = cmd.substr(_cmd_size);
         file << " [" << player_name << "]: " << suggestionMsg << std::endl;
-	M
 
         file.flush();
         if (!file.good())
@@ -7401,7 +7400,7 @@ void ServerLobby::handleServerCommand(Event* event,
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
-        m_kart_restriction = state ? HEAVY : NONE;
+        m_kart_restriction = state ? LIGHT : NONE;
         std::string message("Light party is now ");
         if (state)
         {
@@ -7412,10 +7411,8 @@ void ServerLobby::handleServerCommand(Event* event,
             message += "INACTIVE. All karts can be chosen.";
         }
 
-        sendStringToAllPeers(message);
-	
-{
-
+        sendStringToAllPeers(message);	
+    }
     else if (argv[0] == "bowlparty" || argv[0] == "bp")
     {
         irr::core::stringw response;
