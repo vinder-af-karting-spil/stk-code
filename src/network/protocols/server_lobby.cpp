@@ -3929,13 +3929,11 @@ void ServerLobby::clientDisconnected(Event* event)
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
     }
-    Log::verbose("ServerLobby", "debug 1");
 
     std::string msg2;
     std::string player_name;
     if(ServerConfig::m_soccer_log)
     {
-        Log::verbose("ServerLobby", "debug 2");
         World* w = World::getWorld();
         if (w)
         {
