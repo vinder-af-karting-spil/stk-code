@@ -8152,7 +8152,7 @@ unmute_error:
         }
         AbstractKart* target;
         PowerupManager::PowerupType type;
-        float quantity = 0.0f;
+        unsigned int quantity = 0;
 
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
@@ -8247,7 +8247,7 @@ unmute_error:
             return;
         }
         AbstractKart* target;
-        unsigned char quantity = 1;
+        float quantity = 0.0f;
 
         // 2 arguments: item quantity: give to yourself
         // 3 arguments: item quantity player: give to player
@@ -8295,7 +8295,7 @@ unmute_error:
         target->setEnergy(quantity);
         std::string msgtarget = "Your nitro has been changed.";
         sendStringToPeer(msgtarget, target_peer);
-        if (peer != target_peer && target_peer->hasPlayerProfiles())
+        if (target_peer->hasPlayerProfiles())
         {
             // report to the log
             Log::warn("ServerLobby", "HACKNITRO %d for %s by %s",
