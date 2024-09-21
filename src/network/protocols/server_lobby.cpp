@@ -1368,14 +1368,7 @@ bool ServerLobby::easySQLQuery(const std::string& query,
     {
         if (bind_function)
             bind_function(stmt);
-        ret = sqlite3_step(stmt);
-        if (ret != SQLITE_OK)
-        {
-            Log::error("ServerLobby",
-                "Error processing database for easy query %s: %s",
-                query.c_str(), sqlite3_errmsg(m_db));
-            return false;
-        }
+        sqlite3_step(stmt);
         ret = sqlite3_finalize(stmt);
         if (ret != SQLITE_OK)
         {
