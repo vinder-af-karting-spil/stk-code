@@ -7368,7 +7368,6 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
- }
     else if (ServerConfig::m_allow_lightparty && (argv[0] == "lightparty" || argv[0] == "lp"))
     {
         irr::core::stringw response;
