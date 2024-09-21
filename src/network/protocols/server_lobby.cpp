@@ -3519,6 +3519,8 @@ void ServerLobby::checkRaceFinished()
     }
     m_state.store(WAIT_FOR_RACE_STOPPED);
 
+    // Reset command votings
+    m_command_voters.clear();
     // Remove kart restriction after the game is over
     setKartRestrictionMode(NONE);
     // Remove pole mode after the game is over
