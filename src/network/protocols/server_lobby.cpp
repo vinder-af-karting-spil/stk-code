@@ -4006,7 +4006,7 @@ void ServerLobby::clientDisconnected(Event* event)
                 continue;
             // the player name is deleted from the voted command
             Log::verbose("ServerLobby", "cD::debug 1");
-            cmd.second.erase(found);
+            m_command_voters[cmd.first].erase(found);
             Log::verbose("ServerLobby", "cD::debug 2");
             for (auto username : cmd.second)
             {
@@ -8401,8 +8401,11 @@ bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string com
         m_command_voters[command] = std::vector<std::string>();
     }
 
-    if (std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username) != m_command_voters[command].end())
+    auto it = std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username);
+    if (it != m_command_voters[command].end())
     {
+        Log::verbose("ServerLobby", "voteForCommand: already voted, %s, %s",
+                command.c_str(), it->c_str());
         std::string msg = "You already voted for \"" + command + "\".";
         sendStringToPeer(msg, peer);
     }
@@ -8411,7 +8414,6 @@ bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string com
         m_command_voters[command].push_back(username);
         std::string message = username + " voted for \"/" + command + "\" (" + std::to_string(m_command_voters[command].size()) + " of " + std::to_string(playerCount) + " votes).";
         sendStringToAllPeers(message);
-        Log::info("ServerLobby", message.c_str());
     }
 
 
