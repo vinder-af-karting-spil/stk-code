@@ -7799,9 +7799,6 @@ unmute_error:
             StringUtils::utf8ToWide(argv[1]));
         int32_t sender_permlvl = player->getPermissionLevel();
 
-        Log::verbose("ServerLobby", "Banner permlvl = %d, target permlvl = %d",
-                sender_permlvl, trg_permlvl);
-
         if (trg_permlvl >= sender_permlvl)
         {
             msg = "You cannot ban someone who has at least your level of permissions.";
@@ -9485,6 +9482,11 @@ int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
 #if ENABLE_SQLITE3
     if (!m_db || !m_permissions_table_exists)
         return PERM_PLAYER;
+
+    uint32_t online_id = lookupOID(name);
+    if (ServerConfig::m_server_owner != -1 
+            && online_id == ServerConfig::m_server_owner)
+        return std::numeric_limits<int>::max();
 
     std::string query = StringUtils::insertValues(
             "SELECT p.level FROM %s AS p"
