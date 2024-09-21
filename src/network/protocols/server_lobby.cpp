@@ -3993,13 +3993,13 @@ void ServerLobby::clientDisconnected(Event* event)
         for (auto cmd : m_command_voters)
         {
             Log::verbose("ServerLobby", "Clearing votes for player %s: %s?",
-                    pname.c_str());
+                    pname.c_str(), cmd.first.c_str());
             auto found = std::find(cmd.second.begin(), cmd.second.end(),
                     pname);
             if (found == cmd.second.end())
                 continue;
             Log::verbose("ServerLobby", "Clearing votes for player %s: %s",
-                    pname.c_str());
+                    pname.c_str(), cmd.first.c_str());
             // the player name is deleted from the voted command
             cmd.second.erase(found);
 
