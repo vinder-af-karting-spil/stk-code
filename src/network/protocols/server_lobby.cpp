@@ -7258,6 +7258,7 @@ void ServerLobby::handleServerCommand(Event* event,
         // other details
         std::string suggestionMsg = cmd.substr(_cmd_size);
         file << " [" << player_name << "]: " << suggestionMsg << std::endl;
+	M
 
         file.flush();
         if (!file.good())
@@ -7367,6 +7368,55 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
+ }
+    else if (ServerConfig::m_allow_lightparty && (argv[0] == "lightparty" || argv[0] == "lp"))
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = L"Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+
+        if (state == (getKartRestrictionMode() == LIGHT))
+        {
+            std::string msg = "Light party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        m_kart_restriction = state ? HEAVY : NONE;
+        std::string message("Light party is now ");
+        if (state)
+        {
+            message += "ACTIVE. Only heavy karts can be chosen.";
+        }
+        else
+        {
+            message += "INACTIVE. All karts can be chosen.";
+        }
+
+        sendStringToAllPeers(message);
+	
+{
+
     else if (argv[0] == "bowlparty" || argv[0] == "bp")
     {
         irr::core::stringw response;
