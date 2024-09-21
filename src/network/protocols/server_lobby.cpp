@@ -3987,15 +3987,19 @@ void ServerLobby::clientDisconnected(Event* event)
     // reset player command votings
     if (ServerConfig::m_command_voting && peer->hasPlayerProfiles())
     {
-        auto pname = StringUtils::wideToUtf8(
+        const std::string& pname = StringUtils::wideToUtf8(
                 peer->getPlayerProfiles()[0]->getName());
+        Log::verbose("ServerLobby", "Clearing votes for player %s", pname.c_str());
         for (auto cmd : m_command_voters)
         {
+            Log::verbose("ServerLobby", "Clearing votes for player %s: %s?",
+                    pname.c_str());
             auto found = std::find(cmd.second.begin(), cmd.second.end(),
                     pname);
             if (found == cmd.second.end())
                 continue;
-
+            Log::verbose("ServerLobby", "Clearing votes for player %s: %s",
+                    pname.c_str());
             // the player name is deleted from the voted command
             cmd.second.erase(found);
 
@@ -8517,7 +8521,6 @@ void ServerLobby::setPoleEnabled(bool mode)
     }
     else 
     {
-        const std::string item = "pole on";
         // delete command votes for "pole on"
 #if 0
         for (auto& voter : m_command_voters) {
@@ -8530,7 +8533,8 @@ void ServerLobby::setPoleEnabled(bool mode)
             voter.second.erase(cmd_i);
         }
 #endif
-        m_command_voters[item].clear();
+        m_command_voters["pole on"].clear();
+        m_command_voters["pole off"].clear();
         std::string resp("Pole has been disabled.");
         sendStringToAllPeers(resp);
     }
