@@ -1369,6 +1369,13 @@ bool ServerLobby::easySQLQuery(const std::string& query,
         if (bind_function)
             bind_function(stmt);
         ret = sqlite3_step(stmt);
+        if (ret != SQLITE_OK)
+        {
+            Log::error("ServerLobby",
+                "Error processing database for easy query %s: %s",
+                query.c_str(), sqlite3_errmsg(m_db));
+            return false;
+        }
         ret = sqlite3_finalize(stmt);
         if (ret != SQLITE_OK)
         {
@@ -1392,39 +1399,37 @@ bool ServerLobby::easySQLQuery(const std::string& query,
 /* Write true to result if table name exists in database. */
 void ServerLobby::checkTableExists(const std::string& table, bool& result)
 {
-    if (!m_db)
+    if (!m_db || table.empty())
         return;
     sqlite3_stmt* stmt = NULL;
-    if (!table.empty())
-    {
-        std::string query = StringUtils::insertValues(
-            "SELECT count(type) FROM sqlite_master "
-            "WHERE type='table' AND name='%s';", table.c_str());
 
-        int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
-        if (ret == SQLITE_OK)
+    std::string query = StringUtils::insertValues(
+        "SELECT count(type) FROM sqlite_master "
+        "WHERE type='table' AND name='%s';", table.c_str());
+
+    int ret = sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, 0);
+    if (ret == SQLITE_OK)
+    {
+        ret = sqlite3_step(stmt);
+        if (ret == SQLITE_ROW)
         {
-            ret = sqlite3_step(stmt);
-            if (ret == SQLITE_ROW)
+            int number = sqlite3_column_int(stmt, 0);
+            if (number == 1)
             {
-                int number = sqlite3_column_int(stmt, 0);
-                if (number == 1)
-                {
-                    Log::info("ServerLobby", "Table named %s will used.",
-                        table.c_str());
-                    result = true;
-                }
-            }
-            ret = sqlite3_finalize(stmt);
-            if (ret != SQLITE_OK)
-            {
-                Log::error("ServerLobby",
-                    "Error finalize database for query %s: %s",
-                    query.c_str(), sqlite3_errmsg(m_db));
+                Log::info("ServerLobby", "Table named %s will used.",
+                    table.c_str());
+                result = true;
             }
         }
+        ret = sqlite3_finalize(stmt);
+        if (ret != SQLITE_OK)
+        {
+            Log::error("ServerLobby",
+                "Error finalize database for query %s: %s",
+                query.c_str(), sqlite3_errmsg(m_db));
+        }
     }
-    if (!result && !table.empty())
+    if (!result)
     {
         Log::warn("ServerLobby", "Table named %s not found in database.",
             table.c_str());
@@ -3931,24 +3936,26 @@ void ServerLobby::clientDisconnected(Event* event)
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
     }
+    Log::verbose("ServerLobby", "debug 1");
 
     std::string msg2;
     std::string player_name;
     if(ServerConfig::m_soccer_log)
     {
+        Log::verbose("ServerLobby", "debug 2");
         World* w = World::getWorld();
         if (w)
-	{
+        {
             SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-	    std::string time = std::to_string(sw->getTime());
+            std::string time = std::to_string(sw->getTime());
             for (const auto id : event->getPeer()->getAvailableKartIDs())
-	    {
+            {
                 player_name = GlobalLog::getPlayerName(id);
-		msg2 =  player_name + " left the game at " + time + ". \n";
-		GlobalLog::writeLog(msg2, GlobalLogTypes::POS_LOG);
+                msg2 =  player_name + " left the game at " + time + ". \n";
+                GlobalLog::writeLog(msg2, GlobalLogTypes::POS_LOG);
                 GlobalLog::removeIngamePlayer(id);
-	    }
-	}
+            }
+        }
     }
     
 
@@ -3996,7 +4003,7 @@ void ServerLobby::clientDisconnected(Event* event)
             auto found = std::find(m_command_voters[cmd.first].begin(),
                                    m_command_voters[cmd.first].end(),
                                    pname);
-            if (found == cmd.second.end())
+            if (found == m_command_voters[cmd.first].end())
                 continue;
             // the player name is deleted from the voted command
             m_command_voters[cmd.first].erase(found);
