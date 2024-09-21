@@ -4660,6 +4660,15 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             }
         }
     );
+    for (auto cmd : m_command_voters)
+    {
+        for (auto username : cmd.second)
+        {
+            Log::verbose("ServerLobby", "join votes of %s: %s",
+                    cmd.first.c_str(),
+                    username.c_str());
+        }
+    }
     if (peer->hasPlayerProfiles())
         Log::verbose("ServerLobby", "playerjoin %s %d",
                 StringUtils::wideToUtf8(
