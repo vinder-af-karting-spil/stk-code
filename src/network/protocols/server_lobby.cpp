@@ -3989,11 +3989,8 @@ void ServerLobby::clientDisconnected(Event* event)
     {
         const std::string& pname = StringUtils::wideToUtf8(
                 peer->getPlayerProfiles()[0]->getName());
-        Log::verbose("ServerLobby", "Clearing votes for player %s", pname.c_str());
         for (auto cmd : m_command_voters)
         {
-            Log::verbose("ServerLobby", "Clearing votes for player %s: %s?",
-                    pname.c_str(), cmd.first.c_str());
             auto found = std::find(m_command_voters[cmd.first].begin(),
                                    m_command_voters[cmd.first].end(),
                                    pname);
