@@ -9149,7 +9149,7 @@ uint32_t ServerLobby::lookupOID(const core::stringw& name)
     res = sqlite3_step(stmt);
     if (res == SQLITE_ROW)
     {
-        uint32_t ret = sqlite3_column_int(stmt, 1);
+        uint32_t ret = sqlite3_column_int(stmt, 0);
         Log::verbose("ServerLobby", "lookupOID: %s = %d.",
                 StringUtils::wideToUtf8(name).c_str(),
                 ret);
