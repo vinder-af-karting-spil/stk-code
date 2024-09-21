@@ -7799,6 +7799,9 @@ unmute_error:
             StringUtils::utf8ToWide(argv[1]));
         int32_t sender_permlvl = player->getPermissionLevel();
 
+        Log::verbose("ServerLobby", "Banner permlvl = %d, target permlvl = %d",
+                sender_permlvl, trg_permlvl);
+
         if (trg_permlvl >= sender_permlvl)
         {
             msg = "You cannot ban someone who has at least your level of permissions.";
