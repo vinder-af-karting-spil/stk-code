@@ -4005,7 +4005,9 @@ void ServerLobby::clientDisconnected(Event* event)
             if (found == cmd.second.end())
                 continue;
             // the player name is deleted from the voted command
+            Log::verbose("ServerLobby", "cD::debug 1");
             cmd.second.erase(found);
+            Log::verbose("ServerLobby", "cD::debug 2");
             for (auto username : cmd.second)
             {
                 Log::verbose("ServerLobby", "AFTER votes of %s: %s",
