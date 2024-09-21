@@ -8401,8 +8401,11 @@ bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string com
         m_command_voters[command] = std::vector<std::string>();
     }
 
-    if (std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username) != m_command_voters[command].end())
+    auto it = std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username);
+    if (it != m_command_voters[command].end())
     {
+        Log::verbose("ServerLobby", "voteForCommand: already voted, %s, %s",
+                command.c_str(), it->c_str());
         std::string msg = "You already voted for \"" + command + "\".";
         sendStringToPeer(msg, peer);
     }
