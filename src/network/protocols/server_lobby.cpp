@@ -3992,30 +3992,15 @@ void ServerLobby::clientDisconnected(Event* event)
         Log::verbose("ServerLobby", "Clearing votes for player %s", pname.c_str());
         for (auto cmd : m_command_voters)
         {
-            for (auto username : cmd.second)
-            {
-                Log::verbose("ServerLobby", "votes of %s: %s",
-                        cmd.first.c_str(),
-                        username.c_str());
-            }
             Log::verbose("ServerLobby", "Clearing votes for player %s: %s?",
                     pname.c_str(), cmd.first.c_str());
-            auto found = std::find(cmd.second.begin(), cmd.second.end(),
-                    pname);
+            auto found = std::find(m_command_voters[cmd.first].begin(),
+                                   m_command_voters[cmd.first].end(),
+                                   pname);
             if (found == cmd.second.end())
                 continue;
             // the player name is deleted from the voted command
-            Log::verbose("ServerLobby", "cD::debug 1");
             m_command_voters[cmd.first].erase(found);
-            Log::verbose("ServerLobby", "cD::debug 2");
-            for (auto username : cmd.second)
-            {
-                Log::verbose("ServerLobby", "AFTER votes of %s: %s",
-                        cmd.first.c_str(),
-                        username.c_str());
-            }
-
-            //Log::verbose("ServerLobby", "", ...);
         }
     }
     // send a message to the wrapper
@@ -4664,12 +4649,6 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
     );
     for (auto cmd : m_command_voters)
     {
-        for (auto username : cmd.second)
-        {
-            Log::verbose("ServerLobby", "join votes of %s: %s",
-                    cmd.first.c_str(),
-                    username.c_str());
-        }
     }
     if (peer->hasPlayerProfiles())
         Log::verbose("ServerLobby", "playerjoin %s %d",
@@ -8404,8 +8383,6 @@ bool ServerLobby::voteForCommand(std::shared_ptr<STKPeer>& peer, std::string com
     auto it = std::find(m_command_voters[command].begin(), m_command_voters[command].end(), username);
     if (it != m_command_voters[command].end())
     {
-        Log::verbose("ServerLobby", "voteForCommand: already voted, %s, %s",
-                command.c_str(), it->c_str());
         std::string msg = "You already voted for \"" + command + "\".";
         sendStringToPeer(msg, peer);
     }
