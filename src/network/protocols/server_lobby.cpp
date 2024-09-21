@@ -8298,7 +8298,7 @@ unmute_error:
         if (target_peer->hasPlayerProfiles())
         {
             // report to the log
-            Log::warn("ServerLobby", "HACKNITRO %d for %s by %s",
+            Log::warn("ServerLobby", "HACKNITRO %f for %s by %s",
                 quantity, 
                 StringUtils::wideToUtf8(target_peer->getPlayerProfiles()[0]->getName()).c_str(),
                 StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
