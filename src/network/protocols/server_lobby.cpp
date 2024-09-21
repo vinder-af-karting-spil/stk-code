@@ -7276,13 +7276,20 @@ void ServerLobby::handleServerCommand(Event* event,
             auto chat = getNetworkString();
             chat->setSynchronous(true);
             chat->addUInt8(LE_CHAT);
-            response = "Specify on or off as a second argument.";
+            response = L"Specify on or off as a second argument.";
             chat->encodeString16(response);
             peer->sendPacket(chat, true/*reliable*/);
             delete chat;
             return;
         }
         bool state = argv[1] == "on";
+
+        if (state == (getKartRestrictionMode() == HEAVY))
+        {
+            std::string msg = "Heavy party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
@@ -7323,6 +7330,13 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         bool state = argv[1] == "on";
 
+        if (state == (getKartRestrictionMode() == MEDIUM))
+        {
+            std::string msg = "Medium party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7361,6 +7375,14 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
         bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY))
+        {
+            std::string msg = "Bowling party is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
         if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
@@ -7372,7 +7394,6 @@ void ServerLobby::handleServerCommand(Event* event,
             sendNoPermissionToPeer(peer.get());
             return;
         }
-        auto rm = RaceManager::get();
         if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
                 state)
         {
@@ -7577,6 +7598,13 @@ unmute_error:
         }
         bool state = argv[1] == "on";
 
+        if (state == isPoleEnabled())
+        {
+            std::string msg = "Pole voting is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7618,6 +7646,12 @@ unmute_error:
     }
     else if (argv[0] == "start")
     {
+        if (m_state.load() != WAITING_FOR_START_GAME)
+        {
+            std::string msg = "The game has already been started.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7633,6 +7667,14 @@ unmute_error:
     }
     else if (argv[0] == "end")
     {
+        // if the game is even active
+        if (!isRacing())
+        {
+            std::string msg = "Game is not active.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7641,14 +7683,6 @@ unmute_error:
                 (!player || player->getPermissionLevel() < 100))
         {
             sendNoPermissionToPeer(peer.get());
-            return;
-        }
-
-        // if the game is even active
-        if (!isRacing())
-        {
-            std::string msg = "Game is not active.";
-            sendStringToPeer(msg, peer);
             return;
         }
 
