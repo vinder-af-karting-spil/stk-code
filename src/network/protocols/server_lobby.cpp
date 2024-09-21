@@ -3929,13 +3929,11 @@ void ServerLobby::clientDisconnected(Event* event)
         msg->encodeString(name);
         Log::info("ServerLobby", "%s disconnected", name.c_str());
     }
-    Log::verbose("ServerLobby", "debug 1");
 
     std::string msg2;
     std::string player_name;
     if(ServerConfig::m_soccer_log)
     {
-        Log::verbose("ServerLobby", "debug 2");
         World* w = World::getWorld();
         if (w)
         {
@@ -7618,7 +7616,7 @@ unmute_error:
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /inform "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online /mute /unmute /listmute /pole"
-            L" /bowlparty /start /end" 
+            L" /bowlparty|bp /start /end" 
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
