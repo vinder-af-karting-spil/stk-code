@@ -6945,7 +6945,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (StringUtils::startsWith(cmd, "playerhasaddon"))
+    else if (StringUtils::startsWith(cmd, "playerhasaddon" ||  argv[0] == "pha"))
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
