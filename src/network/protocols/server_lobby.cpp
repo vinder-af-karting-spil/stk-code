@@ -7432,7 +7432,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY))
         {
-            std::string msg = "Bowling party is already active or inactive.";
+            std::string msg = "Bowlparty is already active or inactive.";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -7450,13 +7450,13 @@ void ServerLobby::handleServerCommand(Event* event,
         if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
                 state)
         {
-            std::string msg = "Bowling party is already on.";
+            std::string msg = "Bowlparty is already on.";
             sendStringToPeer(msg, peer);
             return;
         }
         rm->setPowerupSpecialModifier(
                 state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
-        std::string message("Bowling party is now ");
+        std::string message("Bowlparty is now ");
         if (state)
         {
             message += "ACTIVE. Bonus boxes only give 3 bowling balls.";
