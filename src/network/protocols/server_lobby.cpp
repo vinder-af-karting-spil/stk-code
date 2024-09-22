@@ -6801,9 +6801,9 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         int limit = std::stoi(argv[1]);
 
-        if (limit < 6)
+        if (limit < 2)
         {
-            std::string msg = "The number of slots cannot be smaller than 6.";
+            std::string msg = "The number of slots cannot be smaller than 2.";
             sendStringToPeer(msg, peer);
             return;
         }
