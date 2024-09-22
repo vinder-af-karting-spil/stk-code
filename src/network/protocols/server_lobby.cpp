@@ -7132,7 +7132,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
     else if (!ServerConfig::m_feature_filepath.toString().empty() && 
-            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm"))
+            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm" || argv[0] == "bug"))
     {
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
