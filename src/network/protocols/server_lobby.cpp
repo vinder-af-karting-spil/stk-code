@@ -7616,7 +7616,7 @@ unmute_error:
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online /mute /unmute /listmute /pole"
-            L" /bowlparty|bp /start /end" 
+            L" /bowlparty|bp /start /end /bug" 
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
