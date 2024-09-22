@@ -6691,6 +6691,8 @@ void ServerLobby::handleServerCommand(Event* event,
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         std::string msg = "\U0001f7e5 Red " + std::to_string(red_score)+ " : " + std::to_string(blue_score) + " Blue \U0001f7e6";
+        if (red_score == 6 && blue_score == 9)
+            msg += "(nice)";
         chat->encodeString16(StringUtils::utf8ToWide(msg));
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
