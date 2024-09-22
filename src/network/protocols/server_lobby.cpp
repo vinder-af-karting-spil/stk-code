@@ -8940,7 +8940,7 @@ uint32_t ServerLobby::loadRestrictionsForOID(const uint32_t online_id)
         return 0;
 
     int res;
-    uint32_t lvl;
+    uint32_t lvl = 0;
     char* errmsg;
     std::string query = StringUtils::insertValues(
         "SELECT flags FROM %s WHERE online_id = %u;",
