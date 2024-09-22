@@ -6803,9 +6803,9 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         int limit = std::stoi(argv[1]);
 
-        if (limit < 6)
+        if (limit < 2)
         {
-            std::string msg = "The number of slots cannot be smaller than 6.";
+            std::string msg = "The number of slots cannot be smaller than 2.";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -6947,7 +6947,7 @@ void ServerLobby::handleServerCommand(Event* event,
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
     }
-    else if (StringUtils::startsWith(cmd, "playerhasaddon"))
+    else if (argv[0] == "playerhasaddon" || argv[0] == "pha")
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
@@ -7047,7 +7047,7 @@ void ServerLobby::handleServerCommand(Event* event,
             player_peer->kick();
         }
     }
-    else if (StringUtils::startsWith(cmd, "playeraddonscore"))
+        else if (argv[0] == "playeraddonscore" || argv[0] == "pas")
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
@@ -7134,7 +7134,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
     else if (!ServerConfig::m_feature_filepath.toString().empty() && 
-            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm"))
+            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm" || argv[0] == "bug"))
     {
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
@@ -7406,7 +7406,7 @@ void ServerLobby::handleServerCommand(Event* event,
         std::string message("Light party is now ");
         if (state)
         {
-            message += "ACTIVE. Only heavy karts can be chosen.";
+            message += "ACTIVE. Only light karts can be chosen.";
         }
         else
         {
@@ -7434,7 +7434,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY))
         {
-            std::string msg = "Bowling party is already active or inactive.";
+            std::string msg = "Bowlparty is already active or inactive.";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -7452,13 +7452,13 @@ void ServerLobby::handleServerCommand(Event* event,
         if (rm->getPowerupSpecialModifier() == Powerup::TSM_BOWLPARTY &&
                 state)
         {
-            std::string msg = "Bowling party is already on.";
+            std::string msg = "Bowlparty is already on.";
             sendStringToPeer(msg, peer);
             return;
         }
         rm->setPowerupSpecialModifier(
                 state ? Powerup::TSM_BOWLPARTY : Powerup::TSM_NONE);
-        std::string message("Bowling party is now ");
+        std::string message("Bowlparty is now ");
         if (state)
         {
             message += "ACTIVE. Bonus boxes only give 3 bowling balls.";
@@ -7614,11 +7614,11 @@ unmute_error:
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         core::stringw res = (
-            L"/showcommands|commands|cmds /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
+            L"/showcommands|commands|cmds|cmd /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
-            L"/listserveraddon|lsa /playerhasaddon /kick /playeraddonscore /serverhasaddon|sha /inform "
+            L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online /mute /unmute /listmute /pole"
-            L" /bowlparty|bp /start /end" 
+            L" /bowlparty|bp /start /end /bug" 
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
