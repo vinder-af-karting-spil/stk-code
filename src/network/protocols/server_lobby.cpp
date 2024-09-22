@@ -7045,7 +7045,7 @@ void ServerLobby::handleServerCommand(Event* event,
             player_peer->kick();
         }
     }
-    else if (StringUtils::startsWith(cmd, "playeraddonscore"))
+        else if (argv[0] == "playeraddonscore" || argv[0] == "pas")
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
