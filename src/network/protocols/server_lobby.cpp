@@ -7612,9 +7612,9 @@ unmute_error:
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         core::stringw res = (
-            L"/showcommands|commands|cmds /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
+            L"/showcommands|commands|cmds|cmd /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
-            L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore /serverhasaddon|sha /inform|ifm "
+            L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online /mute /unmute /listmute /pole"
             L" /bowlparty|bp /start /end /bug" 
         );
