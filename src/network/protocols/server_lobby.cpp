@@ -7404,7 +7404,7 @@ void ServerLobby::handleServerCommand(Event* event,
         std::string message("Light party is now ");
         if (state)
         {
-            message += "ACTIVE. Only heavy karts can be chosen.";
+            message += "ACTIVE. Only light karts can be chosen.";
         }
         else
         {
