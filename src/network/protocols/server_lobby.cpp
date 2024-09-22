@@ -8958,6 +8958,7 @@ uint32_t ServerLobby::loadRestrictionsForOID(const uint32_t online_id)
         sqlite3_free(errmsg);
         return 0;
     }
+    Log::verbose("ServerLobby", "%u restrictions = %u", online_id, lvl);
     return lvl;
 #else
     return 0;
