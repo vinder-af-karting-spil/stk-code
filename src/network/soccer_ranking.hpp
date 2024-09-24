@@ -45,11 +45,11 @@ public:
 private:
 
     static RankingEntry parseLine(
-            const std::string&& line
+            const std::string& line
             );
     static void parseLineTo(
             RankingEntry& out,
-            const std::string&& line
+            const std::string& line
             );
 
 public:

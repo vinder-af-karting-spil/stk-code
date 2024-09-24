@@ -7155,25 +7155,27 @@ void ServerLobby::handleServerCommand(Event* event,
             page = 1;
 
         std::string msg("Soccer rankings (page ");
-        msg += page;
+        msg += std::to_string(page);
         msg += "):\n";
 
         if (!playername.empty())
         {
-            SoccerRanking::RankingEntry re;
-            SoccerRanking::getRankOf(playername);
+            SoccerRanking::RankingEntry re = 
+                SoccerRanking::getRankOf(playername);
             if (!re.m_rank)
             {
                 msg = "No records for the player.";
             }
             else
                 msg = StringUtils::insertValues(
+                        "Ranking data of %s:\n"
                         "Rank: %u,\n"
                         "Played games: %f\n"
                         "Average team size (%): %f\n"
                         "Goals/game: %f\n"
                         "Win rate: %f\n"
                         "ELO: %d",
+                        re.m_name,
                         re.m_rank,
                         re.m_played_games,
                         re.m_avg_team_size,

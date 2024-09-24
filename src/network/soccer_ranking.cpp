@@ -1,39 +1,28 @@
 #include "network/soccer_ranking.hpp"
 #include "network/server_config.hpp"
 #include "utils/log.hpp"
+#include "utils/string_utils.hpp"
 #include <fstream>
 #include <sstream>
 
 void SoccerRanking::parseLineTo(
         SoccerRanking::RankingEntry& out,
-        const std::string&& line)
+        const std::string& line)
 {
     std::stringstream ss;
-    ss << line;
+    ss << line << std::endl;
     ss.exceptions(
             std::stringstream::failbit |
             std::stringstream::badbit |
             std::stringstream::eofbit);
     try
     {
-        Log::verbose("SoccerRanking", "parseLineTo: name...");
         ss >> out.m_name;
-        Log::verbose("SoccerRanking", "parseLineTo: name = %s, played_games...",
-                out.m_name.c_str());
         ss >> out.m_played_games;
-        Log::verbose("SoccerRanking", "parseLineTo: played_games = %f, avg_team_size...",
-                out.m_played_games);
         ss >> out.m_avg_team_size;
-        Log::verbose("SoccerRanking", "parseLineTo: avg_team_size = %f, goals_per_game...",
-                out.m_avg_team_size);
         ss >> out.m_goals_per_game;
-        Log::verbose("SoccerRanking", "parseLineTo: goals_per_game = %f, win_rate...",
-                out.m_goals_per_game);
         ss >> out.m_win_rate;
-        Log::verbose("SoccerRanking", "parseLineTo: win_rate = %f, elo...",
-                out.m_win_rate);
         ss >> out.m_elo;
-        Log::verbose("SoccerRanking", "parseLineTo: elo = %d", out.m_elo);
     }
     catch (const std::exception& e)
     {
@@ -44,10 +33,10 @@ void SoccerRanking::parseLineTo(
 } // parseLineTo
 //--------------------------------------------------------------------
 SoccerRanking::RankingEntry SoccerRanking::parseLine(
-        const std::string&& line)
+        const std::string& line)
 {
-    RankingEntry re = {};
-    SoccerRanking::parseLineTo(re, std::move(line));
+    RankingEntry re = {.m_rank = 0};
+    SoccerRanking::parseLineTo(re, line);
     return re;
 } // parseLine
 
@@ -73,16 +62,16 @@ void SoccerRanking::readRankings(
         RankingEntry re = {.m_rank = 1};
     
         if (offset)
-            for (std::size_t i = 0; i < offset; ++i, ++re.m_rank)
+            for (std::size_t i = 0; !f.eof() && i < offset; ++i, ++re.m_rank)
                 f.getline(linebuf, 256);
 
-        if (f.eof())
+        if (f.eof() || f.bad() || f.fail())
             return;
         for (std::size_t i = 0; i < max; ++i, ++re.m_rank)
         {
             f.getline(linebuf, 256);
 
-            if (f.eof())
+            if (f.eof() || f.bad() || f.fail())
                 break;
 
             parseLineTo(re, linebuf);
@@ -91,7 +80,7 @@ void SoccerRanking::readRankings(
     }
     catch (const std::exception& e)
     {
-        Log::error("SoccerRanking", "Failed to read ranking data: %s",
+        Log::verbose("SoccerRanking", "Failed to read ranking data: %s",
                 e.what());
         return;
     }
@@ -101,35 +90,35 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
         const std::string &playername)
 {
     const std::string path = ServerConfig::m_soccer_ranking_file;
-    RankingEntry re = {.m_rank = 0};
+    RankingEntry re = {};
+    std::string lower_pn = StringUtils::toLowerCase(playername);
 
     if (path.empty())
         return re;
 
     try
     {
-        Log::verbose("SoccerRanking", "getRankOf debug 1");
         std::ifstream f(path, std::ios_base::in);
-        Log::verbose("SoccerRanking", "getRankOf debug 2");
         f.exceptions(
                 std::ifstream::failbit |
                 std::ifstream::badbit);
-        Log::verbose("SoccerRanking", "getRankOf debug 3");
         char linebuf[256];
-        for (; !f.eof(); ++re.m_rank)
+        for (; !f.eof() && !f.fail() && !f.bad(); ++re.m_rank)
         {
             f.getline(linebuf, 256);
-            Log::verbose("SoccerRanking", "getRankOf debug 4");
+            if (linebuf[0] == 0)
+                return re;
             parseLineTo(re, linebuf);
 
-            Log::verbose("SoccerRanking", "getRankOf debug 5");
-            if (re.m_name == playername)
+            if (StringUtils::startsWith(
+                        StringUtils::toLowerCase(re.m_name),
+                        lower_pn))
                 return re;
         }
     }
     catch (const std::exception& e)
     {
-        Log::error("SoccerRanking", "Failed to read ranking data: %s",
+        Log::verbose("SoccerRanking", "Failed to read ranking data: %s",
                 e.what());
     }
 
