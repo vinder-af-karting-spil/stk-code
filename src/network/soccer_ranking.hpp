@@ -37,8 +37,8 @@ public:
         float           m_played_games,
                         m_avg_team_size,
                         m_goals_per_game,
-                        m_win_rate,
-                        m_elo;
+                        m_win_rate;
+        int             m_elo;
 
         std::string     m_name;
     };
