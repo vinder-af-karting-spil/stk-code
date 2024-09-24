@@ -15,11 +15,17 @@ void SoccerRanking::parseLineTo(
             std::stringstream::eofbit);
     try
     {
+        Log::verbose("SoccerRanking", "parseLineTo: name...");
         ss >> out.m_name;
+        Log::verbose("SoccerRanking", "parseLineTo: played_games...");
         ss >> out.m_played_games;
+        Log::verbose("SoccerRanking", "parseLineTo: avg_team_size...");
         ss >> out.m_avg_team_size;
+        Log::verbose("SoccerRanking", "parseLineTo: goals_per_game...");
         ss >> out.m_goals_per_game;
+        Log::verbose("SoccerRanking", "parseLineTo: win_rate...");
         ss >> out.m_win_rate;
+        Log::verbose("SoccerRanking", "parseLineTo: elo...");
         ss >> out.m_elo;
     }
     catch (const std::exception& e)
