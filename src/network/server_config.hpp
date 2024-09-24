@@ -528,7 +528,7 @@ namespace ServerConfig
     SERVER_CFG_PREFIX StringServerConfigParam m_soccer_ranking_file
         SERVER_CFG_DEFAULT(StringServerConfigParam(
         "soccer_ranking.txt",
-        "permission-message",
+        "soccer-ranking-file",
         "Path of the file to read from by /rank, /rank10 and /rank (player) "
         "commands, must be of a valid structure."));
 
