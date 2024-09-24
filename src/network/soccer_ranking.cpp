@@ -76,7 +76,7 @@ void SoccerRanking::readRankings(
             out.push_back(re);
         }
     }
-    catch (const std::ios_base::failure& e)
+    catch (const std::exception& e)
     {
         Log::error("SoccerRanking", "Failed to read ranking data: %s",
                 e.what());
@@ -108,7 +108,7 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
                 return re;
         }
     }
-    catch (const std::ios_base::failure& e)
+    catch (const std::exception& e)
     {
         Log::error("SoccerRanking", "Failed to read ranking data: %s",
                 e.what());
