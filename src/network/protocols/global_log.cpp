@@ -33,6 +33,7 @@ void GlobalLog::writeLog(std::string text, GlobalLogTypes log_name)
     if (log_name == GlobalLogTypes::POS_LOG)
     {
         GlobalLog::outfile_posLog << text;
+        GlobalLog::outfile_posLog.flush();
     }
     //else if (log_name == GlobalLogTypes::GOAL_LOG)
     //{
