@@ -95,15 +95,20 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
 
     try
     {
+        Log::verbose("SoccerRanking", "getRankOf debug 1");
         std::ifstream f(path, std::ios_base::in);
+        Log::verbose("SoccerRanking", "getRankOf debug 2");
         f.exceptions(
                 std::ifstream::failbit |
                 std::ifstream::badbit);
+        Log::verbose("SoccerRanking", "getRankOf debug 3");
         char linebuf[256];
         for (; !f.eof(); ++re.m_rank)
         {
+            Log::verbose("SoccerRanking", "getRankOf debug 4");
             parseLineTo(re, linebuf);
 
+            Log::verbose("SoccerRanking", "getRankOf debug 5");
             if (re.m_name == playername)
                 return re;
         }

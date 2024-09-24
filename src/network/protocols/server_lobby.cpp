@@ -7191,6 +7191,7 @@ void ServerLobby::handleServerCommand(Event* event,
         {
             msg = "Rankings are currently unavailable.";
             sendStringToPeer(msg, peer);
+            return;
         }
         for (std::size_t i = 0; i < rks.size(); i++)
         {
