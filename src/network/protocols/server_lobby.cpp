@@ -7160,6 +7160,10 @@ void ServerLobby::handleServerCommand(Event* event,
 
         if (!playername.empty())
         {
+            // workaround for players which names are numeric
+            if (playername[0] == '$')
+                playername.erase(0, 1);
+
             SoccerRanking::RankingEntry re = 
                 SoccerRanking::getRankOf(playername);
             if (!re.m_rank)
