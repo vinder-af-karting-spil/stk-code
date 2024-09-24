@@ -7163,7 +7163,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
     else if (!ServerConfig::m_soccer_ranking_file.toString().empty() &&
-            (argv[0] == "rank" || argv[0] == "rank10"))
+            (argv[0] == "rank" || argv[0] == "rank10" || argv[0] == "top"))
     {
         std::size_t max = 10;
         std::size_t page = 1;
