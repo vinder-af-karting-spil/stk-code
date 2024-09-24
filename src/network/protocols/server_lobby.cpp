@@ -7168,7 +7168,7 @@ void ServerLobby::handleServerCommand(Event* event,
         std::size_t max = 10;
         std::size_t page = 1;
         std::string playername;
-        if (argv[0] != "rank10" && argv.size() >= 2 &&
+        if (argv[0] != "rank10" && argv[0] != "top" && argv.size() >= 2 &&
             !StringUtils::fromString(argv[1], page))
         {
             playername = argv[1];
