@@ -33,7 +33,7 @@ void SoccerRanking::parseLineTo(
         Log::verbose("SoccerRanking", "parseLineTo: win_rate = %f, elo...",
                 out.m_win_rate);
         ss >> out.m_elo;
-        Log::verbose("SoccerRanking", "parseLineTo: elo = %f", out.m_elo);
+        Log::verbose("SoccerRanking", "parseLineTo: elo = %d", out.m_elo);
     }
     catch (const std::exception& e)
     {
