@@ -8,7 +8,8 @@ void SoccerRanking::parseLineTo(
         SoccerRanking::RankingEntry& out,
         const std::string&& line)
 {
-    std::stringstream ss(line);
+    std::stringstream ss;
+    ss << line;
     ss.exceptions(
             std::stringstream::failbit |
             std::stringstream::badbit |
@@ -17,16 +18,22 @@ void SoccerRanking::parseLineTo(
     {
         Log::verbose("SoccerRanking", "parseLineTo: name...");
         ss >> out.m_name;
-        Log::verbose("SoccerRanking", "parseLineTo: played_games...");
+        Log::verbose("SoccerRanking", "parseLineTo: name = %s, played_games...",
+                out.m_name.c_str());
         ss >> out.m_played_games;
-        Log::verbose("SoccerRanking", "parseLineTo: avg_team_size...");
+        Log::verbose("SoccerRanking", "parseLineTo: played_games = %f, avg_team_size...",
+                out.m_played_games);
         ss >> out.m_avg_team_size;
-        Log::verbose("SoccerRanking", "parseLineTo: goals_per_game...");
+        Log::verbose("SoccerRanking", "parseLineTo: avg_team_size = %f, goals_per_game...",
+                out.m_avg_team_size);
         ss >> out.m_goals_per_game;
-        Log::verbose("SoccerRanking", "parseLineTo: win_rate...");
+        Log::verbose("SoccerRanking", "parseLineTo: goals_per_game = %f, win_rate...",
+                out.m_goals_per_game);
         ss >> out.m_win_rate;
-        Log::verbose("SoccerRanking", "parseLineTo: elo...");
+        Log::verbose("SoccerRanking", "parseLineTo: win_rate = %f, elo...",
+                out.m_win_rate);
         ss >> out.m_elo;
+        Log::verbose("SoccerRanking", "parseLineTo: elo = %f", out.m_elo);
     }
     catch (const std::exception& e)
     {
