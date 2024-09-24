@@ -525,6 +525,13 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "shadow-nochat",
         "Players restricted from chatting/DM won't be aware of it."));
 
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_ranking_file
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "soccer_ranking.txt",
+        "permission-message",
+        "Path of the file to read from by /rank, /rank10 and /rank (player) "
+        "commands, must be of a valid structure."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_handling
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-handling",
         "If true this server will auto add / remove AI connected with "

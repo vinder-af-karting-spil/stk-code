@@ -48,6 +48,7 @@
 #include "network/race_event_manager.hpp"
 #include "network/remote_kart_info.hpp"
 #include "network/server_config.hpp"
+#include "network/soccer_ranking.hpp"
 #include "network/socket_address.hpp"
 #include "network/server.hpp"
 #include "network/stk_host.hpp"
@@ -7047,7 +7048,7 @@ void ServerLobby::handleServerCommand(Event* event,
             player_peer->kick();
         }
     }
-        else if (argv[0] == "playeraddonscore" || argv[0] == "pas")
+    else if (argv[0] == "playeraddonscore" || argv[0] == "pas")
     {
         if (!player || player->getPermissionLevel() <= PERM_NONE)
         {
@@ -7132,6 +7133,78 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         peer->sendPacket(chat, true/*reliable*/);
         delete chat;
+    }
+    else if (!ServerConfig::m_soccer_ranking_file.toString().empty() &&
+            (argv[0] == "rank" || argv[0] == "rank10"))
+    {
+        std::size_t max = 10;
+        std::size_t page = 1;
+        std::string playername;
+        if (argv[0] != "rank10" && argv.size() >= 2 &&
+            !StringUtils::fromString(argv[1], page))
+        {
+            playername = argv[1];
+        }
+        else if (argv.size() == 1 && argv[0] == "rank" &&
+                peer->hasPlayerProfiles())
+        {
+            playername = StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName());
+        }
+        if (page == 0)
+            page = 1;
+
+        std::string msg("Soccer rankings (page ");
+        msg += page;
+        msg += "):\n";
+
+        if (!playername.empty())
+        {
+            SoccerRanking::RankingEntry re;
+            SoccerRanking::getRankOf(playername);
+            if (!re.m_rank)
+            {
+                msg = "No records for the player.";
+            }
+            else
+                msg = StringUtils::insertValues(
+                        "Rank: %u,\n"
+                        "Played games: %f\n"
+                        "Average team size (%): %f\n"
+                        "Goals/game: %f\n"
+                        "Win rate: %f\n"
+                        "ELO: %d",
+                        re.m_rank,
+                        re.m_played_games,
+                        re.m_avg_team_size,
+                        re.m_goals_per_game,
+                        re.m_win_rate,
+                        re.m_elo
+                        );
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        std::vector<SoccerRanking::RankingEntry> rks;
+        SoccerRanking::readRankings(rks, max,
+                max * (page - 1));
+        if (rks.empty())
+        {
+            msg = "Rankings are currently unavailable.";
+            sendStringToPeer(msg, peer);
+        }
+        for (std::size_t i = 0; i < rks.size(); i++)
+        {
+            SoccerRanking::RankingEntry& re =
+                rks[i];
+            msg += StringUtils::insertValues(
+                    "%s #%u: %s (ELO %d)",
+                    "", re.m_rank, re.m_name.c_str(),
+                    re.m_elo
+                    );
+            if (i != rks.size() - 1)
+                msg += "\n";
+        }
+        sendStringToPeer(msg, peer);
     }
     else if (!ServerConfig::m_feature_filepath.toString().empty() && 
             (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm" || argv[0] == "bug"))
