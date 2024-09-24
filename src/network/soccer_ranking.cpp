@@ -105,6 +105,7 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
         char linebuf[256];
         for (; !f.eof(); ++re.m_rank)
         {
+            f.getline(linebuf, 256);
             Log::verbose("SoccerRanking", "getRankOf debug 4");
             parseLineTo(re, linebuf);
 
