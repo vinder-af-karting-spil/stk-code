@@ -22,7 +22,7 @@ void SoccerRanking::parseLineTo(
         ss >> out.m_win_rate;
         ss >> out.m_elo;
     }
-    catch (const std::ios_base::failure& e)
+    catch (const std::exception& e)
     {
         Log::error("SoccerRanking",
                 "cannot parse line: \"%s\" (%s)",
@@ -48,17 +48,17 @@ void SoccerRanking::readRankings(
     const std::string path = ServerConfig::m_soccer_ranking_file;
     if (path.empty())
         return;
-    // REPLACE ME WHEN PROPER DATABASE INTERFACE IS IMPLEMENTED
-    // open a file (closes it automatically)
-    std::ifstream f(path, std::ios_base::in);
-    f.exceptions(
-            std::ifstream::failbit |
-            std::ifstream::badbit);
-    char linebuf[256];
-    RankingEntry re = {.m_rank = 1};
-    
     try 
     {
+        // REPLACE ME WHEN PROPER DATABASE INTERFACE IS IMPLEMENTED
+        // open a file (closes it automatically)
+        std::ifstream f(path, std::ios_base::in);
+        f.exceptions(
+                std::ifstream::failbit |
+                std::ifstream::badbit);
+        char linebuf[256];
+        RankingEntry re = {.m_rank = 1};
+    
         if (offset)
             for (std::size_t i = 0; i < offset; ++i, ++re.m_rank)
                 f.getline(linebuf, 256);
@@ -93,12 +93,12 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
     if (path.empty())
         return re;
 
-    std::ifstream f(path, std::ios_base::in);
-    f.exceptions(
-            std::ifstream::failbit |
-            std::ifstream::badbit);
     try
     {
+        std::ifstream f(path, std::ios_base::in);
+        f.exceptions(
+                std::ifstream::failbit |
+                std::ifstream::badbit);
         char linebuf[256];
         for (; !f.eof(); ++re.m_rank)
         {
