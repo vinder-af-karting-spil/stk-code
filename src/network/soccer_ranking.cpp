@@ -91,6 +91,7 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
 {
     const std::string path = ServerConfig::m_soccer_ranking_file;
     RankingEntry re = {};
+    re.m_rank = 1;
     std::string lower_pn = StringUtils::toLowerCase(playername);
 
     if (path.empty())

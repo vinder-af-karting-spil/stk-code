@@ -7164,6 +7164,8 @@ void ServerLobby::handleServerCommand(Event* event,
             if (playername[0] == '$')
                 playername.erase(0, 1);
 
+            Log::verbose("ServerLobby", "username = %s", playername.c_str());
+
             SoccerRanking::RankingEntry re = 
                 SoccerRanking::getRankOf(playername);
             if (!re.m_rank)
