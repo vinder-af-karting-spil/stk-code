@@ -170,6 +170,11 @@ protected:
 
     bool m_schedule_exit_race;
 
+    /** This method should be implemented by isRaceOver, and always return 
+     * true in case if this member is true.
+     */
+    bool m_schedule_interrupt_race; 
+
     bool m_schedule_tutorial;
 
     Phase m_scheduled_pause_phase;
@@ -329,6 +334,8 @@ public:
     void            schedulePause(Phase phase);
     void            scheduleUnpause();
     void            scheduleExitRace() { m_schedule_exit_race = true; }
+    void            scheduleInterruptRace()
+                                  { m_schedule_interrupt_race = true; }
     void            scheduleTutorial();
     void            updateWorld(int ticks);
     void            handleExplosion(const Vec3 &xyz, AbstractKart *kart_hit,

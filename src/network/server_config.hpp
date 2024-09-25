@@ -132,6 +132,10 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-mediumparty",
         "Allow medium party."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_lightparty
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-lightparty",
+        "Allow light party."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_allow_pole
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-pole",
         "Allow pole. Players can team vote which teammate gets the leading start position."));
@@ -190,7 +194,11 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX StringServerConfigParam m_feature_filepath
         SERVER_CFG_DEFAULT(StringServerConfigParam("features.txt",
-        "feature-filepath", "File to log the /feature (message) messages into from players."));
+        "feature-filepath", "File to log the /inform (message) messages into from players."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_reports_filepath
+        SERVER_CFG_DEFAULT(StringServerConfigParam("report.txt",
+        "reports-filepath", "File to log the /report (message) messages into from players."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_chat
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "chat",
@@ -483,6 +491,46 @@ namespace ServerConfig
         "you need to create the table first, see NETWORKING.md for details, "
         "empty to disable. "
         "This table can be shared for all servers if you use the same name."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_server_owner
+        SERVER_CFG_DEFAULT(IntServerConfigParam(-1, "server-owner",
+        "Online ID that owns the server and has all permissions"
+        ". (Works only when the player is validated.)"));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_permissions_table
+        SERVER_CFG_DEFAULT(StringServerConfigParam("permissions",
+        "permissions-table",
+        "Table used for defining staff players. "
+        "Contains 2 fields: int online_id and int permission_level. "
+        "Usually 0 is for regular player, 80 is for moderator, 100 is for "
+        "administrator. Note that the server owner basically has infinite "
+        "permission level."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_restrictions_table
+        SERVER_CFG_DEFAULT(StringServerConfigParam("restrictions",
+        "restrictions-table",
+        "Table used for issuing restrictions to players. "
+        "Contains 2 fields: int online_id and unsigned int restrictions. "
+        "Second field has flags: NOSPEC, NOGAME, NOCHAT, NOPCHAT, NOTEAM, "
+        "HANDICAP, KART, TRACK. In specified order, 1, 2, 4, 8, 16 etc. "));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_permission_message
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "You are not allowed to run this command.",
+        "permission-message",
+        "Message to show to a player with insufficient permissions "
+        "tries to use a restricted command."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_shadow_nochat
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "shadow-nochat",
+        "Players restricted from chatting/DM won't be aware of it."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_soccer_ranking_file
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "soccer_ranking.txt",
+        "soccer-ranking-file",
+        "Path of the file to read from by /rank, /rank10 and /rank (player) "
+        "commands, must be of a valid structure."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_ai_handling
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "ai-handling",

@@ -42,10 +42,11 @@
 /** Constructor, stores the kart to which this powerup belongs.
  *  \param kart The kart to which this powerup belongs.
  */
-Powerup::Powerup(AbstractKart* kart)
+Powerup::Powerup(AbstractKart* kart, const SpecialModifier modifier)
 {
-    m_kart      = kart;
-    m_sound_use = NULL;
+    m_kart              = kart;
+    m_sound_use         = NULL;
+    m_special_modifier  = modifier;
     reset();
 }   // Powerup
 
@@ -576,8 +577,18 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     random_number ^= (random_number >> 16);
     random_number ^= (random_number >> 8);
 
-    new_powerup = powerup_manager->getRandomPowerup(position, &n, 
-                                                    random_number, kart_id);
+    // in case of bowlparty, the modifier is applied as is
+    switch (m_special_modifier)
+    {
+        case TSM_BOWLPARTY:
+            m_number = 0;
+            set(PowerupManager::POWERUP_BOWLING, 3);
+            return;
+        default:
+            new_powerup = powerup_manager->getRandomPowerup(
+                    position, &n, random_number, kart_id);
+            break;
+    }
 
     // Always add a new powerup in ITEM_MODE_NEW (or if the kart
     // doesn't have a powerup atm).
@@ -602,3 +613,7 @@ void Powerup::hitBonusBox(const ItemState &item_state)
     // POWERUP_MODE_SAME
 
 }   // hitBonusBox
+void Powerup::setSpecialModifier(const SpecialModifier modifier)
+{
+    m_special_modifier = modifier;
+}

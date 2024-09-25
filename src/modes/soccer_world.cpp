@@ -815,6 +815,11 @@ void SoccerWorld::setBallHitter(unsigned int kart_id)
  */
 bool SoccerWorld::isRaceOver()
 {
+    if (m_schedule_interrupt_race)
+    {
+        return true;
+    }
+
     if (m_unfair_team)
         return true;
 

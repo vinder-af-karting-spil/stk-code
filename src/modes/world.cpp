@@ -35,6 +35,7 @@
 #include "io/file_manager.hpp"
 #include "input/device_manager.hpp"
 #include "input/keyboard_device.hpp"
+#include "items/powerup.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/controller/battle_ai.hpp"
 #include "karts/ghost_kart.hpp"
@@ -130,14 +131,15 @@ World::World() : WorldStatus()
     m_magic_number = 0xB01D6543;
 #endif
 
-    m_race_gui           = NULL;
-    m_saved_race_gui     = NULL;
-    m_use_highscores     = true;
-    m_schedule_pause     = false;
-    m_schedule_unpause   = false;
-    m_schedule_exit_race = false;
-    m_schedule_tutorial  = false;
-    m_is_network_world   = false;
+    m_race_gui                  = NULL;
+    m_saved_race_gui            = NULL;
+    m_use_highscores            = true;
+    m_schedule_pause            = false;
+    m_schedule_unpause          = false;
+    m_schedule_exit_race        = false;
+    m_schedule_interrupt_race   = false;
+    m_schedule_tutorial         = false;
+    m_is_network_world          = false;
 
     m_stop_music_when_dialog_open = true;
 
@@ -491,6 +493,9 @@ std::shared_ptr<AbstractKart> World::createKart
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));
+    /** TierS: bowlparty and other powerup modifiers */
+    new_kart->getPowerup()->setSpecialModifier(
+            RaceManager::get()->getPowerupSpecialModifier());
     Controller *controller = NULL;
     switch(kart_type)
     {
@@ -1615,12 +1620,14 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     }
 
     // Debugging pole
+#if 0
     Log::verbose("World", "Player %s#%d with GID %d LID %d gets the position of #%d.",
             StringUtils::wideToUtf8(online_name).c_str(),
             index,
             global_player_id,
             local_player_id,
             pos_index);
+#endif
 
     btTransform init_pos = getStartTransform(pos_index - 1);
     m_kart_position_map[index] = (unsigned)(pos_index - 1);
@@ -1644,6 +1651,10 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     }
 
     new_kart->init(RaceManager::get()->getKartType(index));
+
+    /** TierS: bowlparty and other powerup modifiers */
+    new_kart->getPowerup()->setSpecialModifier(
+            RaceManager::get()->getPowerupSpecialModifier());
     Controller *controller = NULL;
 
     switch(kart_type)

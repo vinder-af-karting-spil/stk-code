@@ -206,6 +206,11 @@ void FollowTheLeaderRace::countdownReachedZero()
  */
 bool FollowTheLeaderRace::isRaceOver()
 {
+    if (m_schedule_interrupt_race)
+    {
+        return true;
+    }
+
     bool is_over = (getCurrentNumKarts()==2 || getCurrentNumPlayers()==0);
     if (is_over)
     {

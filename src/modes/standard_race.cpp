@@ -35,6 +35,11 @@ StandardRace::StandardRace() : LinearWorld()
  */
 bool StandardRace::isRaceOver()
 {
+    if (m_schedule_interrupt_race)
+    {
+        return true;
+    }
+
     if (RaceManager::get()->isWatchingReplay())
     {
         return dynamic_cast<GhostController*>

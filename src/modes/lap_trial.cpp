@@ -30,6 +30,11 @@ LapTrial::LapTrial() : LinearWorld()
 
 bool LapTrial::isRaceOver()
 {
+    if (m_schedule_interrupt_race)
+    {
+        return true;
+    }
+
     return m_count_down_reached_zero;
 }
 

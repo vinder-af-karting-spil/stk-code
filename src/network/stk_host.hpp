@@ -287,8 +287,11 @@ public:
     // ------------------------------------------------------------------------
     std::shared_ptr<STKPeer> findPeerByHostId(uint32_t id) const;
     // ------------------------------------------------------------------------
+    std::shared_ptr<STKPeer> findPeerByOnlineId(uint32_t id) const;
+    // ------------------------------------------------------------------------
     std::shared_ptr<STKPeer> findPeerByName(const core::stringw& name,
-            bool ignoreCase=false, bool onlyPrefix=false) const;
+            bool ignoreCase=false, bool onlyPrefix=false,
+            std::shared_ptr<NetworkPlayerProfile>* out_profile=nullptr) const;
     // ------------------------------------------------------------------------
     void sendPacketExcept(STKPeer* peer, NetworkString *data,
                           bool reliable = true);
