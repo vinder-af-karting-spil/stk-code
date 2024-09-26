@@ -2025,7 +2025,7 @@ void ServerLobby::asynchronousUpdate()
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL) ||
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
                     log_msg = StringUtils::insertValues(
-                            "Addon: %d %s %d",
+                            "Addon: %d %s %hhu",
                             winner_vote.m_reverse, 
                             winner_vote.m_track_name, 
                             winner_vote.m_num_laps);
