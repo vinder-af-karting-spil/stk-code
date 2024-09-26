@@ -586,7 +586,11 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 
         std::string player_name_log = GlobalLog::getPlayerName(sd.m_id);
         std::string team_name = (first_goal ? "red" : "blue");
+        Log::verbose("SoccerWorld", "%s %s %s", 
+                sd.m_correct_goal ? "goal" : "own_goal",
+                player_name_log.c_str(), team_name.c_str());
 
+        // DernisNW comment: why is there an if statement then?
         if (sd.m_correct_goal)
 	{
             if (m_soccer_log) GlobalLog::writeLog( "goal "+ player_name_log + " "+team_name+"\n", GlobalLogTypes::POS_LOG);
