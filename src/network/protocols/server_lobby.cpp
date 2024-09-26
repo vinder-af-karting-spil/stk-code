@@ -915,8 +915,13 @@ void ServerLobby::handleChat(Event* event)
 
             sender->sendPacket(response, true/*reliable*/);
             delete response;
+
+            // very evil chat log
+            Log::info("ServerLobby", "[MUTED] %s", message.c_str());
             return;
         }
+        // evil chat log
+        Log::info("ServerLobby", "[CHAT] %s", message.c_str());
 
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
