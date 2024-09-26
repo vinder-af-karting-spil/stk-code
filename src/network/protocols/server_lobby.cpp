@@ -4899,7 +4899,7 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     NetworkString& data = event->data();
     PeerVote vote(data);
-    Log::debug("ServerLobby",
+    Log::verbose("ServerLobby",
         "Vote from client: host %d, track %s, laps %d, reverse %d.",
         event->getPeer()->getHostId(), vote.m_track_name.c_str(),
         vote.m_num_laps, vote.m_reverse);
