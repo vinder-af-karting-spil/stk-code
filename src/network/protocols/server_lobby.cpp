@@ -6752,6 +6752,12 @@ void ServerLobby::handleServerCommand(Event* event,
             delete chat; 
             return;
         }
+        if (StringUtils::toLowerCase(argv[1]) == "server")
+        {
+            Log::info("ServerLobby", "[DM] %s: %s",
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+            return;
+        }
         NetworkString* senderMsg = getNetworkString();
         senderMsg->addUInt8(LE_CHAT);
         senderMsg->setSynchronous(true);
