@@ -3947,8 +3947,8 @@ void ServerLobby::clientDisconnected(Event* event)
         World* w = World::getWorld();
         if (w)
         {
-            SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-            std::string time = std::to_string(sw->getTime());
+            //SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
+            std::string time = std::to_string(w->getTime());
             for (const auto id : event->getPeer()->getAvailableKartIDs())
             {
                 player_name = GlobalLog::getPlayerName(id);
