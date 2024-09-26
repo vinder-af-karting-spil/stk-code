@@ -2021,6 +2021,7 @@ void ServerLobby::asynchronousUpdate()
             std::string log_msg;
             if(ServerConfig::m_soccer_log)
             {
+                Log::verbose("AddonLog", "minormode = %d", RaceManager::get()->getMinorMode());
                 if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE ||
                     RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
                     RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL)
