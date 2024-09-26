@@ -2021,10 +2021,9 @@ void ServerLobby::asynchronousUpdate()
             std::string log_msg;
             if(ServerConfig::m_soccer_log)
             {
-                Log::verbose("AddonLog", "minormode = %d", RaceManager::get()->getMinorMode());
-                if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE ||
-                    RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
-                    RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL)
+                if ((RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE) ||
+                    (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL) ||
+                    (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
                     log_msg = StringUtils::insertValues(
                             "Addon: %d %s %d",
                             winner_vote.m_reverse, 
@@ -2033,7 +2032,7 @@ void ServerLobby::asynchronousUpdate()
                 else
                     log_msg = "Addon: " + winner_vote.m_track_name;
                 GlobalLog::writeLog(log_msg + "\n", GlobalLogTypes::POS_LOG);
-                Log::info("AddonLog",winner_vote.m_track_name.c_str());
+                Log::info("AddonLog", log_msg.c_str());
             }
 
             // Reset for next state usage
