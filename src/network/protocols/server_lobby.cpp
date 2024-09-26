@@ -7621,7 +7621,7 @@ void ServerLobby::handleServerCommand(Event* event,
             sendStringToPeer(msg, peer);
             return;
         }
-        rm→setPowerupSpecialModifier(
+        rm->setPowerupSpecialModifier(
           state ? Powerup::TSM_CAKEPARTY : Powerup::TSM_NONE);
         std::string message("Cakeparty is now ");
         if (state)
@@ -7656,6 +7656,7 @@ void ServerLobby::handleServerCommand(Event* event,
             delete response;
             return;
         }
+    }
     else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
             && ServerConfig::m_check_servers_cooldown > 0.0f)
     {
