@@ -270,11 +270,17 @@ void mainLoop(STKHost* host)
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
+            {
+                std::cout << "Server lobby is not available." << std::endl;
                 continue;
+            }
             std::string message;
 
             if (ss.eof())
+            {
+                std::cout << "Stringstream is at EOF." << std::endl;
                 continue;
+            }
             else
             {
                 // I don't know if that will work...
