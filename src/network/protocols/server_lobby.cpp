@@ -2031,8 +2031,8 @@ void ServerLobby::asynchronousUpdate()
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
                 {
                     log_msg = "Addon";
-                    log_msg += std::to_string(winner_vote.m_reverse);
-                    log_msg += winner_vote.m_track_name; 
+                    log_msg += std::to_string(winner_vote.m_reverse) + " ";
+                    log_msg += winner_vote.m_track_name + " "; 
                     log_msg += std::to_string(winner_vote.m_num_laps);
                 }
                 else
@@ -6755,6 +6755,12 @@ void ServerLobby::handleServerCommand(Event* event,
             chat->encodeString16(L"Usage: /to (username) message...");
             peer->sendPacket(chat, true/*reliable*/);
             delete chat; 
+            return;
+        }
+        if (StringUtils::toLowerCase(argv[1]) == "server")
+        {
+            Log::info("ServerLobby", "[DM] %s: %s",
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
             return;
         }
         NetworkString* senderMsg = getNetworkString();
