@@ -2021,7 +2021,16 @@ void ServerLobby::asynchronousUpdate()
             std::string log_msg;
             if(ServerConfig::m_soccer_log)
             {
-                log_msg = "Addon: " + winner_vote.m_track_name;
+                if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE ||
+                    RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL ||
+                    RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL)
+                    log_msg = StringUtils::insertValues(
+                            "Addon: %d %s %d",
+                            winner_vote.m_reverse, 
+                            winner_vote.m_track_name, 
+                            winner_vote.m_num_laps);
+                else
+                    log_msg = "Addon: " + winner_vote.m_track_name;
                 GlobalLog::writeLog(log_msg + "\n", GlobalLogTypes::POS_LOG);
                 Log::info("AddonLog",winner_vote.m_track_name.c_str());
             }
