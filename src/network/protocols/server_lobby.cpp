@@ -7580,6 +7580,82 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
+    else if (argv[0] == "cakeparty" || argv[0] == "cp")
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_CAKEPARTY))
+        {
+            std::string msg = "Cakeparty is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_CAKEPARTY &&
+                state)
+        {
+            std::string msg = "Cakeparty is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        rm→setPowerupSpecialModifier(
+          state ? Powerup::TSM_CAKEPARTY : Powerup::TSM_NONE);
+        std::string message("Cakeparty is now ");
+        if (state)
+        {
+            message += "ACTIVE. Bonus boxes only give 2 cakes.";
+        }
+        else
+        {
+            message += "INACTIVE. All standard items as normal.";
+        }
+
+        sendStringToAllPeers(message);
+    }
+    else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
+            && ServerConfig::m_check_servers_cooldown > 0.0f)
+    {
+        if (!player || player->getPermissionLevel() <= PERM_NONE)
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        NetworkString* response = getNetworkString();
+        response->setSynchronous(true);
+        uint64_t now = StkTime::getMonoTimeMs();
+        // first, check if the timeout has not ran out yet
+        if (m_last_wanrefresh_cmd_time + (uint64_t)(ServerConfig::m_check_servers_cooldown * 1000.0f)
+                > now)
+        {
+            response->addUInt8(LE_CHAT);
+            response->encodeString16(L"Someone has already used the command. Please wait before doing it again.");
+            peer->sendPacket(response, true/*reliable*/);
+            delete response;
+            return;
+        }
     else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
             && ServerConfig::m_check_servers_cooldown > 0.0f)
     {
@@ -7728,7 +7804,8 @@ unmute_error:
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
-            L" /bowlparty|bp /start /end /bug /rank /rank10|top /autoteams" 
+            L" /start /end /bug /rank /rank10|top /autoteams " 
+            L"/bowlparty|bp /cakeparty|cp /start /end /bug /rank /rank10|top /autoteams"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -9010,6 +9087,8 @@ void ServerLobby::addPowerupSMMessage(std::string& msg) const
         case Powerup::TSM_BOWLPARTY:
             msg += "BOWL PARTY is ACTIVE! All boxes give 3 bowling balls.\n";
             break;
+        case Powerup::TSM_CAKEPARTY:
+	    msg += "CAKE PARTY IS ACTIVE! All boxes are full of cakes.\n";
         default:
             break;
     }

@@ -584,6 +584,10 @@ void Powerup::hitBonusBox(const ItemState &item_state)
             m_number = 0;
             set(PowerupManager::POWERUP_BOWLING, 3);
             return;
+	case TSM_CAKEPARTY:
+	    m_number = 0;
+	    set(PowerupManager::POWERUP_CAKE, 2);
+	    return;
         default:
             new_powerup = powerup_manager->getRandomPowerup(
                     position, &n, random_number, kart_id);
