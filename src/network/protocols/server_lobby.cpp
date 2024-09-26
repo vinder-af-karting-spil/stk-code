@@ -8418,7 +8418,7 @@ unmute_error:
         msg = "Player handicap has been updated.";
         sendStringToPeer(msg, peer);
     }
-    // CHEATS (Please, do not use me in real games)
+    // (CHEATS) Not gonna be used in game.
     else if (argv[0] == "hackitem" || argv[0] == "hki")
     {
         // admin only
