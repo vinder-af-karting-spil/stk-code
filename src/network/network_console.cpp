@@ -270,17 +270,15 @@ void mainLoop(STKHost* host)
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
+            {
+                std::cout << "Server lobby is not available." << std::endl;
                 continue;
+            }
             std::string message;
 
-            if (ss.eof())
-                continue;
-            else
-            {
-                // I don't know if that will work...
-                std::string cmd = ss.str();
-                message = cmd.substr(std::min(str.length() + 1, cmd.length()), cmd.length());
-            }
+            // I don't know if that will work...
+            std::string cmd = ss.str();
+            message = cmd.substr(std::min(str.length() + 1, cmd.length()), cmd.length());
             if (message.empty())
             {
                 std::cout << "Cannot broadcast empty message" << std::endl;
