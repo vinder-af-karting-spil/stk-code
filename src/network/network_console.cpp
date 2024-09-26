@@ -276,17 +276,9 @@ void mainLoop(STKHost* host)
             }
             std::string message;
 
-            if (ss.eof())
-            {
-                std::cout << "Stringstream is at EOF." << std::endl;
-                continue;
-            }
-            else
-            {
-                // I don't know if that will work...
-                std::string cmd = ss.str();
-                message = cmd.substr(std::min(str.length() + 1, cmd.length()), cmd.length());
-            }
+            // I don't know if that will work...
+            std::string cmd = ss.str();
+            message = cmd.substr(std::min(str.length() + 1, cmd.length()), cmd.length());
             if (message.empty())
             {
                 std::cout << "Cannot broadcast empty message" << std::endl;
