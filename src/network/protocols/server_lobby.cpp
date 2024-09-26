@@ -2026,8 +2026,8 @@ void ServerLobby::asynchronousUpdate()
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
                 {
                     log_msg = "Addon";
-                    log_msg += std::to_string(winner_vote.m_reverse);
-                    log_msg += winner_vote.m_track_name; 
+                    log_msg += std::to_string(winner_vote.m_reverse) + " ";
+                    log_msg += winner_vote.m_track_name + " "; 
                     log_msg += std::to_string(winner_vote.m_num_laps);
                 }
                 else
