@@ -2029,11 +2029,12 @@ void ServerLobby::asynchronousUpdate()
                 if ((RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE) ||
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL) ||
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
-                    log_msg = StringUtils::insertValues(
-                            "Addon: %d %s %d",
-                            (uint8_t)winner_vote.m_reverse, 
-                            winner_vote.m_track_name.c_str(), 
-                            winner_vote.m_num_laps);
+                {
+                    log_msg = "Addon";
+                    log_msg += std::to_string(winner_vote.m_reverse);
+                    log_msg += winner_vote.m_track_name; 
+                    log_msg += std::to_string(winner_vote.m_num_laps);
+                }
                 else
                     log_msg = "Addon: " + winner_vote.m_track_name;
                 GlobalLog::writeLog(log_msg + "\n", GlobalLogTypes::POS_LOG);
