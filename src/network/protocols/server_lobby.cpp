@@ -2027,7 +2027,7 @@ void ServerLobby::asynchronousUpdate()
                     log_msg = StringUtils::insertValues(
                             "Addon: %d %s %hhu",
                             winner_vote.m_reverse, 
-                            winner_vote.m_track_name, 
+                            winner_vote.m_track_name.c_str(), 
                             winner_vote.m_num_laps);
                 else
                     log_msg = "Addon: " + winner_vote.m_track_name;
