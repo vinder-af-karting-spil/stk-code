@@ -2025,8 +2025,8 @@ void ServerLobby::asynchronousUpdate()
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL) ||
                     (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
                     log_msg = StringUtils::insertValues(
-                            "Addon: %d %s %hhu",
-                            winner_vote.m_reverse, 
+                            "Addon: %hhu %s %hhu",
+                            (uint8_t)winner_vote.m_reverse, 
                             winner_vote.m_track_name.c_str(), 
                             winner_vote.m_num_laps);
                 else
@@ -2440,9 +2440,8 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
             World* w = World::getWorld();
             if (w)
 	    {
-                SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-	        std::string time = std::to_string(sw->getTime());
-		auto kart_team = sw->getKartTeam(id);
+	        std::string time = std::to_string(w->getTime());
+		auto kart_team = w->getKartTeam(id);
 		std::string team =  kart_team==KART_TEAM_RED ? "red" : "blue";
 	        msg =  StringUtils::wideToUtf8(rki.getPlayerName()) + " joined the " + team + " team at "+ time + "\n";
                 GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
@@ -2674,8 +2673,7 @@ void ServerLobby::update(int ticks)
             World* w = World::getWorld();
             if (w)
 	    {
-                SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-	        time = std::to_string(sw->getTime());
+	        time = std::to_string(w->getTime());
             }
 	    time_msg = "The game ended after " + time + " seconds.\n";
             GlobalLog::writeLog(time_msg, GlobalLogTypes::POS_LOG);
@@ -4901,7 +4899,7 @@ void ServerLobby::handlePlayerVote(Event* event)
 
     NetworkString& data = event->data();
     PeerVote vote(data);
-    Log::debug("ServerLobby",
+    Log::verbose("ServerLobby",
         "Vote from client: host %d, track %s, laps %d, reverse %d.",
         event->getPeer()->getHostId(), vote.m_track_name.c_str(),
         vote.m_num_laps, vote.m_reverse);
