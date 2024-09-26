@@ -903,6 +903,8 @@ void ServerLobby::handleChat(Event* event)
         if (!sender_profile || sender_profile->hasRestriction(PRF_NOCHAT) ||
                 sender_profile->getPermissionLevel() <= PERM_NONE)
         {
+            // very evil chat log
+            Log::info("ServerLobby", "[MUTED] %s", StringUtils::wideToUtf8(message).c_str());
             NetworkString* const response = getNetworkString();
             response->setSynchronous(true);
             response->addUInt8(LE_CHAT);
@@ -916,12 +918,10 @@ void ServerLobby::handleChat(Event* event)
             sender->sendPacket(response, true/*reliable*/);
             delete response;
 
-            // very evil chat log
-            Log::info("ServerLobby", "[MUTED] %s", message.c_str());
             return;
         }
         // evil chat log
-        Log::info("ServerLobby", "[CHAT] %s", message.c_str());
+        Log::info("ServerLobby", "[CHAT] %s", StringUtils::wideToUtf8(message).c_str());
 
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
