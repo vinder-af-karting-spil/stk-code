@@ -2440,9 +2440,8 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
             World* w = World::getWorld();
             if (w)
 	    {
-                SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-	        std::string time = std::to_string(sw->getTime());
-		auto kart_team = sw->getKartTeam(id);
+	        std::string time = std::to_string(w->getTime());
+		auto kart_team = w->getKartTeam(id);
 		std::string team =  kart_team==KART_TEAM_RED ? "red" : "blue";
 	        msg =  StringUtils::wideToUtf8(rki.getPlayerName()) + " joined the " + team + " team at "+ time + "\n";
                 GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
@@ -2674,8 +2673,7 @@ void ServerLobby::update(int ticks)
             World* w = World::getWorld();
             if (w)
 	    {
-                SoccerWorld *sw = dynamic_cast<SoccerWorld*>(w);
-	        time = std::to_string(sw->getTime());
+	        time = std::to_string(w->getTime());
             }
 	    time_msg = "The game ended after " + time + " seconds.\n";
             GlobalLog::writeLog(time_msg, GlobalLogTypes::POS_LOG);
