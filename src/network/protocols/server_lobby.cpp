@@ -6573,7 +6573,7 @@ char ServerLobby::checkPeersCanPlayAndReady(bool ignore_ai_peer) const
             continue;
         if (peer->alwaysSpectate())
             continue;
-        else if(is_team_game == (team != KART_TEAM_NONE))
+        else if(!is_team_game || is_team_game == (team != KART_TEAM_NONE))
             all_ready_play |= 2;
 
         if (all_ready_play&1 && !p.second)
