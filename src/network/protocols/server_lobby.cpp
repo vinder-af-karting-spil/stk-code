@@ -7580,7 +7580,7 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
-    else if (argv[0] == "cakeparty" || argv[0] == "cp")
+    else if (argv[0] == "cakeparty" || argv[0] == "cp" || argv[0] == "cakefest")
     {
         irr::core::stringw response;
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
