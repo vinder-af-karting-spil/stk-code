@@ -903,7 +903,7 @@ void ServerLobby::handleChat(Event* event)
         if (!sender_profile || sender_profile->hasRestriction(PRF_NOCHAT) ||
                 sender_profile->getPermissionLevel() <= PERM_NONE)
         {
-            // very evil chat log
+            // very evil chat log(only for manchester)
             Log::info("ServerLobby", "[MUTED] %s", StringUtils::wideToUtf8(message).c_str());
             NetworkString* const response = getNetworkString();
             response->setSynchronous(true);
