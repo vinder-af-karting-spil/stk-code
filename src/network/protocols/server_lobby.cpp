@@ -9831,7 +9831,7 @@ int ServerLobby::getPlayerElo(std::string username) const
         }
     }
     in_file.close();
-    return 1500;
+    return 1000;
 }
 
 std::pair<std::vector<std::string>, std::vector<std::string>> ServerLobby::createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players)
