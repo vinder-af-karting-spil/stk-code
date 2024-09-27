@@ -269,6 +269,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_default_vote = new PeerVote();
     m_player_reports_table_exists = false;
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
+    m_show_elo = ServerConfig::m_show_elo;
     m_last_wanrefresh_cmd_time = 0UL;
     m_last_wanrefresh_res = nullptr;
     m_last_wanrefresh_requester.reset();
@@ -4743,6 +4744,7 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
     for (auto profile : all_profiles)
     {
         auto profile_name = profile->getName();
+        auto user_name = StringUtils::wideToUtf8(profile->getName());
 
         // get OS information
         auto version_os = StringUtils::extractVersionOS(profile->getPeer()->getUserVersion());
@@ -4755,6 +4757,13 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         // Add an hourglass emoji for players waiting because of the player limit
         if (spectators_by_limit.find(profile->getPeer()) != spectators_by_limit.end()) 
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
+
+	// Show the Player Elo in case the server have enabled it
+	if (m_show_elo)
+	{
+	    int elo = getPlayerElo(user_name);
+            profile_name = profile_name + L" [" + std::to_wstring(elo).c_str() + L"]";
+	}
 
         pl->addUInt32(profile->getHostId()).addUInt32(profile->getOnlineId())
             .addUInt8(profile->getLocalPlayerId())
@@ -7719,7 +7728,7 @@ unmute_error:
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online /mute /unmute /listmute /pole"
-            L" /bowlparty|bp /start /end /bug /rank /rank10|top" 
+            L" /bowlparty|bp /start /end /bug /rank /rank10|top autoteams" 
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -7821,6 +7830,60 @@ unmute_error:
 
         startSelection();
     }
+
+    else if (argv[0] == "autoteams")
+    {
+        if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        if (m_state.load() != WAITING_FOR_START_GAME)
+        {
+            std::string msg = "Auto team generation not possible during game.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        int elo = 1500;
+        std::string msg = "";
+	auto peers = STKHost::get()->getPeers();
+	std::vector <std::pair<std::string, int>> player_vec;
+        for (auto peer : peers)
+        {
+            if (!peer->alwaysSpectate())
+            {
+                for (auto player : peer->getPlayerProfiles())
+                {
+                    std::string username = StringUtils::wideToUtf8(player->getName());
+                    elo = getPlayerElo(username);
+                    player_vec.push_back(std::pair<std::string, int>(username, elo));
+                    msg = "Player " + username + " will be sent into a team.";
+                    Log::info("ServerLobby", msg.c_str());
+                }
+            }
+        }
+        int min = 0;
+        std::vector <std::pair<std::string, int>> player_copy = player_vec;
+        if (player_vec.size() % 2 == 1)  // in this case the number of players in uneven. In this case ignore the worst noob.
+        {
+            for (int i3 = 0; i3 < player_copy.size(); i3++)
+            {
+                if (player_copy[i3].second <= player_copy[min].second)
+                {
+                    min = i3;
+                }
+            }
+            player_copy.erase(player_copy.begin() + min);
+            int min_idx = std::min(min, (int)player_vec.size() - 1);
+            msg = "Player " + player_vec[min_idx].first + " has minimal ELO.";
+            Log::info("ServerLobby", msg.c_str());
+        }
+        auto teams = createBalancedTeams(player_copy);
+        soccer_ranked_make_teams(teams, min, player_vec);
+        updatePlayerList();
+        std::string message = "Teams have been generated automatically!";
+        sendStringToAllPeers(message);
+    }
+
     else if (argv[0] == "end")
     {
         // if the game is even active
@@ -9745,3 +9808,112 @@ const std::string ServerLobby::formatRestrictions(PlayerRestriction prf) const
     }
     return result;
 }
+
+int ServerLobby::getPlayerElo(std::string username) const
+{
+    std::string fileName = "soccer_ranking.txt";
+    std::ifstream in_file(fileName);
+    int elo = 0;
+    std::string player = "";
+    std::vector<std::string> split;
+    if (in_file.is_open())
+    {
+        std::string line;
+        std::getline(in_file, line);
+        while (std::getline(in_file, line))
+        {
+            split = StringUtils::split(line, ' ');
+            if (split.size() < 6) continue;
+            elo = int(stof(split[5]));
+            player = split[0];
+            if (player == username)
+                return elo;
+        }
+    }
+    in_file.close();
+    return 1500;
+}
+
+std::pair<std::vector<std::string>, std::vector<std::string>> ServerLobby::createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players)
+{
+    int num_players = elo_players.size();
+    int min_elo_diff = INT_MAX;
+    int optimal_teams = -1;
+
+    for (int teams = 0; teams < pow(2, num_players - 1); teams++)
+    {
+        int elo_red = 0, elo_blue = 0;
+        for (int player_idx = 0; player_idx < num_players; player_idx++)
+        {
+            if (teams & 1 << player_idx)
+                elo_red += elo_players[player_idx].second;
+            else
+                elo_blue += elo_players[player_idx].second;
+        }
+        int elo_diff = std::abs(elo_red - elo_blue);
+        if (elo_diff < min_elo_diff)
+        {
+            min_elo_diff = elo_diff;
+            optimal_teams = teams;
+        }
+        if (elo_diff == 0) break;
+    }
+
+    std::vector<std::string> red_team, blue_team;
+
+    for (int player_idx = 0; player_idx < num_players; player_idx++)
+    {
+        if (optimal_teams & 1 << player_idx)
+            red_team.push_back(elo_players[player_idx].first);
+        else
+            blue_team.push_back(elo_players[player_idx].first);
+    }
+    return std::pair<std::vector<std::string>, std::vector<std::string>>(red_team, blue_team);
+}
+
+void ServerLobby::soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec)
+{
+    auto peers2 = STKHost::get()->getPeers();
+    int random = rand() % 2;
+    std::string msg = "";
+    std::string blue = "blue";
+    std::string red = "red";
+
+    for (auto peer2 : peers2)
+    {
+        for (auto player : peer2->getPlayerProfiles())
+        {
+            std::string username = std::string(StringUtils::wideToUtf8(player->getName()));
+            if (player_vec.size() % 2 == 1)
+            {
+                int min_idx = std::min(min, (int)player_vec.size() - 1);
+                if (username == player_vec[min_idx].first)
+                {
+                    if (random == 1)
+                    {
+                        player->setTeam(KART_TEAM_RED);
+                        msg = "Player " + player_vec[min_idx].first + " has been put in the red team. Random=" + std::to_string(random);
+                        Log::info("ServerLobby", msg.c_str());
+                    }
+                    else
+                    {
+                        player->setTeam(KART_TEAM_BLUE);
+                        msg = "Player " + player_vec[min_idx].first + " has been put in the blue team. Random=" + std::to_string(random);
+                        Log::info("ServerLobby", msg.c_str());
+                    }
+                }
+
+            }
+            if (std::find(teams.first.begin(), teams.first.end(), username) != teams.first.end())
+            {
+                player->setTeam(KART_TEAM_RED);
+            }
+            if (std::find(teams.second.begin(), teams.second.end(), username) != teams.second.end())
+            {
+                player->setTeam(KART_TEAM_BLUE);
+            }
+        }
+    }
+    return;
+}
+

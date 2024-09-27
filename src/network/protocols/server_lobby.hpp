@@ -581,6 +581,11 @@ public:
     // TODO:
     enum KartRestrictionMode m_kart_restriction = NONE;
     bool m_allow_powerupper = false;
+    bool m_show_elo = false;
+    int getPlayerElo(std::string username) const;
+    std::pair<std::vector<std::string>, std::vector<std::string>> createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players);
+    void soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec);
+
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
