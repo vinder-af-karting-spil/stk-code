@@ -7932,6 +7932,12 @@ unmute_error:
 sendStringToPeer(msg, peer);
 return;
 }
+    else if (argv[0] == "help" && argv[1] == "autoteams")
+{
+	std::string msg= "Autoteams will create teams based on ranking";
+	sendStringToPeer(msg, peer);
+	return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
