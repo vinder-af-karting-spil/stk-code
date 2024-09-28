@@ -7968,10 +7968,11 @@ return;
 	sendStringToPeer(msg, peer);
 	return;
 }
-else if (argv[0] == "help" && argv[1] == "ranking"
-		send::string msg = "https://www.tierchester.eu/ranking";
-	return;
-	}	
+else if (argv[0] == "help" && argv[1] == "ranking") {
+    std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+    sendStringToPeer(msg, peer);
+    return;
+}	
 else if (argv[0] == "admins")
 {
 	 if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
