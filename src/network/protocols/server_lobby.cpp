@@ -7915,9 +7915,9 @@ unmute_error:
             return;
  }
     else if (argv[0] == "help" && argv[1] == "bowlparty" && argv[2] == "on")
-
+    {
 	    std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
-    sendString(msg, peer);
+    sendStringToPeer(msg, peer);
     return;
 }
     else if (argv[0] == "autoteams")
