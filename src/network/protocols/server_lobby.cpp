@@ -7974,6 +7974,14 @@ return;
 		sendStringToPeer(msg, peer);
 	return;
 }
+    else if (argv[0] == "admins"
+{
+if m_server_owner.lock() != peer && (!player || player->getPermissionLevel() >90))
+}
+std::string msg = "test";
+sendStringToPlayer(msg, peer);
+return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
