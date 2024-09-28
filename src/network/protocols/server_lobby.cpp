@@ -7914,19 +7914,19 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
  }
-    else if (argv[0] == "help" && argv[1] == "bowlparty" && argv[2] == "on")
+    else if (argv[0] == "help" && argv[1] == "bowlparty")
     {
 	    std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
     sendStringToPeer(msg, peer);
     return;
 }
-    else if (argv[0] == "help" && argv[1] == "mediumparty" && argv[2] == "on")
+    else if (argv[0] == "help" && argv[1] == "mediumparty")
 {
 	std::string msg = "Mediumparty on ensures that (with enough votes) there is a game where everyone is forced to drive a medium kart.";
 	sendStringToPeer(msg, peer);
 	return;
 }
-   else if (argv[0] == "help" && argv[1] == "heavyparty" && argv[2] == "on")
+   else if (argv[0] == "help" && argv[1] == "heavyparty")
 {
 	std::string msg = "Heavyparty on ensures that (with enough votes) there is a game where everyone is forced to drive a heavy kart.";
 sendStringToPeer(msg, peer);
@@ -7934,10 +7934,12 @@ return;
 }
     else if (argv[0] == "help" && argv[1] == "autoteams")
 {
-	std::string msg= "Autoteams will create teams based on ranking";
+	std::string msg= "Autoteams will create teams based on ranking.";
 	sendStringToPeer(msg, peer);
 	return;
 }
+    else if (argv[0] == "help" && argv[1] == "cakeparty")
+    std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
