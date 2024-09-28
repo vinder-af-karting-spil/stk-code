@@ -7970,7 +7970,7 @@ return;
 }
     else if (argv[0] == "help")
 {
-	std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included)."
+	std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included).";
 		sendStringToPeer(msg, peer);
 	return;
 }
