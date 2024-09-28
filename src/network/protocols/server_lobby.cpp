@@ -7964,7 +7964,7 @@ return;
 }
     else if (argv[0] == "help" && argv[1] == "ranking")
 {
-    std::string msg = "To check your rank, go to: www.tierchester.eu or use /rank10 /rank /top.";
+    std::string msg = "To check your rank, go to:[tierchester.eu] (https://www.tierchester.eu) or use /rank10 /rank /top.";
     sendStringToPeer(msg, peer);
     return;
 }
