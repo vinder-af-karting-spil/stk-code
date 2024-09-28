@@ -7962,6 +7962,13 @@ std::string msg = "nice";
 sendStringToPeer(msg, peer);
 return;
 }
+    else if (argv[0] == "help" && argv[1] == "ranking")
+{
+    std::string msg = "To check your rank, go to: www.tierchester.eu or use /rank10 /rank /top.";
+    sendStringToPeer(msg, peer);
+    return;
+}
+
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
