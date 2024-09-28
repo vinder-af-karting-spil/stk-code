@@ -7976,9 +7976,9 @@ return;
 }
 else if (argv[0] == "admins")
 {
-	 if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 90))
+	 if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
 	 {
-		  std::string msg = "test";
+		  std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
 		  sendStringToPeer(msg, peer);
 		  return;
 	 }
