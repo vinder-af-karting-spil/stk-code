@@ -7953,7 +7953,7 @@ sendStringToPeer(msg, peer);
     else if (argv[0] == "help" && argv[1] == "lightparty")
 {
     std::string msg = "Lightparty on ensures that (with enough votes) there is a game where everyone is forced to drive a light kart.";
-    sendStingToPeer(msg, peer);
+    sendStringToPeer(msg, peer);
     return;
 }
     else if (argv[0] == "autoteams")
