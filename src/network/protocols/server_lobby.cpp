@@ -7946,7 +7946,7 @@ return;
 }
     else if (argv[0] == "help" && argv[1] == "inform")
 {
-    std::string msg = "Use /inform [your information] to report anything you want to tell the server owner."
+    std::string msg = "Use /inform [your information] to report anything you want to tell the server owner.";
 sendStringToPeer(msg, peer);
     return;
 }
