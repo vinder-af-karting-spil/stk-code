@@ -7976,10 +7976,10 @@ return;
 }
     else if (argv[0] == "admins"
 {
-if m_server_owner.lock() != peer && (!player || player->getPermissionLevel() >90))
+ if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 90))
 }
 std::string msg = "test";
-sendStringToPlayer(msg, peer);
+sendStringToPeer(msg, peer);
 return;
 }
     else if (argv[0] == "autoteams")
