@@ -7910,10 +7910,16 @@ unmute_error:
     }
     else if (argv[0] == "help" && argv[1] == "pole" && argv[2] == "on")	
     {
-		    std::string msg = "Auto team generation not possible during game.";
+		    std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff..";
             sendStringToPeer(msg, peer);
             return;
  }
+    else if (argv[0] == "help" && argv[1] == "bowlparty" && argv[2] == "on")
+
+	    std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
+    sendString(msg, peer);
+    return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
