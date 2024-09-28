@@ -7962,10 +7962,13 @@ std::string msg = "nice";
 sendStringToPeer(msg, peer);
 return;
 }
-    else if (argv[0] == "help" && argv[1] == "ranking") {
-    std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+    else if (argv[0] == "help" && argv.size() > 1 && argv[1] == "ranking") 
+	    std::cout << "argv[0]: " << argv[0] << ", argv[1]: " << argv[1] << std::endl;
+{
+	    std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
     sendStringToPeer(msg, peer);
     return;
+
 } else if (argv[0] == "help") {
     std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included).";
     sendStringToPeer(msg, peer);
