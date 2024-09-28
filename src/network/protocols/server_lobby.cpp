@@ -7956,6 +7956,12 @@ sendStringToPeer(msg, peer);
     sendStringToPeer(msg, peer);
     return;
 }
+    else if (argv[0] == "69")
+{		   
+std::string msg = "nice";
+sendStringToPeer(msg, peer);
+return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
