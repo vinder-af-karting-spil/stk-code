@@ -7926,6 +7926,12 @@ unmute_error:
 	sendStringToPeer(msg, peer);
 	return;
 }
+   else if (argv[0] == "help" && argv[1] == "heavyparty" && argv[2] == "on")
+{
+	std::string msg = "Heavyparty on ensures that (with enough votes) there is a game where everyone is forced to drive a heavy kart.";
+sendStringToPeer(msg, peer);
+return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
