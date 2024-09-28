@@ -7908,7 +7908,7 @@ unmute_error:
 
         startSelection();
     }
-    else if (argv[0] == "help")	
+    else if (argv[0] == "help" && argv[1] == "pole" && argv[2] == "on")	
     {
 		    std::string msg = "Auto team generation not possible during game.";
             sendStringToPeer(msg, peer);
