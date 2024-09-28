@@ -7940,6 +7940,9 @@ return;
 }
     else if (argv[0] == "help" && argv[1] == "cakeparty")
     std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
+    sendStringToPeer(msg, peer);
+    return;
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
