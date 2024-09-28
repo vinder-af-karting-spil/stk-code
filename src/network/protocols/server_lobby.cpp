@@ -7939,6 +7939,7 @@ return;
 	return;
 }
     else if (argv[0] == "help" && argv[1] == "cakeparty")
+{
     std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
     sendStringToPeer(msg, peer);
     return;
