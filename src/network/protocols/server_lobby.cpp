@@ -9819,7 +9819,6 @@ int ServerLobby::getPlayerElo(std::string username) const
     if (in_file.is_open())
     {
         std::string line;
-        std::getline(in_file, line);
         while (std::getline(in_file, line))
         {
             split = StringUtils::split(line, ' ');
