@@ -7163,7 +7163,7 @@ void ServerLobby::handleServerCommand(Event* event,
         delete chat;
     }
     else if (!ServerConfig::m_soccer_ranking_file.toString().empty() &&
-            (argv[0] == "rank" || argv[0] == "rank10"))
+            (argv[0] == "rank" || argv[0] == "rank10" || argv[0] == "top"))
     {
         std::size_t max = 10;
         std::size_t page = 1;
@@ -7580,6 +7580,83 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
+    else if (argv[0] == "cakeparty" || argv[0] == "cp" || argv[0] == "cakefest")
+    {
+        irr::core::stringw response;
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_CAKEPARTY))
+        {
+            std::string msg = "Cakeparty is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_CAKEPARTY &&
+                state)
+        {
+            std::string msg = "Cakeparty is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        rm->setPowerupSpecialModifier(
+          state ? Powerup::TSM_CAKEPARTY : Powerup::TSM_NONE);
+        std::string message("Cakeparty is now ");
+        if (state)
+        {
+            message += "ACTIVE. Bonus boxes only give 2 cakes.";
+        }
+        else
+        {
+            message += "INACTIVE. All standard items as normal.";
+        }
+
+        sendStringToAllPeers(message);
+    }
+    else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
+            && ServerConfig::m_check_servers_cooldown > 0.0f)
+    {
+        if (!player || player->getPermissionLevel() <= PERM_NONE)
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        NetworkString* response = getNetworkString();
+        response->setSynchronous(true);
+        uint64_t now = StkTime::getMonoTimeMs();
+        // first, check if the timeout has not ran out yet
+        if (m_last_wanrefresh_cmd_time + (uint64_t)(ServerConfig::m_check_servers_cooldown * 1000.0f)
+                > now)
+        {
+            response->addUInt8(LE_CHAT);
+            response->encodeString16(L"Someone has already used the command. Please wait before doing it again.");
+            peer->sendPacket(response, true/*reliable*/);
+            delete response;
+            return;
+        }
+    }
     else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
             && ServerConfig::m_check_servers_cooldown > 0.0f)
     {
@@ -7728,7 +7805,8 @@ unmute_error:
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
-            L" /bowlparty|bp /start /end /bug /rank /rank10|top /autoteams" 
+            L" /start /end /bug /rank /rank10|top /autoteams " 
+            L"/bowlparty|bp /cakeparty|cp /start /end /bug /rank /rank10|top /autoteams /help (command)"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -7830,7 +7908,122 @@ unmute_error:
 
         startSelection();
     }
+    else if (argv[0] == "help") //help commands
+{
+    if (argv.size() > 2) return;
 
+   	if (argv.size() == 1) {
+		std::string msg	= "Use /help (command) to get information about specific commands.";
+		sendStringToPeer(msg, peer);
+		return;
+	}
+
+   if (argv[1] == "pole")
+    {
+        std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+  else if (argv[1] == "bowlparty")
+    {
+        std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "mediumparty")
+    {
+        std::string msg = "Mediumparty on ensures that (with enough votes) there is a game where everyone is forced to drive a medium kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "heavyparty")
+    {
+        std::string msg = "Heavyparty on ensures that (with enough votes) there is a game where everyone is forced to drive a heavy kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "autoteams")
+    {
+        std::string msg = "Autoteams will create teams based on ranking.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "cakeparty")
+    {
+        std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "inform")
+    {
+        std::string msg = "Use /inform [your information] to report anything you want to tell the server owner.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "lightparty")
+    {
+        std::string msg = "Lightparty on ensures that (with enough votes) there is a game where everyone is forced to drive a light kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[1] == "ranking")
+    {
+        std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+	 else
+    {
+        std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+}
+else if (argv[0] == "69") //nice command tho
+{
+    std::string msg = "nice";
+    sendStringToPeer(msg, peer);
+    return;
+}
+else if (argv[0] == "website")
+{
+    if (argv.size() > 2) return;
+    std::string msg;
+
+    if (argv.size() == 1)
+    {
+        std::string msg = "https://www.tierchester.eu";
+        sendStringToPeer(msg, peer);
+    } 
+    return;
+}
+else if (argv[0] == "discord")
+{
+	if (argv.size() > 2) return;
+	std::string msg;
+
+	if (argv.size() == 1)
+	{
+		std::string msg = "https://discord.gg/TH3N5NaUR4";
+		sendStringToPeer(msg, peer);
+	}
+	return;
+}
+if (argv[0] == "help")
+{
+    std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included).";
+    sendStringToPeer(msg, peer);
+    return;
+}
+else if (argv[0] == "admins")
+{
+	 if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
+	 {
+		  std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
+		  sendStringToPeer(msg, peer);
+		  return;
+	 }
+}
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
@@ -8340,7 +8533,7 @@ unmute_error:
         msg = "Player handicap has been updated.";
         sendStringToPeer(msg, peer);
     }
-    // CHEATS (Please, do not use me in real games)
+    // (CHEATS) Not gonna be used in game.
     else if (argv[0] == "hackitem" || argv[0] == "hki")
     {
         // admin only
@@ -9010,6 +9203,8 @@ void ServerLobby::addPowerupSMMessage(std::string& msg) const
         case Powerup::TSM_BOWLPARTY:
             msg += "BOWL PARTY is ACTIVE! All boxes give 3 bowling balls.\n";
             break;
+        case Powerup::TSM_CAKEPARTY:
+	    msg += "CAKE PARTY IS ACTIVE! All boxes are full of cakes.\n";
         default:
             break;
     }

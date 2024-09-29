@@ -42,7 +42,7 @@ public:
     {
         TSM_NONE = 0,
         TSM_BOWLPARTY = 1,  // getRandomPowerup is not used, hitBonusBox always sets
-                            // BOWLING with n=3
+        TSM_CAKEPARTY =2,   // BOWLING with n=3
     };
 private:
     /** Sound effect that is being played. */
