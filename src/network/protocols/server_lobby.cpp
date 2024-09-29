@@ -7908,12 +7908,18 @@ unmute_error:
 
         startSelection();
     }
-    else if (argv[0] == "help" && argv[1] == "pole" && argv[2] == "on")	
+    else if (argv[0] == "help")
+{
+    if (argv.size() > 2) return;  
+    
+    if (argv[1] == "pole")
     {
-		    std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff..";
-            sendStringToPeer(msg, peer);
-            return;
- }
+        std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+}
+
     else if (argv[0] == "help" && argv[1] == "bowlparty")
     {
 	    std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
