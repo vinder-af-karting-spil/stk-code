@@ -7656,28 +7656,6 @@ void ServerLobby::handleServerCommand(Event* event,
             delete response;
             return;
         }
-    }
-    else if ((argv[0] == "scanservers" || argv[0] == "online" || argv[0] == "o")
-            && ServerConfig::m_check_servers_cooldown > 0.0f)
-    {
-        if (!player || player->getPermissionLevel() <= PERM_NONE)
-        {
-            sendNoPermissionToPeer(peer.get(), argv);
-            return;
-        }
-        NetworkString* response = getNetworkString();
-        response->setSynchronous(true);
-        uint64_t now = StkTime::getMonoTimeMs();
-        // first, check if the timeout has not ran out yet
-        if (m_last_wanrefresh_cmd_time + (uint64_t)(ServerConfig::m_check_servers_cooldown * 1000.0f)
-                > now)
-        {
-            response->addUInt8(LE_CHAT);
-            response->encodeString16(L"Someone has already used the command. Please wait before doing it again.");
-            peer->sendPacket(response, true/*reliable*/);
-            delete response;
-            return;
-        }
 
         // then, set current time
         m_last_wanrefresh_cmd_time = now;
