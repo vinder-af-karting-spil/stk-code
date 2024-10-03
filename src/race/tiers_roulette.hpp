@@ -59,7 +59,7 @@ private:
 
 public:
     TierSRoulette() : m_current(0) {};
-    ~TierSRoulette();
+    ~TierSRoulette() {};
 
     static std::size_t readOneFromString(
             std::size_t size, const char* buf,
