@@ -25,6 +25,8 @@
 #include <limits>
 #include <strings.h>
 
+TierSRoulette* tiers_roulette = nullptr;
+
 #if 0
 KartRestrictionMode TierSRoulette::bufToKR(
         const std::size_t size, char* const buf)
