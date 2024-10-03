@@ -22,6 +22,7 @@
 #include "network/protocols/lobby_protocol.hpp"
 #include "network/remote_kart_info.hpp"
 #include "race/race_manager.hpp"
+#include "race/kart_restriction.hpp"
 #include "utils/cpp2011.hpp"
 #include "utils/time.hpp"
 #include "network/servers_manager.hpp"
@@ -111,26 +112,6 @@ public:
                                  // including giving the administrator permission level.
                                  // Specified in the configuration file.
     };
-    // When used outside of server lobby context, migrate it to somewhere else.
-    enum KartRestrictionMode : int 
-    {
-        NONE,                   // All karts can be played
-        LIGHT,                  // Light type karts can be player
-        MEDIUM,                 // Medium type karts can be used
-        HEAVY,                  // Heavy type karts can be user
-        // TODO: Same for addon karts, note that the players that have no addon karts won't be able to play.
-        /*
-        ADDON,
-        ADDON_LIGHT,
-        ADDON_MEDIUM,
-        ADDON_HEAVY,
-        // Same for vanilla karts
-        VANILLA,
-        VANILLA_LIGHT,
-        VANILLA_MEDIUM,
-        VANILLA_HEAVY, */
-    };
-        
 private:
     struct KeyData
     {

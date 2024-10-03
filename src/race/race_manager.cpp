@@ -134,6 +134,7 @@ RaceManager::RaceManager()
     m_coin_target        = 0;
     m_powerup_special_modifier
                          = Powerup::TSM_NONE;
+    m_world_tmodifiers   = 0;
     m_started_from_overworld = false;
     m_have_kart_last_position_on_overworld = false;
     m_num_local_players = 0;
@@ -1446,4 +1447,21 @@ void RaceManager::clearPoles()
 void RaceManager::setPowerupSpecialModifier(const Powerup::SpecialModifier modifier)
 {
     m_powerup_special_modifier = modifier;
+}
+//---------------------------------------------------------------------------------------------
+void RaceManager::setWorldTimedModifiers(const uint32_t value)
+{
+    m_world_tmodifiers = value;
+}
+//---------------------------------------------------------------------------------------------
+uint32_t RaceManager::applyWorldTimedModifiers(const uint32_t value)
+{
+    m_world_tmodifiers |= value;
+    return m_world_tmodifiers;
+}
+//---------------------------------------------------------------------------------------------
+uint32_t RaceManager::eraseWorldTimedModifiers(const uint32_t value)
+{
+    m_world_tmodifiers &= ~value;
+    return m_world_tmodifiers;
 }

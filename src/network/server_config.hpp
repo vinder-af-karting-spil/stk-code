@@ -124,6 +124,21 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-powerupper",
         "Allow powerupper."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_tiers_roulette
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "tiers-roulette",
+        "Enable roulette between features. This will rotate after every finished game."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_tiers_roulette_sequence
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "kartheavy+itemchaos,kartmedium+itemchaos,kartlight+itemchaos,bowlparty,cakeparty",
+        "tiers-roulette-sequence",
+        "When TierS roulette is enabled, this is the sequence of the features being rotated. "
+        "Separate modifiers with commas: kartheavy,kartmedium,none,... "
+        "Combine modifiers with a plus sign: kartheavy+itemcakeparty,... "
+        "Specify none for the iteration to be all default (without any modifiers): none,none,... "
+        "THIS OVERRIDES THE FALSE VALUE OF THE allow-*party, which only controls the command "
+        "invocation."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_show_elo
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-elo",
         "Show the elo after the username in the lobby."));
@@ -139,6 +154,11 @@ namespace ServerConfig
     SERVER_CFG_PREFIX BoolServerConfigParam m_allow_lightparty
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-lightparty",
         "Allow light party."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_allow_itemchaos
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-itemchaos",
+        "Allow item chaos. This will set random powerup (except for basketball, anvil, parachute and plunger) "
+        "for all the karts in the world during game every one minute as well as filling up the nitro to 100.0"));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_allow_pole
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-pole",

@@ -20,6 +20,7 @@
 #define HEADER_POWERUP_HPP
 
 #define MAX_POWERUPS 5
+#define TIERS_TMODIFIER_CHAOSPARTY 1
 
 #include "items/powerup_manager.hpp"  // needed for powerup_type
 #include "utils/no_copy.hpp"

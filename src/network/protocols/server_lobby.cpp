@@ -57,6 +57,7 @@
 #include "online/online_profile.hpp"
 #include "online/request_manager.hpp"
 #include "online/xml_request.hpp"
+#include "race/tiers_roulette.hpp"
 #include "tracks/check_manager.hpp"
 #include "tracks/track.hpp"
 #include "tracks/track_manager.hpp"
@@ -784,6 +785,9 @@ void ServerLobby::setup()
     m_timeout.store(std::numeric_limits<int64_t>::max());
     m_server_started_at = m_server_delay = 0;
     Log::info("ServerLobby", "Resetting the server to its initial state.");
+
+    if (ServerConfig::m_tiers_roulette)
+        tiers_roulette->applyChanges(this, RaceManager::get(), nullptr);
 }   // setup
 
 //-----------------------------------------------------------------------------
@@ -3541,6 +3545,12 @@ void ServerLobby::checkRaceFinished()
     // no powerup modifiers after each game
     RaceManager::get()->setPowerupSpecialModifier(
             Powerup::TSM_NONE);
+    
+    if (ServerConfig::m_tiers_roulette)
+    {
+        tiers_roulette->rotate();
+        tiers_roulette->applyChanges(this, RaceManager::get(), nullptr);
+    }
 }   // checkRaceFinished
 
 //-----------------------------------------------------------------------------
@@ -7909,85 +7919,86 @@ unmute_error:
         startSelection();
     }
     else if (argv[0] == "help")
-{
-    if (argv.size() > 2) return;  
-    
-    if (argv[1] == "pole")
     {
-        std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff.";
-        sendStringToPeer(msg, peer);
-        return;
+        if (argv.size() > 2) return;  
+    
+        if (argv[1] == "pole")
+        {
+            std::string msg = "Pole on ensures (with enough votes) that the players of each team can choose who will be closest to the ball at the kickoff.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
     }
-}
-
     else if (argv[0] == "help" && argv[1] == "bowlparty")
     {
 	    std::string msg = "Bowlparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with bowling balls.";
-    sendStringToPeer(msg, peer);
-    return;
-}
+        sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "help" && argv[1] == "mediumparty")
-{
-	std::string msg = "Mediumparty on ensures that (with enough votes) there is a game where everyone is forced to drive a medium kart.";
-	sendStringToPeer(msg, peer);
-	return;
-}
-   else if (argv[0] == "help" && argv[1] == "heavyparty")
-{
-	std::string msg = "Heavyparty on ensures that (with enough votes) there is a game where everyone is forced to drive a heavy kart.";
-sendStringToPeer(msg, peer);
-return;
-}
+    {
+        std::string msg = "Mediumparty on ensures that (with enough votes) there is a game where everyone is forced to drive a medium kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    else if (argv[0] == "help" && argv[1] == "heavyparty")
+    {
+        std::string msg = "Heavyparty on ensures that (with enough votes) there is a game where everyone is forced to drive a heavy kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "help" && argv[1] == "autoteams")
-{
-	std::string msg= "Autoteams will create teams based on ranking.";
-	sendStringToPeer(msg, peer);
-	return;
-}
+    {
+        std::string msg= "Autoteams will create teams based on ranking.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "help" && argv[1] == "cakeparty")
-{
-    std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
-    sendStringToPeer(msg, peer);
-    return;
-}
+    {
+        std::string msg = "Cakeparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with cakes.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "help" && argv[1] == "inform")
-{
-    std::string msg = "Use /inform [your information] to report anything you want to tell the server owner.";
-sendStringToPeer(msg, peer);
-    return;
-}
+    {
+        std::string msg = "Use /inform [your information] to report anything you want to tell the server owner.";
+    sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "help" && argv[1] == "lightparty")
-{
-    std::string msg = "Lightparty on ensures that (with enough votes) there is a game where everyone is forced to drive a light kart.";
-    sendStringToPeer(msg, peer);
-    return;
-}
+    {
+        std::string msg = "Lightparty on ensures that (with enough votes) there is a game where everyone is forced to drive a light kart.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
     else if (argv[0] == "69")
-{		   
-std::string msg = "nice";
-sendStringToPeer(msg, peer);
-return;
-}
-    if (argv[0] == "help" && argv[1] == "ranking") {
-    std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
-    sendStringToPeer(msg, peer);
-    return;
-}
+    {		   
+        std::string msg = "nice";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+    if (argv[0] == "help" && argv[1] == "ranking")
+    {
+        std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+        sendStringToPeer(msg, peer);
+        return;
+    }
 
-if (argv[0] == "help") {
-    std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included).";
-    sendStringToPeer(msg, peer);
-    return;
-}	
-else if (argv[0] == "admins")
-{
-	 if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
-	 {
-		  std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
-		  sendStringToPeer(msg, peer);
-		  return;
-	 }
-}
+    if (argv[0] == "help")
+    {
+        std::string msg = "Use /help (the command you are wondering how it works) to check how the command works (not every command is included).";
+        sendStringToPeer(msg, peer);
+        return;
+    }	
+    else if (argv[0] == "admins")
+    {
+         if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
+         {
+              std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
+              sendStringToPeer(msg, peer);
+              return;
+         }
+    }
     else if (argv[0] == "autoteams")
     {
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)

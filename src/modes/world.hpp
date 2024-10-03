@@ -338,6 +338,11 @@ public:
                                   { m_schedule_interrupt_race = true; }
     void            scheduleTutorial();
     void            updateWorld(int ticks);
+    // Timed TierS modifiers
+    // =====================
+    int             m_wtm_chaosparty_ticks;
+    virtual void    updateTSMFeatures(int ticks);
+
     void            handleExplosion(const Vec3 &xyz, AbstractKart *kart_hit,
                                     PhysicalObject *object);
     AbstractKart*   getPlayerKart(unsigned int player) const;

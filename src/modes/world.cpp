@@ -36,6 +36,7 @@
 #include "input/device_manager.hpp"
 #include "input/keyboard_device.hpp"
 #include "items/powerup.hpp"
+#include "items/powerup_manager.hpp"
 #include "items/projectile_manager.hpp"
 #include "karts/controller/battle_ai.hpp"
 #include "karts/ghost_kart.hpp"
@@ -55,10 +56,13 @@
 #include "modes/overworld.hpp"
 #include "modes/tutorial_utils.hpp"
 #include "network/child_loop.hpp"
+#include "network/network_string.hpp"
 #include "network/protocols/client_lobby.hpp"
 #include "network/network_config.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/rewind_manager.hpp"
 #include "network/stk_host.hpp"
+#include "network/stk_peer.hpp"
 #include "physics/btKart.hpp"
 #include "physics/physics.hpp"
 #include "physics/triangle_mesh.hpp"
@@ -142,6 +146,8 @@ World::World() : WorldStatus()
     m_is_network_world          = false;
 
     m_stop_music_when_dialog_open = true;
+
+    m_wtm_chaosparty_ticks      = 0;
 
     WorldStatus::setClockMode(CLOCK_CHRONO);
 
@@ -496,6 +502,18 @@ std::shared_ptr<AbstractKart> World::createKart
     /** TierS: bowlparty and other powerup modifiers */
     new_kart->getPowerup()->setSpecialModifier(
             RaceManager::get()->getPowerupSpecialModifier());
+    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
+    {
+        // chaosparty
+        new_kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+
+        RandomGenerator rg;
+        unsigned int pw = rg.get(
+                PowerupManager::POWERUP_MAX - 4 - 1) + 1;
+        if (pw >= PowerupManager::POWERUP_PLUNGER)
+            pw++;
+        new_kart->setPowerup((PowerupManager::PowerupType)pw, 50);
+    }
     Controller *controller = NULL;
     switch(kart_type)
     {
@@ -537,7 +555,10 @@ std::shared_ptr<AbstractKart> World::createKart
     }
     case RaceManager::KT_NETWORK_PLAYER:
     {
-        controller = new NetworkPlayerController(new_kart.get());
+        std::weak_ptr<NetworkPlayerProfile> npp =
+            RaceManager::get()->getKartInfo(global_player_id).getNetworkPlayerProfile();
+        controller = new NetworkPlayerController(new_kart.get(),
+                npp.expired() ? nullptr : npp.lock().get());
         m_num_players++;
         break;
     }
@@ -1039,13 +1060,13 @@ void World::updateWorld(int ticks)
     try
     {
         update(ticks);
+        updateTSMFeatures(ticks);
     }
     catch (AbortWorldUpdateException& e)
     {
         (void)e;   // avoid compiler warning
         return;
     }
-
 #ifdef DEBUG
     assert(m_magic_number == 0xB01D6543);
 #endif
@@ -1083,6 +1104,48 @@ void World::updateWorld(int ticks)
         }
     }
 }   // updateWorld
+void World::updateTSMFeatures(const int ticks)
+{
+    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
+    {
+        // chaosparty
+        if (m_wtm_chaosparty_ticks < stk_config->time2Ticks(60.0f))
+        {
+            m_wtm_chaosparty_ticks += ticks;
+            return;
+        }
+        m_wtm_chaosparty_ticks = 0;
+        // trigger chaos party: set random powerup in 50 every 60 seconds
+        for (auto& kart : getKarts())
+        {
+            kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+
+            RandomGenerator rg;
+            unsigned int pw = rg.get(
+                    PowerupManager::POWERUP_MAX - 4 - 1) + 1;
+            if (pw >= PowerupManager::POWERUP_PLUNGER)
+                pw++;
+            kart->setPowerup((PowerupManager::PowerupType)pw, 50);
+
+            if (!kart->getController()->isNetworkPlayerController())
+                return;
+            
+            // also notify the player with ServerLobby protocol if available
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                return;
+
+            NetworkPlayerProfile* npp = 
+                kart->getController()->getNetworkPlayerProfile();
+            if (!npp)
+                return;
+
+            std::string msg("Powerup randomized after a minute!");
+            std::shared_ptr<STKPeer> peer = npp->getPeer();
+            sl->sendStringToPeer(msg, peer);
+        }
+    }
+}   // updateTSMFeatures
 
 #define MEASURE_FPS 0
 
@@ -1655,7 +1718,20 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     /** TierS: bowlparty and other powerup modifiers */
     new_kart->getPowerup()->setSpecialModifier(
             RaceManager::get()->getPowerupSpecialModifier());
+    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
+    {
+        // chaosparty
+        new_kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+
+        RandomGenerator rg;
+        unsigned int pw = rg.get(
+                PowerupManager::POWERUP_MAX - 4 - 1) + 1;
+        if (pw >= PowerupManager::POWERUP_PLUNGER)
+            pw++;
+        new_kart->setPowerup((PowerupManager::PowerupType)pw, 50);
+    }
     Controller *controller = NULL;
+    std::weak_ptr<NetworkPlayerProfile> npp;
 
     switch(kart_type)
     {
@@ -1664,7 +1740,10 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
         m_num_players ++;
         break;
     case RaceManager::KT_NETWORK_PLAYER:
-        controller = new NetworkPlayerController(new_kart.get());
+        npp =
+            RaceManager::get()->getKartInfo(global_player_id).getNetworkPlayerProfile();
+        controller = new NetworkPlayerController(new_kart.get(),
+                npp.expired() ? nullptr : npp.lock().get());
         if (!online_name.empty())
             new_kart->setOnScreenText(online_name.c_str());
         m_num_players++;

@@ -268,6 +268,7 @@ extern "C" {
 #include "race/highscore_manager.hpp"
 #include "race/history.hpp"
 #include "race/race_manager.hpp"
+#include "race/tiers_roulette.hpp"
 #include "replay/replay_play.hpp"
 #include "replay/replay_recorder.hpp"
 #include "states_screens/main_menu_screen.hpp"
@@ -1942,6 +1943,7 @@ void initRest()
     powerup_manager         = new PowerupManager       ();
     attachment_manager      = new AttachmentManager    ();
     highscore_manager       = new HighscoreManager     ();
+    tiers_roulette          = new TierSRoulette        ();
 
     // The maximum texture size can not be set earlier, since
     // e.g. the background image needs to be loaded in high res.
@@ -2226,6 +2228,13 @@ int main(int argc, char *argv[])
         }
         else
             ServerConfig::loadServerConfig();
+
+        irr::core::stringc tiers_roulette_sequence =
+            ServerConfig::m_tiers_roulette_sequence.toString();
+        if (!tiers_roulette_sequence.empty())
+            tiers_roulette->populateFromBuffer(
+                    tiers_roulette_sequence.size(),
+                    tiers_roulette_sequence.c_str());
 
         if (CommandLine::has("--wan-server", &s))
         {
@@ -2713,6 +2722,7 @@ static void cleanSuperTuxKart()
     RaceManager::destroy();
     if(grand_prix_manager)      delete grand_prix_manager;
     if(highscore_manager)       delete highscore_manager;
+    if(tiers_roulette)          delete tiers_roulette;
     if(attachment_manager)      delete attachment_manager;
     ItemManager::removeTextures();
     if(powerup_manager)         delete powerup_manager;

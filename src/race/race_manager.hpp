@@ -307,6 +307,8 @@ private:
 
     /** TierS' Powerup Special Modifier */
     Powerup::SpecialModifier         m_powerup_special_modifier;
+    /** Timed world modifiers */
+    uint32_t                         m_world_tmodifiers;
 
     /** The selected difficulty. */
     Difficulty                       m_difficulty;
@@ -986,6 +988,16 @@ public:
     void resetPoleProfile(std::shared_ptr<NetworkPlayerProfile>& profile);
     void resetPoleProfile(STKPeer* peer);
     void clearPoles();
+    // ----------------------------------------------------------------------------------------
+    /** Time-based modifiers: m_world_tmodifiers */
+    uint32_t getWorldTimedModifiers() const { return m_world_tmodifiers; }
+    // ----------------------------------------------------------------------------------------
+    void setWorldTimedModifiers(uint32_t value);
+    // ----------------------------------------------------------------------------------------
+    uint32_t applyWorldTimedModifiers(uint32_t value);
+    // ----------------------------------------------------------------------------------------
+    uint32_t eraseWorldTimedModifiers(uint32_t value);
+    // ----------------------------------------------------------------------------------------
 
     Powerup::SpecialModifier getPowerupSpecialModifier() const { return m_powerup_special_modifier; }
     void setPowerupSpecialModifier(Powerup::SpecialModifier modifier);
