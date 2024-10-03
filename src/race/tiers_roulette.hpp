@@ -37,7 +37,7 @@ class TierSRoulette
 {
 public:
 
-    static const char c_DELIMITER = '\n';
+    static const char c_DELIMITER = ',';
     static const char c_UNIFIER = '+';
 
     struct RouletteEntry
