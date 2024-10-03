@@ -143,7 +143,7 @@ void mainLoop(STKHost* host)
             const bool state = str2 == "on";
 
             sl->setKartRestrictionMode(
-                state ? ServerLobby::HEAVY : ServerLobby::NONE);
+                state ? KartRestrictionMode::HEAVY : KartRestrictionMode::NONE);
 
             std::string message("Heavy party is now ");
             if (state)
@@ -165,7 +165,7 @@ void mainLoop(STKHost* host)
             const bool state = str2 == "on";
 
             sl->setKartRestrictionMode(
-                state ? ServerLobby::MEDIUM : ServerLobby::NONE);
+                state ? KartRestrictionMode::MEDIUM : KartRestrictionMode::NONE);
 
             std::string message("Medium party is now ");
             if (state)
@@ -187,7 +187,7 @@ void mainLoop(STKHost* host)
             const bool state = str2 == "on";
 
             sl->setKartRestrictionMode(
-                state ? ServerLobby::LIGHT : ServerLobby::NONE);
+                state ? KartRestrictionMode::LIGHT : KartRestrictionMode::NONE);
 
             std::string message("Light party is now ");
             if (state)
