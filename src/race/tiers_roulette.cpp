@@ -62,7 +62,7 @@ Powerup::SpecialModifier TierSRoulette::bufToTSM(
 // This can be stacked as these are flags
 uint32_t TierSRoulette::bufToWTM(const std::size_t size, const char* const buf)
 {
-    if (!strncasecmp(buf, "chaosparty", size))  return TIERS_TMODIFIER_CHAOSPARTY;
+    if (!strncasecmp(buf, "itemchaos", size))  return TIERS_TMODIFIER_CHAOSPARTY;
     return 0;
 }
 // ----------------------------------------------------------------------------
@@ -191,8 +191,11 @@ void TierSRoulette::populateFromBuffer(const std::size_t size, const char* buf)
     std::size_t cur_min_id = 0;
     while (cur_min_id < size)
     {
+        RouletteEntry re(size, buf, &cur_min_id);
         m_roulette_entries.push_back(
-                RouletteEntry(size, buf, &cur_min_id));
+                re);
+        Log::verbose("TierSRoulette", "Entry: %s.",
+                re.asHumanReadable().c_str());
         if (!cur_min_id)
             return;
 

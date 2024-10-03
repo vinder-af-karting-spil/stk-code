@@ -1991,6 +1991,13 @@ void initRest()
 
     RaceManager::get()->setTrack(UserConfigParams::m_last_track);
 
+    irr::core::stringc tiers_roulette_sequence =
+        ServerConfig::m_tiers_roulette_sequence.toString();
+    if (!tiers_roulette_sequence.empty())
+        tiers_roulette->populateFromBuffer(
+                tiers_roulette_sequence.size(),
+                tiers_roulette_sequence.c_str());
+
 }   // initRest
 
 //=============================================================================
@@ -2228,13 +2235,6 @@ int main(int argc, char *argv[])
         }
         else
             ServerConfig::loadServerConfig();
-
-        irr::core::stringc tiers_roulette_sequence =
-            ServerConfig::m_tiers_roulette_sequence.toString();
-        if (!tiers_roulette_sequence.empty())
-            tiers_roulette->populateFromBuffer(
-                    tiers_roulette_sequence.size(),
-                    tiers_roulette_sequence.c_str());
 
         if (CommandLine::has("--wan-server", &s))
         {
