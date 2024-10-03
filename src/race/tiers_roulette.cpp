@@ -97,7 +97,8 @@ std::string TierSRoulette::RouletteEntry::asHumanReadable() const
             break;
     }
 
-    if (m_powerup_special_modifier != Powerup::SpecialModifier::TSM_NONE)
+    if (!res.empty() &&
+            m_powerup_special_modifier != Powerup::SpecialModifier::TSM_NONE)
         res += " + ";
     switch (m_powerup_special_modifier)
     {
@@ -111,7 +112,7 @@ std::string TierSRoulette::RouletteEntry::asHumanReadable() const
             break;
     }
     
-    if (m_world_tmodifiers != 0)
+    if (!res.empty() && m_world_tmodifiers != 0)
         res += " + ";
 
     if (m_world_tmodifiers & TIERS_TMODIFIER_CHAOSPARTY)
@@ -131,7 +132,7 @@ std::size_t TierSRoulette::readOneFromString(
     *out_world_tmodifiers = 0;
 
     if (!size || !buf)
-        return 0;
+        return size;
 
     std::size_t cur_min_id = 0;
     std::size_t cur_max_id = 0;  // for each tested word in the chain
@@ -191,7 +192,9 @@ void TierSRoulette::populateFromBuffer(const std::size_t size, const char* buf)
     std::size_t cur_min_id = 0;
     while (cur_min_id < size)
     {
-        RouletteEntry re(size, buf, &cur_min_id);
+        RouletteEntry re;
+        cur_min_id += readOneFromString(size - cur_min_id, buf + cur_min_id,
+               &re.m_kart_restriction, &re.m_powerup_special_modifier, &re.m_world_tmodifiers);
         m_roulette_entries.push_back(
                 re);
         Log::verbose("TierSRoulette", "Entry: %s.",
@@ -199,7 +202,6 @@ void TierSRoulette::populateFromBuffer(const std::size_t size, const char* buf)
         if (!cur_min_id)
             return;
 
-        cur_min_id++;
     }
 }
 

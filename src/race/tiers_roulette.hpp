@@ -42,6 +42,12 @@ public:
 
     struct RouletteEntry
     {
+        RouletteEntry()
+        {
+            m_kart_restriction = KartRestrictionMode::NONE;
+            m_powerup_special_modifier = Powerup::SpecialModifier::TSM_NONE;
+            m_world_tmodifiers = 0;
+        };
         RouletteEntry(std::size_t size, const char* buf,
                 std::size_t* out_size = nullptr);
 

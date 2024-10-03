@@ -222,6 +222,50 @@ void mainLoop(STKHost* host)
             }
             sl->sendStringToAllPeers(message);
         }
+        else if (str == "cakeparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            RaceManager::get()->setPowerupSpecialModifier(
+                    state ? Powerup::TSM_CAKEPARTY : Powerup::TSM_NONE);
+
+            std::string message("Cake party is now ");
+            if (state)
+            {
+                message += "ACTIVE. Bonus boxes only give 2 cakes.";
+            }
+            else
+            {
+                message += "INACTIVE. All standard items as normal.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "chaosparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+
+            std::string message("Chaos party is now ");
+            if (state)
+            {
+                RaceManager::get()->applyWorldTimedModifiers(TIERS_TMODIFIER_CHAOSPARTY);
+                message += "ACTIVE. Random powerups of 50 are given to everyone each minute.";
+            }
+            else
+            {
+                RaceManager::get()->eraseWorldTimedModifiers(TIERS_TMODIFIER_CHAOSPARTY);
+                message += "INACTIVE.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
         else if (str == "start" && NetworkConfig::get()->isServer())
         {
             auto sl = LobbyProtocol::get<ServerLobby>();

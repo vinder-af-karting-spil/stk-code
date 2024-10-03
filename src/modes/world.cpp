@@ -502,18 +502,6 @@ std::shared_ptr<AbstractKart> World::createKart
     /** TierS: bowlparty and other powerup modifiers */
     new_kart->getPowerup()->setSpecialModifier(
             RaceManager::get()->getPowerupSpecialModifier());
-    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
-    {
-        // chaosparty
-        new_kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
-
-        RandomGenerator rg;
-        unsigned int pw = rg.get(
-                PowerupManager::POWERUP_MAX - 4 - 1) + 1;
-        if (pw >= PowerupManager::POWERUP_PLUNGER)
-            pw++;
-        new_kart->setPowerup((PowerupManager::PowerupType)pw, 50);
-    }
     Controller *controller = NULL;
     switch(kart_type)
     {
@@ -718,6 +706,8 @@ World::~World()
  */
 void World::onGo()
 {
+    // manually trigger the tiers world timed modifier for chaosparty
+    m_wtm_chaosparty_ticks += stk_config->time2Ticks(60.0f);
     // Reset the brakes now that the prestart
     // phase is over (braking prevents the karts
     // from sliding downhill)
@@ -1119,13 +1109,19 @@ void World::updateTSMFeatures(const int ticks)
         for (auto& kart : getKarts())
         {
             kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+            kart->setEnergy(0.0f);
 
             RandomGenerator rg;
             unsigned int pw = rg.get(
-                    PowerupManager::POWERUP_MAX - 4 - 1) + 1;
+                    PowerupManager::POWERUP_MAX - 4 - 3) + 1;
+            if (pw >= PowerupManager::POWERUP_SWATTER)
+                pw++;
+            if (pw >= PowerupManager::POWERUP_SWITCH)
+                pw++;
             if (pw >= PowerupManager::POWERUP_PLUNGER)
                 pw++;
             kart->setPowerup((PowerupManager::PowerupType)pw, 50);
+            kart->setEnergy(100.0f);
 
             if (!kart->getController()->isNetworkPlayerController())
                 return;
@@ -1140,8 +1136,11 @@ void World::updateTSMFeatures(const int ticks)
             if (!npp)
                 return;
 
-            std::string msg("Powerup randomized after a minute!");
+            std::string msg("Powerup randomized! Nitro is filled up!");
             std::shared_ptr<STKPeer> peer = npp->getPeer();
+            if (!peer)
+                return;
+
             sl->sendStringToPeer(msg, peer);
         }
     }
@@ -1718,18 +1717,6 @@ std::shared_ptr<AbstractKart> World::createKartWithTeam
     /** TierS: bowlparty and other powerup modifiers */
     new_kart->getPowerup()->setSpecialModifier(
             RaceManager::get()->getPowerupSpecialModifier());
-    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
-    {
-        // chaosparty
-        new_kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
-
-        RandomGenerator rg;
-        unsigned int pw = rg.get(
-                PowerupManager::POWERUP_MAX - 4 - 1) + 1;
-        if (pw >= PowerupManager::POWERUP_PLUNGER)
-            pw++;
-        new_kart->setPowerup((PowerupManager::PowerupType)pw, 50);
-    }
     Controller *controller = NULL;
     std::weak_ptr<NetworkPlayerProfile> npp;
 

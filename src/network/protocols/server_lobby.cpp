@@ -3994,10 +3994,15 @@ void ServerLobby::clientDisconnected(Event* event)
     // On last player
     if (!STKHost::get()->getPeerCount())
     {
-        setKartRestrictionMode(NONE);
-        setPoleEnabled(false);
-        RaceManager::get()->setPowerupSpecialModifier(
-            Powerup::TSM_NONE);
+        if (!ServerConfig::m_tiers_roulette)
+        {
+            setKartRestrictionMode(NONE);
+            setPoleEnabled(false);
+            RaceManager::get()->setPowerupSpecialModifier(
+                Powerup::TSM_NONE);
+        }
+        m_blue_pole_votes.clear();
+        m_red_pole_votes.clear();
     }
     else 
     {
@@ -4007,8 +4012,8 @@ void ServerLobby::clientDisconnected(Event* event)
             m_blue_pole_votes.erase(b);
         if (r != m_red_pole_votes.cend())
             m_red_pole_votes.erase(r);
-        RaceManager::get()->resetPoleProfile(event->getPeer());
     }
+    RaceManager::get()->resetPoleProfile(event->getPeer());
     // reset player command votings
     if (ServerConfig::m_command_voting && peer->hasPlayerProfiles())
     {
@@ -7420,7 +7425,8 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_tiers_roulette && 
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
@@ -7466,7 +7472,8 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
@@ -7512,7 +7519,8 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
@@ -7559,7 +7567,8 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
@@ -7614,7 +7623,8 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if ((noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
