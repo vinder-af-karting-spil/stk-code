@@ -7983,7 +7983,7 @@ unmute_error:
         sendStringToPeer(msg, peer);
         return;
     }
-    if (argv[0] == "help" && argv[1] == "ranking")
+    else if (argv[0] == "help" && argv[1] == "ranking")
     {
         std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
         sendStringToPeer(msg, peer);
@@ -8013,15 +8013,6 @@ unmute_error:
 		sendStringToPeer(msg, peer);
 	}
 	return;
-    }
-    else if (argv[0] == "admins")
-    {
-         if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
-         {
-              std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
-              sendStringToPeer(msg, peer);
-              return;
-         }
     }
     else if (argv[0] == "admins")
     {

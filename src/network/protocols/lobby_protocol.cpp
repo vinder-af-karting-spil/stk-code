@@ -277,7 +277,7 @@ void LobbyProtocol::addLiveJoiningKart(int kart_id, const RemoteKartInfo& rki,
         if (pw >= PowerupManager::POWERUP_PLUNGER)
             pw++;
         k->setPowerup((PowerupManager::PowerupType)pw, 50);
-        k->setEnergy(100.0f);
+        k->setEnergy(20.0f);
     }
 }   // addLiveJoiningKart
 
