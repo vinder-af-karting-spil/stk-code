@@ -264,20 +264,7 @@ void LobbyProtocol::addLiveJoiningKart(int kart_id, const RemoteKartInfo& rki,
                 rki.getNetworkPlayerProfile().lock().get());
     if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
     {
-        k->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
-        k->setEnergy(0.0f);
-
-        RandomGenerator rg;
-        unsigned int pw = rg.get(
-                PowerupManager::POWERUP_MAX - 4 - 3) + 1;
-        if (pw >= PowerupManager::POWERUP_SWATTER)
-            pw++;
-        if (pw >= PowerupManager::POWERUP_SWITCH)
-            pw++;
-        if (pw >= PowerupManager::POWERUP_PLUNGER)
-            pw++;
-        k->setPowerup((PowerupManager::PowerupType)pw, 50);
-        k->setEnergy(20.0f);
+        RaceManager::get()->chaosGivePowerup(k);
     }
 }   // addLiveJoiningKart
 

@@ -998,6 +998,9 @@ public:
     // ----------------------------------------------------------------------------------------
     uint32_t eraseWorldTimedModifiers(uint32_t value);
     // ----------------------------------------------------------------------------------------
+    // Chaos party
+    void chaosGivePowerup(AbstractKart* kart);
+    // ----------------------------------------------------------------------------------------
 
     Powerup::SpecialModifier getPowerupSpecialModifier() const { return m_powerup_special_modifier; }
     void setPowerupSpecialModifier(Powerup::SpecialModifier modifier);

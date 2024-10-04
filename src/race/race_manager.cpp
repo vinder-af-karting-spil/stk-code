@@ -52,6 +52,8 @@
 #include "network/network_config.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/global_log.hpp"
+#include "network/protocols/lobby_protocol.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/stk_peer.hpp"
 #include "replay/replay_play.hpp"
 #include "scriptengine/property_animator.hpp"
@@ -1464,4 +1466,41 @@ uint32_t RaceManager::eraseWorldTimedModifiers(const uint32_t value)
 {
     m_world_tmodifiers &= ~value;
     return m_world_tmodifiers;
+}
+//---------------------------------------------------------------------------------------------
+void RaceManager::chaosGivePowerup(AbstractKart* kart)
+{
+    kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+
+    RandomGenerator rg;
+    unsigned int pw = rg.get(
+            PowerupManager::POWERUP_MAX - 4 - 3) + 1;
+    if (pw >= PowerupManager::POWERUP_SWATTER)
+        pw++;
+    if (pw >= PowerupManager::POWERUP_SWITCH)
+        pw++;
+    if (pw >= PowerupManager::POWERUP_PLUNGER)
+        pw++;
+    kart->setPowerup((PowerupManager::PowerupType)pw, 50);
+    kart->setEnergy(5.0f);
+
+    if (!kart->getController()->isNetworkPlayerController())
+        return;
+    
+    // also notify the player with ServerLobby protocol if available
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    NetworkPlayerProfile* npp = 
+        kart->getController()->getNetworkPlayerProfile();
+    if (!npp)
+        return;
+
+    std::string msg("Powerup randomized! Nitro is filled up!");
+    std::shared_ptr<STKPeer> peer = npp->getPeer();
+    if (!peer)
+        return;
+
+    sl->sendStringToPeer(msg, peer);
 }

@@ -1108,40 +1108,7 @@ void World::updateTSMFeatures(const int ticks)
         // trigger chaos party: set random powerup in 50 every 60 seconds
         for (auto& kart : getKarts())
         {
-            kart->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
-            kart->setEnergy(0.0f);
-
-            RandomGenerator rg;
-            unsigned int pw = rg.get(
-                    PowerupManager::POWERUP_MAX - 4 - 3) + 1;
-            if (pw >= PowerupManager::POWERUP_SWATTER)
-                pw++;
-            if (pw >= PowerupManager::POWERUP_SWITCH)
-                pw++;
-            if (pw >= PowerupManager::POWERUP_PLUNGER)
-                pw++;
-            kart->setPowerup((PowerupManager::PowerupType)pw, 50);
-            kart->setEnergy(100.0f);
-
-            if (!kart->getController()->isNetworkPlayerController())
-                continue;
-            
-            // also notify the player with ServerLobby protocol if available
-            auto sl = LobbyProtocol::get<ServerLobby>();
-            if (!sl)
-                return;
-
-            NetworkPlayerProfile* npp = 
-                kart->getController()->getNetworkPlayerProfile();
-            if (!npp)
-                continue;
-
-            std::string msg("Powerup randomized! Nitro is filled up!");
-            std::shared_ptr<STKPeer> peer = npp->getPeer();
-            if (!peer)
-                continue;
-
-            sl->sendStringToPeer(msg, peer);
+            RaceManager::get()->chaosGivePowerup(kart.get());
         }
     }
 }   // updateTSMFeatures
