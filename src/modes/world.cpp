@@ -1124,7 +1124,7 @@ void World::updateTSMFeatures(const int ticks)
             kart->setEnergy(100.0f);
 
             if (!kart->getController()->isNetworkPlayerController())
-                return;
+                continue;
             
             // also notify the player with ServerLobby protocol if available
             auto sl = LobbyProtocol::get<ServerLobby>();
@@ -1134,12 +1134,12 @@ void World::updateTSMFeatures(const int ticks)
             NetworkPlayerProfile* npp = 
                 kart->getController()->getNetworkPlayerProfile();
             if (!npp)
-                return;
+                continue;
 
             std::string msg("Powerup randomized! Nitro is filled up!");
             std::shared_ptr<STKPeer> peer = npp->getPeer();
             if (!peer)
-                return;
+                continue;
 
             sl->sendStringToPeer(msg, peer);
         }
