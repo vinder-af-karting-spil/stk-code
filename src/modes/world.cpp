@@ -707,7 +707,8 @@ World::~World()
 void World::onGo()
 {
     // manually trigger the tiers world timed modifier for chaosparty
-    m_wtm_chaosparty_ticks += stk_config->time2Ticks(60.0f);
+    if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
+        m_wtm_chaosparty_ticks += stk_config->time2Ticks(30.0f);
     // Reset the brakes now that the prestart
     // phase is over (braking prevents the karts
     // from sliding downhill)
@@ -1099,7 +1100,7 @@ void World::updateTSMFeatures(const int ticks)
     if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
     {
         // chaosparty
-        if (m_wtm_chaosparty_ticks < stk_config->time2Ticks(60.0f))
+        if (m_wtm_chaosparty_ticks < stk_config->time2Ticks(30.0f))
         {
             m_wtm_chaosparty_ticks += ticks;
             return;
