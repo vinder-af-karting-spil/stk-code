@@ -7970,6 +7970,12 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
+       else if (argv[1] == "eventsoccer")
+       {
+	       std::string msg = "in TierS Eventsoccer, the match shifts between three partys modes 👀  Heavyparty, mediumparty, and ofcourse lightparty. But thats not all, every 30 seconds, new powerups appear, for each player.";
+	       sendStringToPeer(msg, peer);
+	       return;
+       }	
         else
         {
             std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
