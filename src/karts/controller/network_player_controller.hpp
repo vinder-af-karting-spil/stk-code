@@ -52,6 +52,8 @@ public:
     virtual bool  isNetworkPlayerController () const OVERRIDE  { return true; }
     virtual NetworkPlayerProfile*
         getNetworkPlayerProfile () const OVERRIDE  { return m_player_profile; }
+    virtual void updateNetworkPlayerProfile(NetworkPlayerProfile* npp) OVERRIDE
+    { m_player_profile = npp; };
     // ------------------------------------------------------------------------
     /** Update for network controller. For player with a high ping it is
      *  useful to reduce shaking by reducing the steering somewhat in each

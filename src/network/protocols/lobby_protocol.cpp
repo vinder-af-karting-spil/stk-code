@@ -259,6 +259,9 @@ void LobbyProtocol::addLiveJoiningKart(int kart_id, const RemoteKartInfo& rki,
     World::getWorld()->initTeamArrows(k);
     if (!k->getController()->isLocalPlayerController())
         k->setOnScreenText(rki.getPlayerName().c_str());
+    if (k->getController()->isNetworkPlayerController())
+        k->getController()->updateNetworkPlayerProfile(
+                rki.getNetworkPlayerProfile().lock().get());
     if (RaceManager::get()->getWorldTimedModifiers() & TIERS_TMODIFIER_CHAOSPARTY)
     {
         k->setPowerup(PowerupManager::POWERUP_NOTHING, 0);

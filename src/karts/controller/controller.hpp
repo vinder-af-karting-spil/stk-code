@@ -80,6 +80,7 @@ public:
     virtual bool  isNetworkPlayerController () const { return false; };
     virtual NetworkPlayerProfile*
                   getNetworkPlayerProfile () const { return nullptr; };
+    virtual void updateNetworkPlayerProfile(NetworkPlayerProfile* npp) {}
     virtual bool  disableSlipstreamBonus() const = 0;
     virtual bool  saveState(BareNetworkString *buffer) const = 0;
     virtual void  rewindTo(BareNetworkString *buffer) = 0;
