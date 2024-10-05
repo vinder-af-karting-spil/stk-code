@@ -1481,8 +1481,8 @@ void RaceManager::chaosGivePowerup(AbstractKart* kart)
         pw++;
     if (pw >= PowerupManager::POWERUP_PLUNGER)
         pw++;
-    kart->setPowerup((PowerupManager::PowerupType)pw, 50);
-    kart->setEnergy(kart->getEnergy() + 4.0f);
+    kart->setPowerup((PowerupManager::PowerupType)pw, 10);
+    kart->setEnergy(kart->getEnergy() + 7.0f);
 
     if (!kart->getController()->isNetworkPlayerController())
         return;
