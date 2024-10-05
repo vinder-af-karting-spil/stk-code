@@ -80,6 +80,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <regex>
 
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
@@ -7405,7 +7406,13 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (ServerConfig::m_allow_heavyparty && (argv[0] == "heavyparty" || argv[0] == "hp"))
     {
         irr::core::stringw response;
-        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+	if (argv[0] == "hp")
+	{
+	    argv[0] = "heavyparty";
+	    cmd = std::regex_replace(cmd,std::regex("hp"),"heavyparty");
+	}
+
+    	if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
             auto chat = getNetworkString();
             chat->setSynchronous(true);
@@ -7452,6 +7459,13 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (ServerConfig::m_allow_mediumparty && (argv[0] == "mediumparty" || argv[0] == "mp"))
     {
         irr::core::stringw response;
+
+	if (argv[0] == "mp")
+	{	
+	    argv[0] = "mediumparty";
+	    cmd = std::regex_replace(cmd,std::regex("mp"),"mediumparty");
+	}
+
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
             auto chat = getNetworkString();
@@ -7499,6 +7513,13 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (ServerConfig::m_allow_lightparty && (argv[0] == "lightparty" || argv[0] == "lp"))
     {
         irr::core::stringw response;
+
+	if (argv[0] == "lp")
+	{	
+	    argv[0] = "lightparty";
+	    cmd = std::regex_replace(cmd,std::regex("lp"),"lightparty");
+        }
+
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
             auto chat = getNetworkString();
@@ -7546,6 +7567,13 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (argv[0] == "bowlparty" || argv[0] == "bp")
     {
         irr::core::stringw response;
+
+	if (argv[0] == "bp")
+	{
+	    argv[0] = "bowlparty";
+	    cmd = std::regex_replace(cmd,std::regex("bp"),"bowlparty");
+	}
+
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
             auto chat = getNetworkString();
@@ -7602,6 +7630,18 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (argv[0] == "cakeparty" || argv[0] == "cp" || argv[0] == "cakefest")
     {
         irr::core::stringw response;
+	
+	if (argv[0] == "cp")
+	{	
+	    argv[0] = "cakeparty";
+	    cmd = std::regex_replace(cmd,std::regex("cp"),"cakeparty");
+        }
+	else if (argv[0] == "cakefest")
+	{
+	    argv[0] = "cakeparty";
+	    cmd = std::regex_replace(cmd,std::regex("cakefest"),"cakeparty");
+	}
+
         if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
             auto chat = getNetworkString();
