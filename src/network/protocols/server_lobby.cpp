@@ -7844,7 +7844,7 @@ unmute_error:
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
             L" /start /end /bug /rank /rank10|top /autoteams " 
-            L"/bowlparty|bp /cakeparty|cp /start /end /bug /rank /rank10|top /autoteams /help (command)"
+            L"/bowlparty|bp /cakeparty|cp /start /end /bug /feature /rank /rank10|top /autoteams /help (command)"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -8069,8 +8069,14 @@ unmute_error:
             return;
         }
     }
-    else if (argv[0] == "autoteams")
+    else if (argv[0] == "autoteams" || argv[0] == "mix")
     {
+	    if argv[0] == "mix")
+	    {
+		    argv[0] = "autoteams";
+		    cmd = std::regex_replace(cmd, std::regex("mix"), "autoteams");
+	    }
+
         if ((noVeto || (player && player->getVeto() < 100)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
