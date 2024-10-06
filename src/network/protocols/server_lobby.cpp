@@ -8071,7 +8071,7 @@ unmute_error:
     }
     else if (argv[0] == "autoteams" || argv[0] == "mix")
     {
-	    if argv[0] == "mix")
+	    if (argv[0] == "mix")
 	    {
 		    argv[0] = "autoteams";
 		    cmd = std::regex_replace(cmd, std::regex("mix"), "autoteams");
