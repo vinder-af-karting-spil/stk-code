@@ -8060,6 +8060,23 @@ unmute_error:
 	}
 	return;
     }
+    else if (argv[0] == "when")
+    {
+        if (argv.size() > 2) return;
+
+        if (argv.size() == 1 || argv.size() > 2)
+        {
+            std::string msg = "Use /when eventsoccer";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (argv[1] == "eventsoccer")
+        {
+            std::string msg = "The eventsoccer server is always online from Saturday to Monday";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
     else if (argv[0] == "admins")
     {
         if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
