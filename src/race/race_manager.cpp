@@ -1088,15 +1088,17 @@ void RaceManager::kartFinishedRace(const AbstractKart *kart, float time)
     m_kart_status[id].m_overall_time += time;
     m_kart_status[id].m_last_time     = time;
 
-    // Log the finisher for wrapper handling
-    std::string player_name = GlobalLog::getPlayerName(id);
-    std::string kart_name = kart->getIdent();
-    Log::verbose("RaceManager", "Finisher: %s %f %s",
-            player_name.c_str(), time, kart_name.c_str());
-    // legacy support
-    GlobalLog::writeLog(kart_name + " " + std::to_string(time) + " " + kart_name + "\n",
-            GlobalLogTypes::GOAL_LOG);
-
+    if (!kart->isEliminated())
+    {
+        // Log the finisher for wrapper handling
+        std::string player_name = GlobalLog::getPlayerName(id);
+        std::string kart_name = kart->getIdent();
+        Log::verbose("RaceManager", "Finisher: %s %f %s",
+                player_name.c_str(), time, kart_name.c_str());
+        // legacy support
+        GlobalLog::writeLog(kart_name + " " + std::to_string(time) + " " + kart_name + "\n",
+                GlobalLogTypes::GOAL_LOG);
+    }
     m_num_finished_karts ++;
     if(kart->getController()->isPlayerController())
         m_num_finished_players++;

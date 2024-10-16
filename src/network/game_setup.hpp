@@ -94,6 +94,22 @@ public:
     // ------------------------------------------------------------------------
     void addServerInfo(NetworkString* ns);
     // ------------------------------------------------------------------------
+    void addModifiedServerInfo(
+            NetworkString* ns,
+            int difficulty = -1,
+            int server_max_players = -1,
+            uint8_t extra_spectators = 0,
+            int server_game_mode = -1,
+            int extra_server_info = -1,
+            int min_start_game_players = -1,
+            float start_game_counter = -1.0f,
+            const irr::core::stringw& motd = "",
+            bool motd_override = false,
+            bool configurable = false,
+            bool configurable_override = false,
+            bool live_players = false,
+            bool live_players_override = false);
+    // ------------------------------------------------------------------------
     void loadWorld();
     // ------------------------------------------------------------------------
     bool isGrandPrix() const                 { return m_is_grand_prix.load(); }

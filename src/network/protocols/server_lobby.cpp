@@ -6707,7 +6707,38 @@ void ServerLobby::handleServerCommand(Event* event,
             peer->setAlwaysSpectate(ASM_NONE);
         updatePlayerList();
     }
+    else if (argv[0] == "addtime" || argv[0] == "addt")
+    {
+        std::string msg;
+        int amount_sec = 0;
+        
+        if (argv.size() < 2)
+        {
+            msg = "You need to specify the amount of seconds to add.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        amount_sec = std::stoi(argv[1]);
+        if ((long)amount_sec * 1000 < m_timeout.load() - StkTime::getMonoTimeMs() || (amount_sec > 3600 &&
+                    player->getPermissionLevel() < 100))
+        {
+            msg = "Seconds should be between 1 and 3600.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
+        if ((noVeto || player->getVeto() < 60) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                player->getPermissionLevel() < 60) 
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        changeTimeout(amount_sec, false, false);
+    }
     else if (argv[0] == "score" || argv[0] == "sc")
     {
         if (m_state.load() != RACING)
@@ -7839,7 +7870,8 @@ unmute_error:
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         core::stringw res = (
-            L"/showcommands|commands|cmds|cmd /vote /spectate|s|sp|spec|spect /score|sc /teamchat|tc|tchat "
+            L"/showcommands|commands|cmds|cmd /vote /spectate|s|sp|spec|spect /addtime|addt"
+            L" /score|sc /teamchat|tc|tchat "
             L"/to|msg|dm|pm /slots|sl /public|pub|all "
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
@@ -10179,3 +10211,54 @@ void ServerLobby::soccer_ranked_make_teams(std::pair<std::vector<std::string>, s
     return;
 }
 
+int64_t ServerLobby::getTimeout()
+{
+    return m_timeout.load();
+}
+void ServerLobby::changeTimeout(long timeout, bool infinite, bool absolute)
+{
+    std::string msg;
+
+    if (infinite)
+        m_timeout.store(std::numeric_limits<std::int64_t>::max());
+    else if (absolute)
+        m_timeout.store(timeout * 1000);
+    else
+        m_timeout.store(m_timeout.load() + timeout * 1000);
+
+    // new configuration
+    NetworkString* server_info = getNetworkString();
+    server_info->setSynchronous(true);
+    server_info->addUInt8(LE_SERVER_INFO);
+    float auto_start_timer = 0.0f;
+    if (m_timeout.load() == std::numeric_limits<int64_t>::max())
+        auto_start_timer = std::numeric_limits<float>::max();
+    else
+    {
+        auto_start_timer =
+            (m_timeout.load() - (int64_t)StkTime::getMonoTimeMs()) / 1000.0f;
+    }
+    m_game_setup->addModifiedServerInfo(
+            server_info, -1, -1, 0, -1, -1, -1,
+            auto_start_timer);
+    if (absolute)
+    {
+        msg = StringUtils::insertValues(
+                "Set %d seconds for the start timeout.", timeout);
+    }
+    else
+    {
+        msg = StringUtils::insertValues(
+                "Added %d seconds to the start timeout.", timeout);
+    }
+    STKHost::get()->sendPacketToAllPeersWith(
+            [](STKPeer* p)
+            {
+                return p && p->isConnected() && 
+                    p->isValidated() &&
+                    p->isWaitingForGame();
+            }, server_info);
+
+    // and also send the changing seconds notification
+    sendStringToAllPeers(msg);
+}
