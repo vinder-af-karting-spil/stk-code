@@ -145,12 +145,6 @@ void mainLoop(STKHost* host)
             int64_t amount_sec = 0;
             amount_sec = std::stol(str2);
 
-            if (amount_sec * 1000 < sl->getTimeout() - StkTime::getMonoTimeMs())
-            {
-                std::cout << "Cannot remove more timeout than there is." << std::endl;
-                continue;
-            }
-
             sl->changeTimeout(amount_sec);
             std::cout << "Timeout changed by " << amount_sec << "." << std::endl;
         }

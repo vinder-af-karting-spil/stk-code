@@ -6718,7 +6718,7 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
         amount_sec = std::stoi(argv[1]);
-        if ((long)amount_sec * 1000 < m_timeout.load() - StkTime::getMonoTimeMs() || (amount_sec > 3600 &&
+        if (amount_sec < 1 || (amount_sec > 3600 &&
                     player->getPermissionLevel() < 100))
         {
             msg = "Seconds should be between 1 and 3600.";
