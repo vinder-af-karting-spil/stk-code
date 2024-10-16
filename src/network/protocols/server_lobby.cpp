@@ -10177,7 +10177,7 @@ void ServerLobby::changeTimeout(long timeout, bool infinite, bool absolute)
     }
     m_game_setup->addModifiedServerInfo(
             server_info, -1, -1, 0, -1, -1, -1,
-            auto_start_timer);
+            auto_start_timer, "", false, false, false, false, false);
     if (absolute)
     {
         msg = StringUtils::insertValues(
