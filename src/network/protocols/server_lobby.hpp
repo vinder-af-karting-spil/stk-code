@@ -551,6 +551,8 @@ public:
     int unbanPlayer(const std::string& name);
     const std::string formatBanList(unsigned int page = 0, unsigned int psize = 8);
     const std::string formatBanInfo(const std::string& name);
+    int64_t getTimeout();
+    void changeTimeout(long timeout, bool infinite = false, bool absolute = false);
 
     std::map<std::string, std::vector<std::string>> m_command_voters;
     std::set<STKPeer*> m_team_speakers;
