@@ -10251,13 +10251,7 @@ void ServerLobby::changeTimeout(long timeout, bool infinite, bool absolute)
         msg = StringUtils::insertValues(
                 "Added %d seconds to the start timeout.", timeout);
     }
-    STKHost::get()->sendPacketToAllPeersWith(
-            [](STKPeer* p)
-            {
-                return p && p->isConnected() && 
-                    p->isValidated() &&
-                    p->isWaitingForGame();
-            }, server_info);
+    STKHost::get()->sendPacketToAllPeers(server_info);
 
     // and also send the changing seconds notification
     sendStringToAllPeers(msg);

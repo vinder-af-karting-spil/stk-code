@@ -285,28 +285,7 @@ void GameSetup::addModifiedServerInfo(
     }
     else
         ns->addUInt8(0).addFloat(0.0f);
-#if 0
-    if (!m_addons_of_the_day.empty()) {
-        // In case config has random-installaddon-lines
-	irr::core::stringw total_motd(m_message_of_today);
-	
-	// Delimiter for the prefix
-	total_motd.append(L"\n", 1);
-	total_motd.append(StringUtils::utf8ToWide(ServerConfig::m_ril_prefix));
-	total_motd.append(L" ", 1);
-
-	// Pick random line
-        std::random_device rd;
-        std::mt19937_64 g(rd());
-
-	// add the latter
-        total_motd.append( m_addons_of_the_day[g() % m_addons_of_the_day.size()] );
-        ns->encodeString16(total_motd);
-
-    }
-    else
-#endif
-    ns->encodeString16(m_message_of_today);
+    ns->encodeString16(motd_override ? motd : m_message_of_today);
     ns->addUInt8((uint8_t)configurable);
     ns->addUInt8(live_players? 1 : 0);
 }   // addModifiedServerInfo
