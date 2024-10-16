@@ -213,6 +213,103 @@ void GameSetup::addServerInfo(NetworkString* ns)
     ns->addUInt8((uint8_t)ServerConfig::m_server_configurable);
     ns->addUInt8(ServerConfig::m_live_players? 1 : 0);
 }   // addServerInfo
+//-----------------------------------------------------------------------------
+void GameSetup::addModifiedServerInfo(
+        NetworkString* ns,
+        int difficulty,
+        int server_max_players,
+        uint8_t extra_spectators,
+        int server_game_mode,
+        int extra_server_info,
+        int min_start_game_players,
+        float start_game_counter,
+        const irr::core::stringw& motd,
+        bool motd_override,
+        bool configurable,
+        bool configurable_override,
+        bool live_players,
+        bool live_players_override)
+{
+#ifdef DEBUG
+    assert(NetworkConfig::get()->isServer());
+#endif
+    ns->encodeString(m_server_name_utf8);
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    assert(sl);
+
+    if (difficulty == -1)
+        difficulty = sl->getDifficulty();
+    if (server_max_players == -1)
+        server_max_players = ServerConfig::m_server_max_players;
+    if (server_game_mode == -1)
+        server_game_mode = sl->getGameMode();
+    if (min_start_game_players == -1)
+        min_start_game_players = ServerConfig::m_min_start_game_players;
+    if (start_game_counter == -1.0f)
+        start_game_counter = ServerConfig::m_start_game_counter;
+    if (!configurable_override)
+        configurable = ServerConfig::m_server_configurable;
+    if (!live_players_override)
+        live_players = ServerConfig::m_live_players;
+
+    ns->addUInt8((uint8_t)difficulty)
+        .addUInt8((uint8_t)server_max_players)
+        // Reserve for extra spectators
+        .addUInt8(extra_spectators)
+        .addUInt8(server_game_mode);
+    if (hasExtraSeverInfo() && extra_server_info == -1)
+    {
+        if (isGrandPrix())
+        {
+            uint8_t cur_track = (uint8_t)m_tracks.size();
+            if (!isGrandPrixStarted())
+                cur_track = 0;
+            ns->addUInt8((uint8_t)2).addUInt8(cur_track)
+                .addUInt8(getExtraServerInfo());
+        }
+        else
+        {
+            // Soccer mode
+            ns->addUInt8((uint8_t)1).addUInt8(getExtraServerInfo());
+        }
+    }
+    else
+    {
+        // No extra server info
+        ns->addUInt8((uint8_t)extra_server_info);
+    }
+    if (ServerConfig::m_owner_less)
+    {
+        ns->addUInt8(min_start_game_players)
+            .addFloat(start_game_counter);
+    }
+    else
+        ns->addUInt8(0).addFloat(0.0f);
+#if 0
+    if (!m_addons_of_the_day.empty()) {
+        // In case config has random-installaddon-lines
+	irr::core::stringw total_motd(m_message_of_today);
+	
+	// Delimiter for the prefix
+	total_motd.append(L"\n", 1);
+	total_motd.append(StringUtils::utf8ToWide(ServerConfig::m_ril_prefix));
+	total_motd.append(L" ", 1);
+
+	// Pick random line
+        std::random_device rd;
+        std::mt19937_64 g(rd());
+
+	// add the latter
+        total_motd.append( m_addons_of_the_day[g() % m_addons_of_the_day.size()] );
+        ns->encodeString16(total_motd);
+
+    }
+    else
+#endif
+    ns->encodeString16(m_message_of_today);
+    ns->addUInt8((uint8_t)configurable);
+    ns->addUInt8(live_players? 1 : 0);
+}   // addModifiedServerInfo
 
 //-----------------------------------------------------------------------------
 void GameSetup::sortPlayersForGrandPrix(

@@ -35,6 +35,7 @@
 
 #include <iostream>
 #include <limits>
+#include <string>
 #include "utils/string_utils.hpp"
 
 #ifndef WIN32
@@ -133,6 +134,25 @@ void mainLoop(STKHost* host)
         else if (str == "quit")
         {
             host->requestShutdown();
+        }
+        else if (str == "addtime" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            int64_t amount_sec = 0;
+            amount_sec = std::stol(str2);
+
+            if (amount_sec * 1000 < sl->getTimeout() - StkTime::getMonoTimeMs())
+            {
+                std::cout << "Cannot remove more timeout than there is." << std::endl;
+                continue;
+            }
+
+            sl->changeTimeout(amount_sec);
+            std::cout << "Timeout changed by " << amount_sec << "." << std::endl;
         }
         else if (str == "heavyparty" && str2 != "" &&
             NetworkConfig::get()->isServer())
