@@ -7302,7 +7302,7 @@ void ServerLobby::handleServerCommand(Event* event,
         sendStringToPeer(msg, peer);
     }
     else if (!ServerConfig::m_feature_filepath.toString().empty() && 
-            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm" || argv[0] == "bug"))
+            (argv[0] == "feature" || argv[0] == "inform" || argv[0] == "ifm" || argv[0] == "bug" || argv[0] == "suggest"))
     {
         if (!player || player->hasRestriction(PRF_NOCHAT) ||
                 player->getPermissionLevel() <= PERM_NONE)
@@ -7887,7 +7887,7 @@ unmute_error:
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
             L" /start /end /bug /rank /rank10|top /autoteams " 
-            L"/bowlparty|bp /cakeparty|cp /start /end /bug /feature /rank /rank10|top /autoteams /help (command) /when eventsoccer"
+            L"/bowlparty|bp /cakeparty|cp /start /end /bug /feature|suggest /rank /rank10|top /autoteams /help (command) /when eventsoccer"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
