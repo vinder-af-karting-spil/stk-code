@@ -143,6 +143,10 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-elo",
         "Show the elo after the username in the lobby."));
 
+    SERVER_CFG_PREFIX BoolServerConfigParam m_show_rank
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "show-rank",
+        "Show the rank before the username in the lobby."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_allow_heavyparty
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "allow-heavyparty",
         "Allow heavy party."));

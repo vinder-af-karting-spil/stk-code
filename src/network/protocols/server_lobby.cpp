@@ -272,6 +272,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_player_reports_table_exists = false;
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
     m_show_elo = ServerConfig::m_show_elo;
+    m_show_rank = ServerConfig::m_show_rank;
     m_last_wanrefresh_cmd_time = 0UL;
     m_last_wanrefresh_res = nullptr;
     m_last_wanrefresh_requester.reset();
@@ -4774,12 +4775,22 @@ void ServerLobby::updatePlayerList(bool update_when_reset_server)
         if (spectators_by_limit.find(profile->getPeer()) != spectators_by_limit.end()) 
             profile_name = StringUtils::utf32ToWide({ 0x231B }) + profile_name;
 
-	// Show the Player Elo in case the server have enabled it
-	if (m_show_elo)
-	{
-	    int elo = getPlayerElo(user_name);
-            profile_name = profile_name + L" [" + std::to_wstring(elo).c_str() + L"]";
-	}
+        // Show the Player Elo in case the server have enabled it
+        std::pair<unsigned int, int> elorank;
+        if (m_show_elo || m_show_rank)
+            elorank = getPlayerRanking(user_name);
+        if (m_show_elo)
+            profile_name = profile_name + L" [" + std::to_wstring(elorank.second).c_str() + L"]";
+        if (m_show_rank)
+        {
+            core::stringw rankstr(L"#");
+
+            if (elorank.first == std::numeric_limits<unsigned int>::max())
+                rankstr.append(L"?");
+            else
+                rankstr.append(irr::core::stringw(elorank.first));
+            profile_name = rankstr + L" " + profile_name;
+        }
 
         pl->addUInt32(profile->getHostId()).addUInt32(profile->getOnlineId())
             .addUInt8(profile->getLocalPlayerId())
@@ -8136,7 +8147,7 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
-        int elo = 1500;
+        auto elorank = std::make_pair(0U, 1500);
         std::string msg = "";
         auto peers = STKHost::get()->getPeers();
         std::vector <std::pair<std::string, int>> player_vec;
@@ -8147,8 +8158,8 @@ unmute_error:
                 for (auto player : peer->getPlayerProfiles())
                 {
                     std::string username = StringUtils::wideToUtf8(player->getName());
-                    elo = getPlayerElo(username);
-                    player_vec.push_back(std::pair<std::string, int>(username, elo));
+                    elorank = getPlayerRanking(username);
+                    player_vec.push_back(std::pair<std::string, int>(username, elorank.second));
                     msg = "Player " + username + " will be sent into a team.";
                     Log::info("ServerLobby", msg.c_str());
                 }
@@ -10104,11 +10115,13 @@ const std::string ServerLobby::formatRestrictions(PlayerRestriction prf) const
     return result;
 }
 
-int ServerLobby::getPlayerElo(std::string username) const
+// returns rank and elo
+std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username) const
 {
     std::string fileName = "soccer_ranking.txt";
     std::ifstream in_file(fileName);
     int elo = 0;
+    unsigned int rank = 1;
     std::string player = "";
     std::vector<std::string> split;
     if (in_file.is_open())
@@ -10121,11 +10134,12 @@ int ServerLobby::getPlayerElo(std::string username) const
             elo = int(stof(split[5]));
             player = split[0];
             if (player == username)
-                return elo;
+                return std::make_pair(rank, elo);
+            rank++;
         }
     }
     in_file.close();
-    return 1000;
+    return std::make_pair(std::numeric_limits<unsigned int>::max(), 1000);
 }
 
 std::pair<std::vector<std::string>, std::vector<std::string>> ServerLobby::createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players)
