@@ -205,6 +205,14 @@ namespace ServerConfig
         "Maximum number of players in the game, all other players on "
         "the server are spectators. Specify 0 to allow all players on "
         "the server to play."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_slots_min
+        SERVER_CFG_DEFAULT(IntServerConfigParam(2, "slots-min",
+        "Bottom limit of the /slots command argument that can be voted for."));
+
+    SERVER_CFG_PREFIX IntServerConfigParam m_slots_max
+        SERVER_CFG_DEFAULT(IntServerConfigParam(12, "slots-max",
+        "Top limit of the /slots command argument that can be voted for."));
     
     SERVER_CFG_PREFIX BoolServerConfigParam m_command_voting
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "command-voting",
@@ -232,6 +240,11 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "chat",
         "If this value is set to false, the server will ignore chat messages "
         "from all players."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_global_chat
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "global-chat",
+        "If this is set to true, chat messages won't be separated from players in game and"
+        " lobby."));
 
     SERVER_CFG_PREFIX IntServerConfigParam m_chat_consecutive_interval
         SERVER_CFG_DEFAULT(IntServerConfigParam(8, "chat-consecutive-interval",
@@ -338,6 +351,27 @@ namespace ServerConfig
         "for linear race games, you require permission for that. "
         "validating-player, auto-end, strict-player and owner-less will be "
         "turned on."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_cheats
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "cheats",
+        "Allow cheat commands for non-admins like /item and /nitro."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_infinite_game
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "infinite-game",
+        "Make the games last forever, until /end is done or when all players"
+        " leave the game. For soccer it also acts the same as"
+        " soccer-goal-target set to false, with infinite time."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_cheat_items
+        SERVER_CFG_DEFAULT(StringServerConfigParam(
+        "bowl:10,cake:10,zipper:10,plunger:10,switch:10,swatter:10,gum:10",
+        "cheat-items", "Whitelist of the items:amount that can be get with "
+        "/item command."));
+
+    SERVER_CFG_PREFIX FloatServerConfigParam m_cheat_nitro
+        SERVER_CFG_DEFAULT(FloatServerConfigParam(20.0, "cheat-nitro",
+        "Amount of nitro that is received with /nitro command. Full nitro bar"
+        " is 20.0 units."));
 
     SERVER_CFG_PREFIX BoolServerConfigParam m_server_configurable
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "server-configurable",
@@ -604,6 +638,10 @@ namespace ServerConfig
     void loadServerLobbyFromConfig();
     // ------------------------------------------------------------------------
     std::string getConfigDirectory();
+    // ------------------------------------------------------------------------
+    // TierS additions: /item and /nitro commands
+    // return an amount for an item got in m_cheat_items, otherwise return 0
+    int getCheatQuantity(PowerupManager::PowerupType type);
 
 };   // namespace ServerConfig
 

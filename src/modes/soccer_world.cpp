@@ -823,6 +823,8 @@ bool SoccerWorld::isRaceOver()
     {
         return true;
     }
+    if (ServerConfig::m_infinite_game)
+        return false;
 
     if (m_unfair_team)
         return true;

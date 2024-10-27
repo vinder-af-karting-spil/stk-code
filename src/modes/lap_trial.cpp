@@ -19,6 +19,7 @@
 
 #include "karts/abstract_kart.hpp"
 #include "karts/controller/controller.hpp"
+#include "network/server_config.hpp"
 #include "utils/string_utils.hpp"
 #include "tracks/track.hpp"
 
@@ -34,6 +35,8 @@ bool LapTrial::isRaceOver()
     {
         return true;
     }
+    if (ServerConfig::m_infinite_game)
+        return false;
 
     return m_count_down_reached_zero;
 }

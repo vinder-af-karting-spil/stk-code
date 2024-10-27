@@ -6729,7 +6729,7 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         amount_sec = std::stoi(argv[1]);
         if (amount_sec < 1 || (amount_sec > 3600 &&
-                    player->getPermissionLevel() < 100))
+                    player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             msg = "Seconds should be between 1 and 3600.";
             sendStringToPeer(msg, peer);
@@ -6888,24 +6888,26 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         int limit = std::stoi(argv[1]);
 
-        if (limit < 2)
+        const int max = std::min((int)ServerConfig::m_slots_max, m_max_players);
+
+        if (limit < ServerConfig::m_slots_min && player->getPermissionLevel() < 100)
         {
-            std::string msg = "The number of slots cannot be smaller than 2.";
+            std::string msg("The number of slots cannot be smaller than ");
+            msg.append(std::to_string(ServerConfig::m_slots_min) + ".");
             sendStringToPeer(msg, peer);
             return;
         }
-        else if (limit > 12){
-            std::string msg = "The number of slots cannot be larger than 12.";
+        else if (limit > max && player->getPermissionLevel() < PERM_ADMINISTRATOR){
+            std::string msg("The number of slots cannot be larger than ");
+            msg.append(std::to_string(max) + ".");
             sendStringToPeer(msg, peer);
             return;
         }
         else
         {
             m_max_players_in_game = limit;
+            setMaxPlayersInGame(limit, true);
         }
-        updatePlayerList();
-        std::string message = "The number of slots have been changed to " + std::to_string(m_max_players_in_game)+".";
-        sendStringToAllPeers(message);
     }
 #if 0
     else if (argv[0] == "powerupper-on")
@@ -7107,7 +7109,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 80))
+                (!player || player->getPermissionLevel() < PERM_MODERATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -7446,11 +7448,11 @@ void ServerLobby::handleServerCommand(Event* event,
     else if (ServerConfig::m_allow_heavyparty && (argv[0] == "heavyparty" || argv[0] == "hp"))
     {
         irr::core::stringw response;
-	if (argv[0] == "hp")
-	{
-	    argv[0] = "heavyparty";
-	    cmd = std::regex_replace(cmd,std::regex("hp"),"heavyparty");
-	}
+        if (argv[0] == "hp")
+        {
+            argv[0] = "heavyparty";
+            cmd = std::regex_replace(cmd,std::regex("hp"),"heavyparty");
+        }
 
     	if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
         {
@@ -7478,7 +7480,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -7532,7 +7534,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -7586,7 +7588,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -7646,7 +7648,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))        {
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))        {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
@@ -7713,7 +7715,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))        {
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))        {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
@@ -7775,7 +7777,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -7843,7 +7845,7 @@ void ServerLobby::handleServerCommand(Event* event,
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8066,7 +8068,7 @@ unmute_error:
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8113,7 +8115,7 @@ unmute_error:
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8347,7 +8349,7 @@ unmute_error:
             if (!voteForCommand(peer,cmd)) return;
         }
         else if (m_server_owner.lock() != peer &&
-                (!player || player->getPermissionLevel() < 100))
+                (!player || player->getPermissionLevel() < PERM_ADMINISTRATOR))
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8376,7 +8378,7 @@ unmute_error:
     else if (argv[0] == "ban")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8442,7 +8444,7 @@ unmute_error:
     else if (argv[0] == "unban" || argv[0] == "pardon")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8474,7 +8476,7 @@ unmute_error:
     else if (argv[0] == "restrict" || argv[0] == "punish")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8563,7 +8565,7 @@ unmute_error:
              )
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8645,7 +8647,7 @@ unmute_error:
     else if (argv[0] == "setteam")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8687,7 +8689,7 @@ unmute_error:
     else if (argv[0] == "setkart")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8743,7 +8745,7 @@ unmute_error:
     else if (argv[0] == "sethandicap")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 80)
+        if (!player || player->getPermissionLevel() < PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8789,10 +8791,11 @@ unmute_error:
         sendStringToPeer(msg, peer);
     }
     // (CHEATS) Not gonna be used in game.
-    else if (argv[0] == "hackitem" || argv[0] == "hki")
+    else if (!ServerConfig::m_ranked &&
+        (argv[0] == "hackitem" || argv[0] == "hki"))
     {
         // admin only
-        if (player->getPermissionLevel() < 100)
+        if (player->getPermissionLevel() < PERM_ADMINISTRATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8885,10 +8888,11 @@ unmute_error:
             }
         }
     }
-    else if (argv[0] == "hacknitro" || argv[0] == "hkn")
+    else if (!ServerConfig::m_ranked &&
+        (argv[0] == "hacknitro" || argv[0] == "hkn"))
     {
         // can only use it during the game
-        if (player->getPermissionLevel() < 100)
+        if (player->getPermissionLevel() < PERM_ADMINISTRATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
@@ -8975,6 +8979,172 @@ unmute_error:
             }
         }
 
+    }
+    // CHEATS (gonna be used in game for training server)
+    else if (ServerConfig::m_cheats &&
+        (argv[0] == "item" || argv[0] == "i"))
+    {
+        if (player->getPermissionLevel() < PERM_PRISONER)
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+
+        // only during the game
+        if (!isRacing())
+        {
+            std::string msg = "The game is not running.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        World* w = World::getWorld();
+        if (!w)
+        {
+            std::string msg = "World is not available right now.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        AbstractKart* target;
+        PowerupManager::PowerupType type;
+        int quantity;
+
+        if (argv.size() != 2)
+        {
+            std::string msg = "Usage: /item (item)";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        type = PowerupManager::getPowerupFromName(argv[1]);
+        quantity = ServerConfig::getCheatQuantity(type);
+        
+        if (!quantity)
+        {
+            std::string msg = "Unknown item: ";
+            msg.append(argv[1]);
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        const std::set<unsigned int>& k_ids
+            = peer->getAvailableKartIDs();
+        if (peer->isWaitingForGame() || k_ids.empty())
+        {
+            std::string msg = "You are not in the game.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (k_ids.size() > 1)
+        {
+            Log::warn("ServerLobby", "item: Player %s has multiple kart IDs.", 
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+        unsigned int a = *k_ids.begin();
+        target = w->getKart(a);
+
+        // set the powerup
+        target->setPowerup(PowerupManager::POWERUP_NOTHING, 0);
+        target->setPowerup(type, quantity);
+        std::string msgtarget = "Your powerup has been changed.";
+        sendStringToPeer(msgtarget, peer);
+        if (peer->hasPlayerProfiles())
+        {
+            // report to the log
+            Log::info("ServerLobby", "ITEM %s(ID=%d) %d for %s",
+                argv[1].c_str(), type, quantity, 
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+    }
+    else if (ServerConfig::m_cheats &&
+        (argv[0] == "nitro" || argv[0] == "n"))
+    {
+        if (player->getPermissionLevel() < PERM_PRISONER)
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+
+        // only during the game
+        if (!isRacing())
+        {
+            std::string msg = "The game is not running.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        World* w = World::getWorld();
+        if (!w)
+        {
+            std::string msg = "World is not available right now.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        AbstractKart* target;
+        float quantity;
+
+        if (argv.size() != 1)
+        {
+            std::string msg = "Usage: /nitro";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        quantity = ServerConfig::m_cheat_nitro;
+        
+        if (!quantity)
+        {
+            std::string msg = "This command is unavailable.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        const std::set<unsigned int>& k_ids
+            = peer->getAvailableKartIDs();
+        if (peer->isWaitingForGame() || k_ids.empty())
+        {
+            std::string msg = "You are not in the game.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (k_ids.size() > 1)
+        {
+            Log::warn("ServerLobby", "item: Player %s has multiple kart IDs.", 
+                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+        unsigned int a = *k_ids.begin();
+        target = w->getKart(a);
+
+        // set the powerup
+        target->setEnergy(.0f);
+        target->setEnergy(quantity);
+        std::string msgtarget = "Your nitro has been changed.";
+        sendStringToPeer(msgtarget, peer);
+        if (peer->hasPlayerProfiles())
+        {
+            // report to the log
+            Log::info("ServerLobby", "NITRO %f for %s",
+                quantity, 
+                StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
+        }
+    }
+    else if (argv[0] == "infinite")
+    {
+    	if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            std::string msg("Specify on or off as a second argument.");
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if (player->getPermissionLevel() < PERM_ADMINISTRATOR)
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+
+        bool state = argv[1] == "on";
+        std::string msg("Games are now ");
     }
     else
     {
@@ -10257,6 +10427,17 @@ const std::string ServerLobby::formatRestrictions(PlayerRestriction prf) const
             result += ", ";
     }
     return result;
+}
+
+void ServerLobby::setMaxPlayersInGame(const int value, const bool notify)
+{
+    m_max_players_in_game = value;
+    updatePlayerList();
+    if (notify)
+    {
+        std::string message = "The number of slots have been changed to " + std::to_string(m_max_players_in_game)+".";
+        sendStringToAllPeers(message);
+    }
 }
 
 // returns rank and elo
