@@ -277,6 +277,7 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_last_wanrefresh_res = nullptr;
     m_last_wanrefresh_requester.reset();
     initDatabase();
+    RaceManager::get()->setInfiniteMode(ServerConfig::m_infinite_game, false);
 }   // ServerLobby
 
 //-----------------------------------------------------------------------------
@@ -1933,8 +1934,6 @@ void ServerLobby::asynchronousUpdate()
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
             m_game_setup->setRace(winner_vote);
-            RaceManager::get()->setInfiniteMode(
-                    ServerConfig::m_infinite_game);
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);

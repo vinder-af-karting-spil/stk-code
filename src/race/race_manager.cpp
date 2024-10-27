@@ -137,6 +137,7 @@ RaceManager::RaceManager()
     m_powerup_special_modifier
                          = Powerup::TSM_NONE;
     m_world_tmodifiers   = 0;
+    m_infinite_mode      = false;
     m_started_from_overworld = false;
     m_have_kart_last_position_on_overworld = false;
     m_num_local_players = 0;
@@ -1510,13 +1511,13 @@ bool RaceManager::isInfiniteMode() const
 {
     return m_infinite_mode;
 }
-void RaceManager::setInfiniteMode(bool state)
+void RaceManager::setInfiniteMode(bool state, bool use_sl)
 {
     m_infinite_mode = state;
 
     // also notify the player with ServerLobby protocol if available
     auto sl = LobbyProtocol::get<ServerLobby>();
-    if (!sl)
+    if (!sl || !use_sl)
         return;
 
     sl->updateServerConfiguration(-1, -1, state ? 0 : -1);
