@@ -1176,7 +1176,8 @@ void RaceManager::startSingleRace(const std::string &track_ident,
 
     setTrack(track_ident);
 
-    if (num_laps != -1) setNumLaps( num_laps );
+    if (isInfiniteMode()) setNumLaps( std::numeric_limits<int>::max() );
+    else if (num_laps != -1) setNumLaps( num_laps );
 
     setMajorMode(RaceManager::MAJOR_MODE_SINGLE);
 
@@ -1516,7 +1517,7 @@ void RaceManager::setInfiniteMode(bool state, bool use_sl)
 {
     m_infinite_mode = state;
     if (state)
-        ServerLobby::m_fixed_laps = std::numeric_limits<int>::max() - 1;
+        ServerLobby::m_fixed_laps = std::numeric_limits<uint8_t>::max();
     else
         ServerLobby::m_fixed_laps = -1;
 
