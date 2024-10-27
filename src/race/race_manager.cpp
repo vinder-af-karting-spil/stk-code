@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <limits>
 #include <random>
 
 #include "challenges/unlock_manager.hpp"
@@ -1514,6 +1515,10 @@ bool RaceManager::isInfiniteMode() const
 void RaceManager::setInfiniteMode(bool state, bool use_sl)
 {
     m_infinite_mode = state;
+    if (state)
+        ServerLobby::m_fixed_laps = std::numeric_limits<int>::max();
+    else
+        ServerLobby::m_fixed_laps = -1;
 
     // also notify the player with ServerLobby protocol if available
     auto sl = LobbyProtocol::get<ServerLobby>();
