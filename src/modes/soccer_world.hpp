@@ -239,6 +239,8 @@ public:
         }
         return progress;
     }
+
+    float getElapsedTime();
     // ------------------------------------------------------------------------
     virtual void saveCompleteState(BareNetworkString* bns,
                                    STKPeer* peer) OVERRIDE;

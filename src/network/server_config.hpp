@@ -182,6 +182,22 @@ namespace ServerConfig
     SERVER_CFG_PREFIX StringServerConfigParam m_soccer_log_path
         SERVER_CFG_DEFAULT(StringServerConfigParam("soccer_log.txt", "soccer-log-path", "Directory where the soccer log should be written to with / at the end."));
     
+    SERVER_CFG_PREFIX BoolServerConfigParam m_supertournament
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "supertournament",
+        "Activate Tournament Mode."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_red_team
+        SERVER_CFG_DEFAULT(StringServerConfigParam("A", "red-team", "Name of red team."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_blue_team
+        SERVER_CFG_DEFAULT(StringServerConfigParam("B", "blue-team", "Name of blue team."));
+    
+    SERVER_CFG_PREFIX StringServerConfigParam m_referees
+        SERVER_CFG_DEFAULT(StringServerConfigParam("Player1", "referees", "Name of referees."));
+
+    SERVER_CFG_PREFIX StringServerConfigParam m_tournament_players
+        SERVER_CFG_DEFAULT(StringServerConfigParam("Player1 A Player2 B Player3 C Player4 Sub", "tournament-players", "Name of tournament players and their teams, separated by spaces."));
+    
     SERVER_CFG_PREFIX BoolServerConfigParam m_wan_server
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "wan-server",
         "Enable wan server, which requires you to have an stk-addons account "

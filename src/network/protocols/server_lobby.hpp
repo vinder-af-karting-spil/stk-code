@@ -20,6 +20,7 @@
 #define SERVER_LOBBY_HPP
 
 #include "network/protocols/lobby_protocol.hpp"
+#include "network/tournament/tournament_manager.hpp"
 #include "network/remote_kart_info.hpp"
 #include "race/race_manager.hpp"
 #include "race/kart_restriction.hpp"
@@ -319,6 +320,9 @@ private:
     std::map<STKPeer*, std::weak_ptr<NetworkPlayerProfile>>
         m_red_pole_votes;
 
+    // SuperTournament
+    TournamentManager m_tournament_manager;
+
     // connection management
     void clientDisconnected(Event* event);
     void connectionRequested(Event* event);
@@ -563,9 +567,14 @@ public:
     enum KartRestrictionMode m_kart_restriction = NONE;
     bool m_allow_powerupper = false;
     bool m_show_elo = false;
+    std::string m_set_field = "";
     int getPlayerElo(std::string username) const;
     std::pair<std::vector<std::string>, std::vector<std::string>> createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players);
     void soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec);
+    bool canRace(std::shared_ptr<STKPeer>& peer) const;
+    bool canRace(STKPeer* peer) const;
+    bool serverAndPeerHaveTrack(std::shared_ptr<STKPeer>& peer, std::string track_id) const;
+    bool serverAndPeerHaveTrack(STKPeer* peer, std::string track_id) const;
 
 };   // class ServerLobby
 
