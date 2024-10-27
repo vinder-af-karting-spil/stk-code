@@ -1517,7 +1517,7 @@ void RaceManager::setInfiniteMode(bool state, bool use_sl)
 {
     m_infinite_mode = state;
     if (state)
-        ServerLobby::m_fixed_laps = std::numeric_limits<uint8_t>::max();
+        ServerLobby::m_fixed_laps = 20;
     else
         ServerLobby::m_fixed_laps = -1;
 
