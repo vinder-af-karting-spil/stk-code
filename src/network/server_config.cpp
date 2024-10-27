@@ -357,6 +357,14 @@ void loadServerLobbyFromConfig()
         m_auto_end = true;
         m_owner_less = true;
         m_strict_players = true;
+        m_cheats = false;
+        m_infinite_game = false;
+        m_allow_pole = false;
+        m_allow_itemchaos = false;
+        m_allow_heavyparty = false;
+        m_allow_mediumparty = false;
+        m_allow_lightparty = false;
+        m_slots_max = 8;
     }
     if (m_owner_less)
     {
@@ -414,5 +422,25 @@ std::string getConfigDirectory()
     return StringUtils::getPath(g_server_config_path);
 }   // getConfigDirectory
 
+// ----------------------------------------------------------------------------
+int getCheatQuantity(const PowerupManager::PowerupType type)
+{
+    std::string items = m_cheat_items;
+    std::vector<std::string> item_amounts = StringUtils::split(m_cheat_items, ',');
+    std::size_t middle;
+    PowerupManager::PowerupType it_type;
+
+    for (auto it = item_amounts.cbegin(); it != item_amounts.cend(); ++it)
+    {
+        const std::string portion = *it;
+        middle = portion.find(':');
+        const std::string item_name = portion.substr(0, middle);
+        const std::string str_amount = portion.substr(middle + 1, portion.size());
+        it_type = PowerupManager::getPowerupFromName(item_name);
+        if (it_type == type)
+            return std::stoi(str_amount);
+    }
+    return 0;
 }
 
+}

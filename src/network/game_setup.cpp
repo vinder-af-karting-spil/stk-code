@@ -122,7 +122,11 @@ void GameSetup::loadWorld()
             UserConfigParams::m_random_arena_item = m_reverse;
 
         RaceManager::get()->setReverseTrack(false);
-        if (RaceManager::get()->isSoccerMode())
+
+        if (ServerConfig::m_infinite_game)
+            RaceManager::get()->setTimeTarget(
+                std::numeric_limits<float>::infinity());
+        else if (RaceManager::get()->isSoccerMode())
         {
             if (isSoccerGoalTarget())
                 RaceManager::get()->setMaxGoal(m_laps);

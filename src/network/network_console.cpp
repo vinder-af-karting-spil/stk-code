@@ -135,6 +135,22 @@ void mainLoop(STKHost* host)
         {
             host->requestShutdown();
         }
+        else if (str == "slots" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            const int max_players_in_game = std::stoi(str2);
+            if (max_players_in_game < 0)
+            {
+                std::cout << "Cannot set max players in game to a negative value." << std::endl;
+                continue;
+            }
+
+            sl->setMaxPlayersInGame(max_players_in_game, true);
+        }
         else if (str == "addtime" && str2 != "" &&
             NetworkConfig::get()->isServer())
         {
@@ -279,6 +295,61 @@ void mainLoop(STKHost* host)
                 message += "INACTIVE.";
             }
             sl->sendStringToAllPeers(message);
+        }
+        else if (str == "plungerparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            RaceManager::get()->setPowerupSpecialModifier(
+                    state ? Powerup::TSM_PLUNGERPARTY : Powerup::TSM_NONE);
+
+            std::string message("Plungerparty is now ");
+            if (state)
+            {
+                message += "ACTIVE. Bonus boxes only give plungers.";
+            }
+            else
+            {
+                message += "INACTIVE. All standard items as normal.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "zipperparty" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+
+            RaceManager::get()->setPowerupSpecialModifier(
+                    state ? Powerup::TSM_ZIPPERPARTY : Powerup::TSM_NONE);
+
+            std::string message("Zipperparty is now ");
+            if (state)
+            {
+                message += "ACTIVE. Bonus boxes only give zippers.";
+            }
+            else
+            {
+                message += "INACTIVE. All standard items as normal.";
+            }
+            sl->sendStringToAllPeers(message);
+        }
+        else if (str == "infinite" && str2 != "" &&
+            NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            const bool state = str2 == "on";
+            ServerConfig::m_infinite_game = state;
+            std::cout << "Infinite game has been set to " 
+                << (state ? "on" : "off") << "." << std::endl;
         }
         else if (str == "start" && NetworkConfig::get()->isServer())
         {
