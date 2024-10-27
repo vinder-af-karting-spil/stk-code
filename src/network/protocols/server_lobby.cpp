@@ -9145,6 +9145,11 @@ unmute_error:
 
         bool state = argv[1] == "on";
         std::string msg("Games are now ");
+
+        ServerConfig::m_infinite_game = state;
+        msg += state ? "infinite" : "finite";
+        msg += ".";
+        sendStringToAllPeers(msg);
     }
     else
     {
