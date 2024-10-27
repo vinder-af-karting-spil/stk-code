@@ -590,8 +590,12 @@ void Powerup::hitBonusBox(const ItemState &item_state)
 	    return;
 	case TSM_PLUNGERPARTY:
 	    m_number = 0;
-	    set(PowerupManager::POWERUP_PLUNGER, 3);
+	    set(PowerupManager::POWERUP_PLUNGER, 5);
   	    return;
+	case TSM_ZIPPERPARTY:
+	    m_number = 0;
+	    set(PowerupManager::POWERUP_ZIPPER, 3);
+	    return;
         default:
             new_powerup = powerup_manager->getRandomPowerup(
                     position, &n, random_number, kart_id);

@@ -45,6 +45,7 @@ public:
         TSM_BOWLPARTY = 1,  // getRandomPowerup is not used, hitBonusBox always sets
         TSM_CAKEPARTY =2,   // BOWLING with n=3
         TSM_PLUNGERPARTY =3, // Time to partyyy
+        TSM_ZIPPERPARTY= 4, // PARTY TIMEZZZ
     };
 private:
     /** Sound effect that is being played. */

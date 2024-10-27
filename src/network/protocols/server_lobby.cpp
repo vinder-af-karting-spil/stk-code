@@ -7673,6 +7673,73 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);
     }
+   else if (argv[0] == "zipperparty" || argv[0] == "zp" || argv[0] == "zipperfest")
+    {
+        irr::core::stringw response;
+
+        if (argv[0] == "zp")
+        {
+            argv[0] = "zipperparty";
+            cmd = std::regex_replace(cmd,std::regex("zp"),"zipperparty");
+        }
+        else if (argv[0] == "zipperfest")
+        {
+            argv[0] = "zipperparty";
+            cmd = std::regex_replace(cmd,std::regex("zipperest"),"zipperparty");
+        }
+
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_ZIPPERPARTY))
+        {
+            std::string msg = "Zipperparty is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_ZIPPERPARTY &&
+                state)
+        {
+            std::string msg = "Zipperparty is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        rm->setPowerupSpecialModifier(
+          state ? Powerup::TSM_ZIPPERPARTY : Powerup::TSM_NONE);
+        std::string message("Zipperparty is now ");
+        if (state)
+        {
+            message += "ACTIVE. Bonus boxes only give zippers.";
+        }
+        else
+        {
+            message += "INACTIVE. All standard items as normal.";
+        }
+
+        sendStringToAllPeers(message);
+    }    
     else if (argv[0] == "bowlparty" || argv[0] == "bp")
     {
         irr::core::stringw response;
@@ -7954,7 +8021,7 @@ unmute_error:
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
             L" /start /end /bug /rank /rank10|top /autoteams " 
-            L"/bowlparty|bp /cakeparty|cp|cakefest /plungerparty|pp|plungercest /start /end /bug /feature|suggest /rank /rank10|top /autoteams /help (command) /when eventsoccer"
+            L"/bowlparty|bp /cakeparty|cp|cakefest /plungerparty|pp|plungerfest /zipperparty|zp|zipperfest /start /end /bug /feature|suggest /rank /rank10|top /autoteams /help (command) /when eventsoccer"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -8131,7 +8198,13 @@ unmute_error:
 	      std::string msg = "Plungerparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with plungers.";
               sendStringToPeer(msg, peer);
               return;
-      }	      
+      }	     
+      else if (argv[1] == "zipperparty")
+      {
+              std::string msg = "Zippererparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with zippers.";
+              sendStringToPeer(msg, peer);
+              return;
+      }
         else
         {
             std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
