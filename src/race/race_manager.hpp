@@ -1007,7 +1007,7 @@ public:
     Powerup::SpecialModifier getPowerupSpecialModifier() const { return m_powerup_special_modifier; }
     void setPowerupSpecialModifier(Powerup::SpecialModifier modifier);
     bool isInfiniteMode() const;
-    void setInfiniteMode(bool state);
+    void setInfiniteMode(bool state, bool use_sl = true);
 };   // RaceManager
 
 #endif
