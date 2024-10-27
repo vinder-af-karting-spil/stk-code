@@ -1639,10 +1639,12 @@ void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
         RaceManager::MinorRaceModeType m =
             ServerConfig::getLocalGameMode(serverPtr->getServerMode()).first;
 
+        int playerCount = players.size();
+
         responseMsg += StringUtils::getCountryFlag(serverPtr->getCountryCode());
         responseMsg += serverPtr->getName();
         responseMsg += L" (";
-        responseMsg += players.size();
+        responseMsg += playerCount;
         responseMsg += L"/";
         responseMsg += serverPtr->getMaxPlayers();
         responseMsg += L"), ";
@@ -4560,11 +4562,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             ai_add = max_players - player_count - 1;
         for (unsigned i = 0; i < ai_add; i++)
         {
-#ifdef SERVER_ONLY
             core::stringw name = L"Bot";
-#else
-            core::stringw name = _("Bot");
-#endif
             name += core::stringw(" ") + StringUtils::toWString(i + 1);
             
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>

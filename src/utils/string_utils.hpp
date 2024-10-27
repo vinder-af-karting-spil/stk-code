@@ -21,6 +21,13 @@
 #ifndef HEADER_STRING_UTILS_HPP
 #define HEADER_STRING_UTILS_HPP
 
+#ifdef _MSC_VER
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#define wcsncasecmp _wcsnicmp
+#define wstrcasecmp _wstricmp
+#endif
+
 #include "utils/types.hpp"
 #include <limits>
 #include <string>

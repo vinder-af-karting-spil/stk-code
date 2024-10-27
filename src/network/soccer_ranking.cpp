@@ -35,7 +35,8 @@ void SoccerRanking::parseLineTo(
 SoccerRanking::RankingEntry SoccerRanking::parseLine(
         const std::string& line)
 {
-    RankingEntry re = {.m_rank = 0};
+    RankingEntry re;
+    re.m_rank = 0;
     SoccerRanking::parseLineTo(re, line);
     return re;
 } // parseLine
@@ -59,7 +60,8 @@ void SoccerRanking::readRankings(
                 std::ifstream::failbit |
                 std::ifstream::badbit);
         char linebuf[256];
-        RankingEntry re = {.m_rank = 1};
+        RankingEntry re;
+        re.m_rank = 1;
     
         if (offset)
             for (std::size_t i = 0; !f.eof() && i < offset; ++i, ++re.m_rank)
@@ -123,5 +125,7 @@ SoccerRanking::RankingEntry SoccerRanking::getRankOf(
                 e.what());
     }
 
-    return {.m_rank = 0};
+    RankingEntry res;
+    res.m_rank = 0;
+    return res;
 } // getRankOf
