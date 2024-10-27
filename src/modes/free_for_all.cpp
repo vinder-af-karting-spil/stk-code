@@ -19,7 +19,6 @@
 #include "karts/abstract_kart.hpp"
 #include "karts/controller/controller.hpp"
 #include "network/network_config.hpp"
-#include "network/server_config.hpp"
 #include "network/network_string.hpp"
 #include "network/protocols/game_events_protocol.hpp"
 #include "network/stk_host.hpp"
@@ -188,7 +187,7 @@ bool FreeForAll::isRaceOver()
     {
         return true;
     }
-    if (ServerConfig::m_infinite_game)
+    if (RaceManager::get()->isInfiniteMode())
         return false;
 
     if (NetworkConfig::get()->isNetworking() &&

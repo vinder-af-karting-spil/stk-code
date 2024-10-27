@@ -635,6 +635,8 @@ bool CutsceneWorld::isRaceOver()
     {
         return true;
     }
+    if (RaceManager::get()->isInfiniteMode())
+        return false;
 
     bool isOver = (m_time > m_duration);
 

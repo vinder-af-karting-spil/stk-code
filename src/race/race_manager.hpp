@@ -309,6 +309,8 @@ private:
     Powerup::SpecialModifier         m_powerup_special_modifier;
     /** Timed world modifiers */
     uint32_t                         m_world_tmodifiers;
+    /** Infinite game mode */
+    bool                             m_infinite_mode;
 
     /** The selected difficulty. */
     Difficulty                       m_difficulty;
@@ -1004,6 +1006,8 @@ public:
 
     Powerup::SpecialModifier getPowerupSpecialModifier() const { return m_powerup_special_modifier; }
     void setPowerupSpecialModifier(Powerup::SpecialModifier modifier);
+    bool isInfiniteMode() const;
+    void setInfiniteMode(bool state);
 };   // RaceManager
 
 #endif

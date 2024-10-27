@@ -347,11 +347,7 @@ void mainLoop(STKHost* host)
             if (!sl)
                 continue;
             const bool state = str2 == "on";
-            ServerConfig::m_infinite_game = state;
-            std::string msg("Games are now ");
-            msg += state ? "infinite" : "finite";
-            msg += ".";
-            sl->sendStringToAllPeers(msg);
+            RaceManager::get()->setInfiniteMode(state);
         }
         else if (str == "start" && NetworkConfig::get()->isServer())
         {

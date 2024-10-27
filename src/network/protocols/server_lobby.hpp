@@ -443,6 +443,8 @@ public:
     bool checkPeersCanPlay(bool ignore_ai_peer) const;
     char checkPeersCanPlayAndReady(bool ignore_ai_peer) const;
     void handleServerConfiguration(Event* event);
+    void updateServerConfiguration(int new_difficulty, int new_game_mode,
+            std::int8_t new_soccer_goal_target);
     void resetPeersReady()
     {
         for (auto it = m_peers_ready.begin(); it != m_peers_ready.end();)

@@ -210,6 +210,8 @@ bool FollowTheLeaderRace::isRaceOver()
     {
         return true;
     }
+    if (RaceManager::get()->isInfiniteMode())
+        return false;
 
     bool is_over = (getCurrentNumKarts()==2 || getCurrentNumPlayers()==0);
     if (is_over)
