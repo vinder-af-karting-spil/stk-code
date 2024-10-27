@@ -1506,3 +1506,23 @@ void RaceManager::chaosGivePowerup(AbstractKart* kart)
 
     sl->sendStringToPeer(msg, peer);
 }
+bool RaceManager::isInfiniteMode() const
+{
+    return m_infinite_mode;
+}
+void RaceManager::setInfiniteMode(bool state)
+{
+    m_infinite_mode = state;
+
+    // also notify the player with ServerLobby protocol if available
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    sl->updateServerConfiguration(-1, -1, state ? 0 : -1);
+
+    std::string msg("Games are now ");
+    msg += state ? "infinite" : "finite";
+    msg += ".";
+    sl->sendStringToAllPeers(msg);
+}

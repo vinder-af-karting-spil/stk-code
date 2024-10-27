@@ -460,7 +460,7 @@ bool CaptureTheFlag::isRaceOver()
     {
         return true;
     }
-    if (ServerConfig::m_infinite_game)
+    if (RaceManager::get()->isInfiniteMode())
         return false;
 
     if (m_unfair_team)

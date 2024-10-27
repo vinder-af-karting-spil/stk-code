@@ -1933,6 +1933,8 @@ void ServerLobby::asynchronousUpdate()
             m_item_seed = (uint32_t)StkTime::getTimeSinceEpoch();
             ItemManager::updateRandomSeed(m_item_seed);
             m_game_setup->setRace(winner_vote);
+            RaceManager::get()->setInfiniteMode(
+                    ServerConfig::m_infinite_game);
             bool has_always_on_spectators = false;
             auto players = STKHost::get()
                 ->getPlayersForNewGame(&has_always_on_spectators);
@@ -5900,13 +5902,29 @@ void ServerLobby::handleServerConfiguration(Event* event)
         Log::warn("ServerLobby", "Grand prix is used for new mode.");
         return;
     }
+    updateServerConfiguration(new_difficulty, new_game_mode,
+            new_soccer_goal_target ? 1 : 0);
 
+}   // handleServerConfiguration
+//-----------------------------------------------------------------------------
+void ServerLobby::updateServerConfiguration(int new_difficulty,
+        int new_game_mode,
+        std::int8_t new_soccer_goal_target)
+{
+    if (new_difficulty == -1)
+        new_difficulty = m_difficulty.load();
+    if (new_game_mode == -1)
+        new_game_mode = m_game_mode.load();
+    if (new_soccer_goal_target == -1)
+        new_soccer_goal_target = ServerConfig::m_soccer_goal_target ? 1 : 0;
+
+    auto modes = ServerConfig::getLocalGameMode(new_game_mode);
     RaceManager::get()->setMinorMode(modes.first);
     RaceManager::get()->setMajorMode(modes.second);
     RaceManager::get()->setDifficulty(RaceManager::Difficulty(new_difficulty));
     m_game_setup->resetExtraServerInfo();
     if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_SOCCER)
-        m_game_setup->setSoccerGoalTarget(new_soccer_goal_target);
+        m_game_setup->setSoccerGoalTarget(new_soccer_goal_target > 0 ? true : false);
 
     if (NetworkConfig::get()->isWAN() &&
         (m_difficulty.load() != new_difficulty ||
@@ -5973,7 +5991,8 @@ void ServerLobby::handleServerConfiguration(Event* event)
         delete ril_pkt;
     }
     updatePlayerList();
-}   // handleServerConfiguration
+
+}   // updateServerConfiguration
 
 //-----------------------------------------------------------------------------
 /*! \brief Called when a player want to change his handicap
@@ -9144,12 +9163,7 @@ unmute_error:
         }
 
         bool state = argv[1] == "on";
-        std::string msg("Games are now ");
-
-        ServerConfig::m_infinite_game = state;
-        msg += state ? "infinite" : "finite";
-        msg += ".";
-        sendStringToAllPeers(msg);
+        RaceManager::get()->setInfiniteMode(state);
     }
     else
     {

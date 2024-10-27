@@ -112,6 +112,8 @@ bool DemoWorld::isRaceOver()
     {
         return true;
     }
+    if (RaceManager::get()->isInfiniteMode())
+        return false;
 
     if(m_abort) return true;
 

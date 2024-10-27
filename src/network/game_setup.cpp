@@ -123,7 +123,7 @@ void GameSetup::loadWorld()
 
         RaceManager::get()->setReverseTrack(false);
 
-        if (ServerConfig::m_infinite_game)
+        if (RaceManager::get()->isInfiniteMode())
             RaceManager::get()->setTimeTarget(
                 std::numeric_limits<float>::infinity());
         else if (RaceManager::get()->isSoccerMode())
