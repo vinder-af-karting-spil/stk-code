@@ -21,9 +21,9 @@
 #include "network/protocols/server_lobby.hpp"
 #include "race/race_manager.hpp"
 #include "modes/world.hpp"
+#include "utils/string_utils.hpp"
 #include <cstddef>
 #include <limits>
-#include <strings.h>
 
 TierSRoulette* tiers_roulette = nullptr;
 
