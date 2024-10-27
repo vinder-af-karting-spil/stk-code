@@ -4974,7 +4974,11 @@ void ServerLobby::handlePlayerVote(Event* event)
     }
     else if (RaceManager::get()->isSoccerMode())
     {
-        if (m_game_setup->isSoccerGoalTarget())
+        if (RaceManager::get()->isInfiniteMode())
+        {
+            vote.m_num_laps = std::numeric_limits<uint8_t>::max();
+        }
+        else if (m_game_setup->isSoccerGoalTarget())
         {
             if (ServerConfig::m_auto_game_time_ratio > 0.0f)
             {
