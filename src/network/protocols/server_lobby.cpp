@@ -7606,6 +7606,73 @@ void ServerLobby::handleServerCommand(Event* event,
 
         sendStringToAllPeers(message);	
     }
+    else if (argv[0] == "plungerparty" || argv[0] == "pp" || argv[0] == "plungerfest")
+    {
+        irr::core::stringw response;
+
+        if (argv[0] == "pp")
+        {
+            argv[0] = "plungerparty";
+            cmd = std::regex_replace(cmd,std::regex("pp"),"plungerparty");
+        }
+        else if (argv[0] == "plungerfest")
+        {
+            argv[0] = "plungerparty";
+            cmd = std::regex_replace(cmd,std::regex("plungerfest"),"plungerparty");
+        }
+
+        if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off") )
+        {
+            auto chat = getNetworkString();
+            chat->setSynchronous(true);
+            chat->addUInt8(LE_CHAT);
+            response = "Specify on or off as a second argument.";
+            chat->encodeString16(response);
+            peer->sendPacket(chat, true/*reliable*/);
+            delete chat;
+            return;
+        }
+        bool state = argv[1] == "on";
+        auto rm = RaceManager::get();
+
+        if (state == (rm->getPowerupSpecialModifier() == Powerup::TSM_PLUNGERPARTY))
+        {
+            std::string msg = "Plungerparty is already active or inactive.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+
+        if (!ServerConfig::m_tiers_roulette &&
+                (noVeto || player->getVeto() < 100) && m_server_owner.lock() != peer)
+        {
+            if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < 100))        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        if (rm->getPowerupSpecialModifier() == Powerup::TSM_PLUNGERPARTY &&
+                state)
+        {
+            std::string msg = "Plungerparty is already on.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        rm->setPowerupSpecialModifier(
+          state ? Powerup::TSM_PLUNGERPARTY : Powerup::TSM_NONE);
+        std::string message("Plungerparty is now ");
+        if (state)
+        {
+            message += "ACTIVE. Bonus boxes only give plungers.";
+        }
+        else
+        {
+            message += "INACTIVE. All standard items as normal.";
+        }
+
+        sendStringToAllPeers(message);
+    }
     else if (argv[0] == "bowlparty" || argv[0] == "bp")
     {
         irr::core::stringw response;
@@ -7887,7 +7954,7 @@ unmute_error:
             L"/listserveraddon|lsa /playerhasaddon|psa /kick /playeraddonscore|psa /serverhasaddon|sha /inform|ifm "
             L"/report /heavyparty|hp /mediumparty|mp /lightparty|lp /scanservers|online|o /mute /unmute /listmute /pole"
             L" /start /end /bug /rank /rank10|top /autoteams " 
-            L"/bowlparty|bp /cakeparty|cp /start /end /bug /feature|suggest /rank /rank10|top /autoteams /help (command) /when eventsoccer"
+            L"/bowlparty|bp /cakeparty|cp|cakefest /plungerparty|pp|plungercest /start /end /bug /feature|suggest /rank /rank10|top /autoteams /help (command) /when eventsoccer"
         );
         chat->encodeString16(res);
         peer->sendPacket(chat, true/*reliable*/);
@@ -8058,7 +8125,13 @@ unmute_error:
 	       std::string msg = "in TierS Eventsoccer, the match shifts between three partys modes 👀  Heavyparty, mediumparty, and ofcourse lightparty. But thats not all, every 30 seconds, new powerups appear, for each player.";
 	       sendStringToPeer(msg, peer);
 	       return;
-       }	
+       }
+      else if (argv[1] == "plungerparty")
+      {
+	      std::string msg = "Plungerparty on ensures (with enough votes) that there will be a game where the bonus boxes are filled with plungers.";
+              sendStringToPeer(msg, peer);
+              return;
+      }	      
         else
         {
             std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
