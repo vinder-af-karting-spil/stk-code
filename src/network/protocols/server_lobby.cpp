@@ -935,15 +935,16 @@ void ServerLobby::handleChat(Event* event)
         chat->setSynchronous(true);
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
+        const bool global_chat = ServerConfig::m_global_chat;
 
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, sender_in_game, target_team, sender_name, team_speak, teams, this]
+            [game_started, global_chat, sender_in_game, target_team, sender_name, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
                 {
                     // separates the chat between lobby peers, and ingame players/spectators
-                    if (p->isWaitingForGame() != sender_in_game)
+                    if (!global_chat && p->isWaitingForGame() != sender_in_game)
                         return false;
 #if 0
                     if (p->isWaitingForGame() && !sender_in_game)
