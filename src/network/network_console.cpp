@@ -348,8 +348,10 @@ void mainLoop(STKHost* host)
                 continue;
             const bool state = str2 == "on";
             ServerConfig::m_infinite_game = state;
-            std::cout << "Infinite game has been set to " 
-                << (state ? "on" : "off") << "." << std::endl;
+            std::string msg("Games are now ");
+            msg += state ? "infinite" : "finite";
+            msg += ".";
+            sl->sendStringToAllPeers(msg);
         }
         else if (str == "start" && NetworkConfig::get()->isServer())
         {
