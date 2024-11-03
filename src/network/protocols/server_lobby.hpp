@@ -572,6 +572,8 @@ public:
     PlayerRestriction getRestrictionValue(const std::string& restriction) const;
     void forceChangeTeam(NetworkPlayerProfile* player, KartTeam team);
     void forceChangeHandicap(NetworkPlayerProfile* player, HandicapLevel lvl);
+    bool forceSetTrack(std::string track_id, int laps, bool specvalue = false,
+            bool is_soccer = false, bool announce = true);
     uint32_t lookupOID(const std::string& name);
     uint32_t lookupOID(const core::stringw& name);
     int banPlayer(const std::string& name, const std::string& reason, int days = -1);
@@ -601,6 +603,7 @@ public:
     void soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec);
 
     void onTournamentGameEnded();
+    void updateTournamentTeams(const std::string& team_red, const std::string& team_blue);
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
