@@ -612,7 +612,14 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
         return excluded_addons;
     const TournGameSetup& cur = m_game_setup[m_current_game_index - 1];
 
-    if (cur.m_votable_fields.empty())
+    
+    if (cur.m_votable_addons)
+    {
+        for (const std::string& track_name : excluded_addons)
+            if (!StringUtils::startsWith(track_name, "addon_"))
+                excluded_addons.insert(track_name);
+    }
+    else if (cur.m_votable_fields.empty())
         return excluded_addons;
     else
     {
