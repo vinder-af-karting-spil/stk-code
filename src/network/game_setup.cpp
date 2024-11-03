@@ -20,6 +20,7 @@
 
 #include "config/player_manager.hpp"
 #include "config/user_config.hpp"
+#include "network/tournament/tournament_manager.hpp"
 #ifdef DEBUG
 #include "network/network_config.hpp"
 #endif
@@ -125,6 +126,13 @@ void GameSetup::loadWorld()
 
         if (RaceManager::get()->isSoccerMode())
         {
+#if 0
+            if (ServerConfig::m_supertournament && TournamentManager::get()->GameInitialized())
+            {
+                RaceManager::get()->setTimeTarget(TournamentManager::get()->GetAdditionalSeconds());
+            }
+            else 
+#endif
             if (isSoccerGoalTarget())
                 RaceManager::get()->setMaxGoal(m_laps);
             else

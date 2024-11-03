@@ -129,6 +129,15 @@ private:
 
     void resetKartsToSelfGoals();
 
+    std::vector<ScorerData> m_backup_red_scorers;
+    std::vector<ScorerData> m_backup_blue_scorers;
+    int m_backup_reset_ball_ticks;
+    int m_backup_ticks_back_to_own_goal;
+    int m_bad_red_goals;
+    int m_bad_blue_goals;
+    int m_init_red_goals;
+    int m_init_blue_goals;
+
 public:
 
     SoccerWorld();
@@ -255,6 +264,18 @@ public:
                                 { return getKart(m_team_icon_draw_id[p - 1]); }
     // ------------------------------------------------------------------------
     TrackObject* getBall() const { return m_ball; }
+
+    // SuperTournament
+    // ------------------------------------------------------------------------
+    virtual void stop() OVERRIDE;
+    // ------------------------------------------------------------------------
+    virtual void resume() OVERRIDE;
+    // ------------------------------------------------------------------------
+    void setInitialCount(int red, int blue);
+    // ------------------------------------------------------------------------
+    void tellCount() const;
+    // ------------------------------------------------------------------------
+    void tellCountIfDiffers() const;
 };   // SoccerWorld
 
 

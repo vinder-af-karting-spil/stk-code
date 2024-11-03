@@ -597,7 +597,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 	}
 	else
 	{
-            if (m_soccer_log) GlobalLog::writeLog( "goal "+ player_name_log + " "+team_name+"\n", GlobalLogTypes::POS_LOG);
+            if (m_soccer_log) GlobalLog::writeLog( "own_goal "+ player_name_log + " "+team_name+"\n", GlobalLogTypes::POS_LOG);
 	}
 
         if (NetworkConfig::get()->isNetworking() &&
@@ -630,6 +630,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                     }
                 }
             }
+            tellCountIfDiffers();
         }
     }
     for (unsigned i = 0; i < m_karts.size(); i++)
@@ -1279,3 +1280,62 @@ void SoccerWorld::getKartsDisplayInfo(
         }
     }
 }   // getKartsDisplayInfo
+
+// ----------------------------------------------------------------------------
+// SuperTournament
+// ----------------------------------------------------------------------------
+void SoccerWorld::stop()
+{
+    m_stopped = true;
+    Log::info("SoccerWorld", "The game is stopped.");
+
+    m_backup_red_scorers = m_red_scorers;
+    m_backup_blue_scorers = m_blue_scorers;
+    m_backup_reset_ball_ticks = m_reset_ball_ticks;
+    m_backup_ticks_back_to_own_goal = m_ticks_back_to_own_goal;
+}
+
+// ----------------------------------------------------------------------------
+void SoccerWorld::resume()
+{
+    m_stopped = false;
+    Log::info("SoccerWorld", "The game is resumed.");
+}
+
+// ----------------------------------------------------------------------------
+void SoccerWorld::setInitialCount(int red, int blue)
+{
+    m_init_red_goals = red;
+    m_init_blue_goals = blue;
+}   // setInitialCount
+
+// ----------------------------------------------------------------------------
+void SoccerWorld::tellCount() const
+{
+    auto peers = STKHost::get()->getPeers();
+    NetworkString* chat = new NetworkString(PROTOCOL_LOBBY_ROOM);
+    chat->addUInt8(17); // LE_CHAT
+    chat->setSynchronous(true);
+    int real_red = (int)m_red_scorers.size() - m_bad_red_goals
+        + m_init_red_goals;
+    int real_blue = (int)m_blue_scorers.size() - m_bad_blue_goals
+        + m_init_blue_goals;
+    std::string real_count =
+        std::to_string(real_red) + " : " + std::to_string(real_blue);
+    chat->encodeString16(StringUtils::utf8ToWide(real_count));
+    for (auto& peer : peers)
+        if (peer->isValidated() && !peer->isWaitingForGame())
+            peer->sendPacket(chat, true/*reliable*/);
+
+    delete chat;
+}   // tellCount
+
+// ----------------------------------------------------------------------------
+void SoccerWorld::tellCountIfDiffers() const
+{
+    if (m_init_red_goals - m_bad_red_goals != 0 ||
+        m_init_blue_goals - m_bad_blue_goals != 0)
+    {
+        tellCount();
+    }
+}   // tellCountIfDiffers
