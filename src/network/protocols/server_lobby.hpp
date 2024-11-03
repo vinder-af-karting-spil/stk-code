@@ -104,6 +104,7 @@ public:
                                  // (only less to the own)
                                  // and use general moderation commands such as 
                                  // mute, kick, ban.
+        PERM_REFEREE = 90,       // only active during tournament
         PERM_ADMINISTRATOR = 100,// staff, can change current server's mode and toggle
                                  // between owner-less on or off, can disable command 
                                  // voting
@@ -494,6 +495,26 @@ public:
     }
     uint32_t getServerIdOnline() const           { return m_server_id_online; }
     void setClientServerHostId(uint32_t id)   { m_client_server_host_id = id; }
+    bool isVIP(std::shared_ptr<STKPeer>& peer) const;
+    bool isVIP(STKPeer* peer) const;
+    bool isTrusted(std::shared_ptr<STKPeer>& peer) const;
+    bool isTrusted(STKPeer* peer) const;
+    std::set<std::string> m_vip_players;
+    std::set<std::string> m_trusted_players;
+    std::set<std::string> m_red_team;
+    std::set<std::string> m_blue_team;
+    std::vector<std::vector<std::string>>
+                          m_tournament_fields_per_game;
+    bool serverAndPeerHaveTrack(std::shared_ptr<STKPeer>& peer, std::string track_id) const;
+    bool serverAndPeerHaveTrack(STKPeer* peer, std::string track_id) const;
+    /* forced track to be playing, or field */
+    std::string m_set_field;
+    /* forced laps, or forced minutes to play in case of the soccer game. */
+    int         m_set_laps;
+    /* for race it's reverse on/off, for battle/soccer it's random items */
+    bool        m_set_specvalue;
+    bool canRace(std::shared_ptr<STKPeer>& peer) const;
+    bool canRace(STKPeer* peer) const;
     static int m_fixed_laps;
     void sendStringToPeer(const std::string& s, std::shared_ptr<STKPeer>& peer) const;
     void sendStringToPeer(const irr::core::stringw& s, std::shared_ptr<STKPeer>& peer) const;
@@ -535,10 +556,14 @@ public:
     int loadPermissionLevelForUsername(const core::stringw& name);
     void writePermissionLevelForOID(uint32_t online_id, int lvl);
     void writePermissionLevelForUsername(const core::stringw& name, int lvl);
-    uint32_t loadRestrictionsForOID(uint32_t online_id);
-    uint32_t loadRestrictionsForUsername(const core::stringw& name);
+    std::tuple<uint32_t, std::string> loadRestrictionsForOID(uint32_t online_id);
+    std::tuple<uint32_t, std::string> loadRestrictionsForUsername(const core::stringw& name);
     void writeRestrictionsForOID(uint32_t online_id, uint32_t flags);
+    void writeRestrictionsForOID(uint32_t online_id, uint32_t flags, const std::string& set_kart);
+    void writeRestrictionsForOID(uint32_t online_id, const std::string& set_kart);
     void writeRestrictionsForUsername(const core::stringw& name, uint32_t flags);
+    void writeRestrictionsForUsername(const core::stringw& name, uint32_t flags, const std::string& set_kart);
+    void writeRestrictionsForUsername(const core::stringw& name, const std::string& set_kart);
     void sendNoPermissionToPeer(STKPeer* p, const std::vector<std::string>& argv);
     const char* getPermissionLevelName(int lvl) const;
     ServerPermissionLevel getPermissionLevelByName(const std::string& name) const;
@@ -575,6 +600,7 @@ public:
     std::pair<std::vector<std::string>, std::vector<std::string>> createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players);
     void soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec);
 
+    void onTournamentGameEnded();
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP
