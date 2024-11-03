@@ -119,6 +119,8 @@ void TournamentManager::destroy()
 }
 void TournamentManager::clear()
 {
+    if (!g_tournament_manager)
+        return;
     g_tournament_manager->m_player_teams.clear();
     g_tournament_manager->m_match_plan.clear();
     g_tournament_manager->m_red_team.clear();
@@ -849,7 +851,7 @@ void TournamentManager::UpdateMatchPlan(const std::string& team_red, std::string
         unsigned goal_red, unsigned goal_blue, const std::string& field_id,
         const std::string& referee, const std::string& footage_url)
 {
-    assert(field_index < g_fields_amount - 1);
+    assert(field_index < m_votable_amount - 1);
     std::string key = team_red + team_blue;
     MatchplanEntry* ent = m_matchplan_map[key];
     if (!ent)
