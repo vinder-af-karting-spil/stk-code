@@ -7588,7 +7588,7 @@ void ServerLobby::handleServerCommand(Event* event,
             }
             else
             {
-                TournamentManager::get()->StartGame(game, length * 60);
+                TournamentManager::get()->StartGame(game, length * 60, true);
             }
         }
     }
