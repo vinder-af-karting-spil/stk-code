@@ -35,6 +35,7 @@
 #include "utils/string_utils.hpp"
 
 TournamentManager* TournamentManager::g_tournament_manager = nullptr;
+const char* TournamentManager::g_matchplan_blank_word = "?";
 
 void TournamentManager::FilterScorerData(std::vector<SoccerWorld::ScorerData>& scorers)
 {
@@ -99,7 +100,6 @@ void TournamentManager::OnGameEnded()
 
 TournamentManager::TournamentManager()
 {
-    g_matchplan_blank_word = "?";
 }
 
 TournamentManager::~TournamentManager()
