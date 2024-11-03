@@ -779,7 +779,7 @@ void mainLoop(STKHost* host)
             }
             else
             {
-                TournamentManager::get()->StartGame(game, minutes * 60);
+                TournamentManager::get()->StartGame(game, minutes * 60, true);
             }
         }
         else if (ServerConfig::m_supertournament && str == "gameend" &&
