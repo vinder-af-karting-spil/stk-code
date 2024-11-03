@@ -34,6 +34,8 @@
 #include "utils/log.hpp"
 #include "utils/string_utils.hpp"
 
+TournamentManager* TournamentManager::g_tournament_manager = nullptr;
+
 void TournamentManager::FilterScorerData(std::vector<SoccerWorld::ScorerData>& scorers)
 {
     for (int i = scorers.size() - 1; i >= 0; i--)
