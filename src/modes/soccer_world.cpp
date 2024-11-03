@@ -36,6 +36,7 @@
 #include "network/stk_host.hpp"
 #include "network/stk_peer.hpp"
 #include "network/server_config.hpp"
+#include "network/tournament/tournament_manager.hpp"
 #include "physics/physics.hpp"
 #include "states_screens/race_gui_base.hpp"
 #include "tracks/check_goal.hpp"
@@ -496,7 +497,7 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 {
     if (isRaceOver() || isStartPhase() ||
         (NetworkConfig::get()->isNetworking() &&
-        NetworkConfig::get()->isClient()))
+        NetworkConfig::get()->isClient()) || m_stopped)
         return;
 
     if (getTicksSinceStart() < m_ticks_back_to_own_goal)

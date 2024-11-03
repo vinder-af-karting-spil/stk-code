@@ -17,7 +17,10 @@
 //  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "network/tournament/tournament_manager.hpp"
+#include "network/protocols/global_log.hpp"
 #include "network/peer_vote.hpp"
+#include "network/protocols/lobby_protocol.hpp"
+#include "network/protocols/server_lobby.hpp"
 #include "network/stk_peer.hpp"
 #include "utils/string_utils.hpp"
 #include <algorithm>
@@ -278,7 +281,7 @@ bool TournamentManager::CountPlayerVote(STKPeer* peer) const
     return false;
 }
 
-void TournamentManager::StartGame(int index, float target_time)
+void TournamentManager::StartGame(int index, float target_time, bool announce)
 {
     assert(index < m_game_setup.size());
     m_current_game_index = index;
@@ -287,9 +290,24 @@ void TournamentManager::StartGame(int index, float target_time)
     m_elapsed_time = 0;
     m_stopped_at = 0;
     m_player_karts.clear();
+
+    if (index >= 1 && index <= TournamentManager::get()->GetMaxGames())
+    {
+        const int minutes = GetAdditionalMinutesRounded();
+        Log::info("TournamentManager", "game %d %d", index, minutes);
+        if (!announce)
+            return;
+        auto sl = LobbyProtocol::get<ServerLobby>();
+        if (!sl)
+            return;
+
+        std::string msg = "Ready to start game " + std::to_string(index) + " for " + std::to_string(minutes) + " minutes!";
+        sl->sendStringToAllPeers(msg);
+        GlobalLog::writeLog(msg + "\n", GlobalLogTypes::GOAL_LOG);
+    }
 }
 
-void TournamentManager::StartGame(int index)
+void TournamentManager::StartGame(int index, bool announce)
 {
     assert(index < m_game_setup.size());
     m_current_game_index = index;
@@ -298,20 +316,52 @@ void TournamentManager::StartGame(int index)
     m_elapsed_time = 0;
     m_stopped_at = 0;
     m_player_karts.clear();
+    if (index >= 1 && index <= TournamentManager::get()->GetMaxGames())
+    {
+        const int minutes = GetAdditionalMinutesRounded();
+        Log::info("TournamentManager", "game %d %d", index, minutes);
+        if (!announce)
+            return;
+        auto sl = LobbyProtocol::get<ServerLobby>();
+        if (!sl)
+            return;
+
+        std::string msg = "Ready to start game " + std::to_string(index) + " for " + std::to_string(minutes) + " minutes!";
+        sl->sendStringToAllPeers(msg);
+        GlobalLog::writeLog(msg + "\n", GlobalLogTypes::GOAL_LOG);
+    }
 }
 
-void TournamentManager::StopGame(float elapsed_time)
+void TournamentManager::StopGame(float elapsed_time, bool announce)
 {
     m_stopped_at += elapsed_time;
+    Log::info("TournamentManager", "stop");
+    if (!announce)
+        return;
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    std::string msg = "The game is stopped.";
+    sl->sendStringToAllPeers(msg);
 }
 
-void TournamentManager::ResumeGame(float elapsed_time)
+void TournamentManager::ResumeGame(float elapsed_time, bool announce)
 {
     if (m_stopped_at != 0)
     {
         m_target_time += elapsed_time - m_stopped_at;
         m_stopped_at = 0;
     }
+    Log::info("TournamentManager", "resume");
+    if (!announce)
+        return;
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    std::string msg = "The game is resumed.";
+    sl->sendStringToAllPeers(msg);
 }
 
 void TournamentManager::HandleGameResult(float elapsed_time, GameResult result)
@@ -361,6 +411,8 @@ void TournamentManager::ResetGame(int index)
         logfile << "RESET Game " + std::to_string(index) + "\n";
         logfile.close();
     }
+
+    Log::info("TournamentManager", "game %d reset", index);
 }
 
 void TournamentManager::GetCurrentResult(int& red_goals, int& blue_goals)
@@ -396,12 +448,21 @@ std::string TournamentManager::GetAdditionalTimeMessage() const
     return std::to_string(additional_minutes) + min_str + " (" + std::to_string(minutes) + ":" + sec_string + ") to replay.";
 }
 
-void TournamentManager::AddAdditionalSeconds(float seconds)
+void TournamentManager::AddAdditionalSeconds(float seconds, const bool announce)
 {
     m_target_time += seconds;
+
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    std::string msg = std::to_string((int)(seconds / 60)) + " additional minutes"
+        " will be played for already completed game "
+        + std::to_string(m_current_game_index) + ".";
+    sl->sendStringToAllPeers(msg);
 }
 
-void TournamentManager::AddAdditionalSeconds(int game, float seconds)
+void TournamentManager::AddAdditionalSeconds(int game, float seconds, const bool announce)
 {
     if (GameDone(game))
     {
@@ -411,6 +472,15 @@ void TournamentManager::AddAdditionalSeconds(int game, float seconds)
         m_elapsed_time = m_current_game_result.m_elapsed_time;
         m_stopped_at = 0;
     }
+
+    auto sl = LobbyProtocol::get<ServerLobby>();
+    if (!sl)
+        return;
+
+    std::string msg = std::to_string((int)(seconds / 60)) + " additional minutes"
+        " will be played for already completed game "
+        + std::to_string(m_current_game_index) + ".";
+    sl->sendStringToAllPeers(msg);
 }
 
 bool TournamentManager::GameInitialized() const

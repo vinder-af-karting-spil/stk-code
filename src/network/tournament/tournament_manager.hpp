@@ -174,10 +174,10 @@ public:
     bool CountPlayerVote(std::string player_name) const;
     bool CountPlayerVote(STKPeer* peer) const;
 
-    void StartGame(int index, float target_time);
-    void StartGame(int index);
-    void StopGame(float elapsed_time);
-    void ResumeGame(float elapsed_time);
+    void StartGame(int index, float target_time, bool announce = true);
+    void StartGame(int index, bool announce = true);
+    void StopGame(float elapsed_time, bool announce = true);
+    void ResumeGame(float elapsed_time, bool announce = true);
     unsigned GetMaxGames() const { return m_game_setup.size(); }
     void HandleGameResult(float elapsed_time, GameResult result);
     void ForceEndGame();
@@ -187,8 +187,8 @@ public:
     float GetAdditionalSeconds() const;
     int GetAdditionalMinutesRounded() const;
     std::string GetAdditionalTimeMessage() const;
-    void AddAdditionalSeconds(float seconds);
-    void AddAdditionalSeconds(int game, float seconds);
+    void AddAdditionalSeconds(float seconds, bool announce = true);
+    void AddAdditionalSeconds(int game, float seconds, bool announce = true);
     bool GameInitialized() const;
     bool GameOpen() const;
     bool GameDone(int index) const;
