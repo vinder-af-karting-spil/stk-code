@@ -258,6 +258,12 @@ SoccerWorld::SoccerWorld() : WorldWithRank()
     m_soccer_log = ServerConfig::m_soccer_log;
     m_ball_track_sector = NULL;
     m_bgd.reset(new BallGoalData());
+    m_backup_reset_ball_ticks = 0;
+    m_backup_ticks_back_to_own_goal = 0;
+    m_bad_red_goals = 0;
+    m_bad_blue_goals = 0;
+    m_init_red_goals = 0;
+    m_init_blue_goals = 0;
 }   // SoccerWorld
 
 //-----------------------------------------------------------------------------
@@ -415,6 +421,7 @@ void SoccerWorld::terminateRace()
         // handled by handlePlayerGoalFromServer already
         m_karts[i]->finishedRace(0.0f, true/*from_server*/);
     }   // i<kart_amount
+    tellCountIfDiffers();
     WorldWithRank::terminateRace();
 }   // terminateRace
 
@@ -497,11 +504,17 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
 {
     if (isRaceOver() || isStartPhase() ||
         (NetworkConfig::get()->isNetworking() &&
-        NetworkConfig::get()->isClient()) || m_stopped)
+        NetworkConfig::get()->isClient()))
         return;
 
     if (getTicksSinceStart() < m_ticks_back_to_own_goal)
         return;
+
+    if (m_stopped)
+    {
+        m_ball->reset();
+        return;
+    }
     m_ticks_back_to_own_goal = getTicksSinceStart() +
         stk_config->time2Ticks(3.0f);
     m_goal_sound->play();
@@ -1306,8 +1319,8 @@ void SoccerWorld::resume()
 // ----------------------------------------------------------------------------
 void SoccerWorld::setInitialCount(int red, int blue)
 {
-    m_init_red_goals = red;
-    m_init_blue_goals = blue;
+    m_init_red_goals = red - m_red_scorers.size();
+    m_init_blue_goals = blue - m_blue_scorers.size();
 }   // setInitialCount
 
 // ----------------------------------------------------------------------------

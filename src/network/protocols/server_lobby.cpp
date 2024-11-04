@@ -1950,6 +1950,7 @@ void ServerLobby::asynchronousUpdate()
 
         if (track_voting)
             go_on_race = handleAllVotes(&winner_vote, &m_winner_peer_id);
+
         else if (m_game_setup->isGrandPrixStarted() || isVotingOver())
         {
             winner_vote = *m_default_vote;
@@ -2105,6 +2106,11 @@ void ServerLobby::asynchronousUpdate()
                 GlobalLog::writeLog(log_msg + "\n", GlobalLogTypes::POS_LOG);
                 Log::info("AddonLog", log_msg.c_str());
             }
+            if (ServerConfig::m_supertournament)
+            {
+                TournamentManager::get()->SetPlayedField(winner_vote.m_track_name);
+            }
+
 
             // Reset for next state usage
             resetPeersReady();
@@ -2740,8 +2746,8 @@ void ServerLobby::update(int ticks)
 
         if (ServerConfig::m_soccer_log)
 	{
+        World* w = World::getWorld();
             
-            World* w = World::getWorld();
             if (w)
 	    {
 	        time = std::to_string(w->getTime());
@@ -2749,6 +2755,8 @@ void ServerLobby::update(int ticks)
 	    time_msg = "The game ended after " + time + " seconds.\n";
             GlobalLog::writeLog(time_msg, GlobalLogTypes::POS_LOG);
 	}
+        if (ServerConfig::m_supertournament)
+            onTournamentGameEnded();
 		    
         // This will go back to lobby in server (and exit the current race)
         exitGameState();
@@ -2759,6 +2767,16 @@ void ServerLobby::update(int ticks)
         m_timeout.store((int64_t)StkTime::getMonoTimeMs() + 15000);
         m_state = RESULT_DISPLAY;
         sendMessageToPeers(m_result_ns, /*reliable*/ true);
+        if (ServerConfig::m_supertournament)
+        {
+            World* w = nullptr;
+            SoccerWorld* sw = nullptr;
+            w = World::getWorld();
+            if (w)
+                sw = dynamic_cast<SoccerWorld*>(w);
+            if (sw)
+                sw->tellCountIfDiffers();
+        }
         Log::info("ServerLobby", "End of game message sent");
         if(ServerConfig::m_soccer_log) GlobalLog::writeLog("GAME_END\n", GlobalLogTypes::POS_LOG);
         GlobalLog::closeLog(GlobalLogTypes::POS_LOG);
@@ -3052,7 +3070,8 @@ void ServerLobby::startSelection(const Event *event)
                         "You need to install required addons: %s\n... and %d of %d of the following addons: %s",
                         missing_required.second.c_str(),
                         min_semi_required,
-                        semi_required);
+                        semi_required,
+                        missing_semi_required.second.c_str());
 
 
             }
@@ -3130,7 +3149,10 @@ void ServerLobby::startSelection(const Event *event)
         //    m_set_field = TournamentManager::get()->GetPlayedField();
         auto st_tracks_erase = 
             TournamentManager::get()->GetExcludedAddons(m_available_kts.second);
-        tracks_erase.insert(st_tracks_erase.begin(), st_tracks_erase.end());
+        for (const auto& trname : st_tracks_erase)
+        {
+            tracks_erase.insert(trname);
+        }
     }
     for (auto peer : peers)
     {
@@ -3276,22 +3298,23 @@ void ServerLobby::startSelection(const Event *event)
 
     if (!m_set_field.empty())
     {
+        Log::verbose("ServerLobby", "Disabling voting tracks: set field.");
         m_default_vote->m_track_name = m_set_field;
         m_default_vote->m_num_laps = m_set_laps;
         m_default_vote->m_reverse = m_set_specvalue;
         m_fixed_laps = m_set_laps;
         track_voting = false;
+        goto skip_default_vote_randomizing;
     }
     else if (ServerConfig::m_supertournament &&
             !TournamentManager::get()->IsGameVotable())
     {
+        Log::verbose("ServerLobby", "Disabling voting tracks: match has set field.");
         track_voting = false;
         *m_default_vote = TournamentManager::get()->GetForcedVote();
         m_fixed_laps = m_default_vote->m_num_laps;
-    }
-    else
-        // Spaghetti code. Otherwise git merge conflicts in the future.
         goto skip_default_vote_randomizing;
+    }
 
     it = m_available_kts.second.begin();
     std::advance(it, rg.get((int)m_available_kts.second.size()));
@@ -3352,6 +3375,12 @@ void ServerLobby::startSelection(const Event *event)
             break;
     }
 
+    if (ServerConfig::m_supertournament)
+    {
+        const PeerVote antirandom = TournamentManager::get()->GetForcedVote();
+        m_default_vote->m_num_laps = antirandom.m_num_laps;
+        m_default_vote->m_reverse = antirandom.m_reverse;
+    }
 skip_default_vote_randomizing:
     if (!allowJoinedPlayersWaiting())
     {
@@ -3363,7 +3392,10 @@ skip_default_vote_randomizing:
         }
     }
 
-    startVotingPeriod(ServerConfig::m_voting_timeout);
+    float voting_timeout = ServerConfig::m_voting_timeout;
+    if (!m_set_field.empty() || (ServerConfig::m_supertournament && !TournamentManager::get()->IsGameVotable()))
+        voting_timeout /= 2.0f;
+    startVotingPeriod(voting_timeout);
     const auto& all_k = m_available_kts.first;
     const auto& all_t = m_available_kts.second;
 
@@ -3391,7 +3423,7 @@ skip_default_vote_randomizing:
         // a new screen, which must be done from the main thread.
         ns->setSynchronous(true);
         ns->addUInt8(LE_START_SELECTION)
-           .addFloat(ServerConfig::m_voting_timeout)
+           .addFloat(voting_timeout)
            .addUInt8(m_game_setup->isGrandPrixStarted() ? 1 : 0)
            .addUInt8((ServerConfig::m_auto_game_time_ratio > 0.0f ||
             m_fixed_laps != -1) ? 1 : 0)
@@ -4631,20 +4663,22 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             handicap, (uint8_t)i, KART_TEAM_NONE,
             country_code, permlvl, restrictions);
 
-        if (!set_kart.empty())
-            player->forceKart(set_kart);
-
         std::string utf8_online_name = StringUtils::wideToUtf8(online_name);
 
         if (ServerConfig::m_supertournament)
         {
-            if (m_red_team.count(utf8_online_name))
-                player->setTeam(KART_TEAM_RED);
-            else if (m_blue_team.count(utf8_online_name))
-                player->setTeam(KART_TEAM_BLUE);
+            const KartTeam team = TournamentManager::get()->GetKartTeam(utf8_online_name);
+            if (team != KART_TEAM_NONE)
+                player->setTeam(team);
             else
                 player->addRestriction(PRF_NOGAME);
+
+            if (set_kart.empty())
+                set_kart = TournamentManager::get()->GetKart(utf8_online_name);
         }
+
+        if (!set_kart.empty())
+            player->forceKart(set_kart);
 
         if (player->hasRestriction(PRF_NOGAME) ||
                 player->getPermissionLevel() < PERM_PLAYER)
@@ -5294,11 +5328,6 @@ bool ServerLobby::handleAllVotes(PeerVote* winner_vote,
     findMajorityValue<std::string>(tracks, cur_players, &top_track, &tracks_rate);
     findMajorityValue<unsigned>(laps, cur_players, &top_laps, &laps_rate);
     findMajorityValue<bool>(reverses, cur_players, &top_reverse, &reverses_rate);
-
-    if (ServerConfig::m_supertournament)
-    {
-        TournamentManager::get()->SetPlayedField(top_track);
-    }
 
     // End early if there is majority agreement which is all entries rate > 0.5
     it = m_peers_votes.begin();
@@ -7537,32 +7566,36 @@ void ServerLobby::handleServerCommand(Event* event,
             sendStringToPeer(msg, peer);
             return;
         }
-        if (player->getPermissionLevel() < PERM_ADMINISTRATOR && argv.size() > 2)
-        {
-            msg = "Please specify a correct number. Format: /game [number]";
-            sendStringToPeer(msg, peer);
-            return;
-        }
         if (argv.size() >= 3 && argv[2] == "reset")
         {
             TournamentManager::get()->ResetGame(std::stoi(argv[1]));
             return;
         }
 
+        int game;
+        int length = argv.size() >= 3 ? std::stoi(argv[2]) : -1;
         bool ok = argv.size() >= 2 && std::stoi(argv[1]) > 0 && std::stoi(argv[1]) <= 5;
         if (argv.size() >= 3)
             ok &= (std::stoi(argv[2]) > 0 && std::stoi(argv[2]) <= 15);
         
-        if (argv.size() < 2 || ok == false)
+        if (argv.size() > 2 && !ok)
         {
-            msg = "Please specify a correct number. Format: /game [number][length]";
+            msg = "Please specify a correct number. Format: /game [number] [length]";
             sendStringToPeer(msg, peer);
             return;
         }
-
-        int game = std::stoi(argv[1]);
-        int length = argv.size() >= 3 ? std::stoi(argv[2]) : 7;
-        //ServerConfig::m_fixed_lap_count = length;
+        else if (ok)
+        {
+            game = std::stoi(argv[1]);
+            length = argv.size() >= 3 ? std::stoi(argv[2]) : -1;
+            //ServerConfig::m_fixed_lap_count = length;
+        }
+        else
+        {
+            // start next game
+            game = -1;
+            length = -1;
+        }
 
         if (ServerConfig::m_supertournament)
         {
@@ -7572,19 +7605,26 @@ void ServerLobby::handleServerCommand(Event* event,
                 sendStringToPeer(msg, peer);
                 return;
             }
-            else if (TournamentManager::get()->GameDone(game))
+            else if (game != -1 && TournamentManager::get()->GameDone(game))
             {
                 if (argv.size() >= 3)
                 {
-                    msg = argv[2] + " additional minutes will be played for already completed game " + argv[1] + ".";
                     TournamentManager::get()->AddAdditionalSeconds(game , length * 60);
                 }
                 else
                 {
                     msg = "Game " + argv[1] + " has already been played. Use \"/game " + argv[1] + " [time]\" to play some additional time. To restart and overwrite the game, use \"/game " + argv[1] + " reset\".";
+                    sendStringToPeer(msg, peer);
                 }
-                sendStringToPeer(msg, peer);
                 return;
+            }
+            else if (game < 0)
+            {
+                TournamentManager::get()->StartNextGame(true);
+            }
+            else if (length < 0)
+            {
+                TournamentManager::get()->StartGame(game, true);
             }
             else
             {
@@ -7597,7 +7637,7 @@ void ServerLobby::handleServerCommand(Event* event,
         std::string msg = "";
         if (!ServerConfig::m_supertournament)
             msg = "This command is only for SuperTournament.";
-        if (!isVIP(peer))
+        if (player->getPermissionLevel() < PERM_REFEREE)
             msg = "You are not server owner";
         if (m_state.load() != WAITING_FOR_START_GAME)
             msg = "This commmand can only be used in the lobby.";
@@ -7658,7 +7698,7 @@ void ServerLobby::handleServerCommand(Event* event,
         std::string msg = "";
         if (!ServerConfig::m_supertournament)
             msg = "This command is only for SuperTournament.";
-        if (!isVIP(peer))
+        if (player->getPermissionLevel() < PERM_REFEREE)
             msg = "You are not server owner";
 
         int red = 0, blue = 0;
@@ -8892,7 +8932,7 @@ unmute_error:
             return;
         }
 
-        if ((noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
+        if (!ServerConfig::m_supertournament && (noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
         }
@@ -9258,6 +9298,7 @@ unmute_error:
             return;
         }
 
+#if 0
         if (ServerConfig::m_supertournament)
         {
             if (!TournamentManager::get()->GameInitialized())
@@ -9267,6 +9308,7 @@ unmute_error:
                 return;
             }
         }
+#endif
         const KartProperties* kart =
             kart_properties_manager->getKart(argv[1]);
         if ((!kart || kart->isAddon()) && argv[1] != "off")
@@ -9283,6 +9325,11 @@ unmute_error:
                 StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
+            if (ServerConfig::m_supertournament)
+            {
+                TournamentManager::get()->SetKart(argv[2], argv[1]);
+                return;
+            }
             msg = "Invalid target player: " + argv[2];
             sendStringToPeer(msg, peer);
             return;
@@ -9329,10 +9376,10 @@ unmute_error:
         }
         bool isField = (argv[0] == "setfield");
 
-        if (argv.size() != 4)
+        if (argv.size() < 2)
         {
-            std::string msg = isField ? "Format: /setfield soccer_field_id minutes/- scatter:on/off" :
-                "Format: /settrack track_id laps/- reverse:yes/no";
+            std::string msg = isField ? "Format: /setfield soccer_field_id [minutes/- scatter:on/off]" :
+                "Format: /settrack track_id [laps/- reverse:yes/no]";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -9340,12 +9387,12 @@ unmute_error:
         std::string soccer_field_id = argv[1];
         int laps;
         bool specvalue = false;
-        if (argv[2] == "-")
+        if (argv.size() < 3 || argv[2] == "-")
             laps = -1;
         else
             laps = std::stoi(argv[2]);
         
-        if (argv[3] == "on")
+        if (argv.size() >= 4 && argv[3] == "on")
             specvalue = true;
         // Check that peer and server have the track
         bool found = forceSetTrack(soccer_field_id, laps, specvalue, isField, true);
@@ -9830,7 +9877,7 @@ bool ServerLobby::canRace(STKPeer* peer) const
   if (peer == NULL || peer->getPlayerProfiles().size() == 0) return false;
   std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
   // Players who do not have the addon defined via /setfield are not allowed to play.
-  if (m_set_field != "")
+  if (!m_set_field.empty())
   {
       bool has_addon = false;
       const auto& kt = peer->getClientAssets();
@@ -11448,12 +11495,14 @@ void ServerLobby::changeTimeout(long timeout, bool infinite, bool absolute)
 //-----------------------------------------------------------------------------
 void ServerLobby::onTournamentGameEnded()
 {
+    m_set_field.clear();
     World* w = World::getWorld();
     if (w)
     {
         SoccerWorld* sw = dynamic_cast<SoccerWorld*>(World::getWorld());
         GameResult result(sw->getScorers(KART_TEAM_RED), sw->getScorers(KART_TEAM_BLUE));
         TournamentManager::get()->HandleGameResult(sw->getElapsedTime(), result);
+        sw->tellCountIfDiffers();
         if (TournamentManager::get()->GetAdditionalSeconds() > 0)
         {
             std::string add_time_msg = TournamentManager::get()->GetAdditionalTimeMessage();
@@ -11463,8 +11512,8 @@ void ServerLobby::onTournamentGameEnded()
 }
 //-----------------------------------------------------------------------------
 bool ServerLobby::forceSetTrack(std::string track_id,
-        const int laps,
-        const bool specvalue, const bool is_soccer, const bool announce)
+        int laps,
+        bool specvalue, const bool is_soccer, const bool announce)
 {
         bool found = false;
 #if 0
@@ -11481,11 +11530,10 @@ bool ServerLobby::forceSetTrack(std::string track_id,
         else
         {
 #endif
-        // If the laps are specified as -1, startSelection() will
-        // automatically try to guess how many laps to set.
-        // If there's a supertournament game in progress, it will set
-        // the rounded additional minutes.
-        //
+        PeerVote fv;
+        if (ServerConfig::m_supertournament)
+            fv = TournamentManager::get()->GetForcedVote();
+
         auto peers = STKHost::get()->getPeers();
         for (auto& peer2 : peers)
         {
@@ -11527,6 +11575,14 @@ bool ServerLobby::forceSetTrack(std::string track_id,
             }
             else
             {
+                Track* t = track_manager->getTrack(track_id);
+                if (!t)
+                    return false;
+                if (laps < 1)
+                {
+                    if (ServerConfig::m_supertournament)
+                        laps = fv.m_num_laps;
+                }
                 m_set_field = track_id;
                 m_set_laps = laps;
                 m_fixed_laps = laps;
