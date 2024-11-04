@@ -24,9 +24,12 @@
 #include "network/stk_peer.hpp"
 #include "utils/string_utils.hpp"
 #include <algorithm>
+#include <csignal>
+#include <cstdio>
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -85,15 +88,17 @@ void TournamentManager::OnGameEnded()
 #endif
         if (ServerConfig::m_update_matchplan)
         {
-            LoadMatchPlan();
+            LoadMatchPlan(false);
             UpdateMatchPlan(
-                    m_red_team, m_blue_team, m_current_game_index, 0/*field_index*/,
+                    m_red_team, m_blue_team, m_current_game_index,
                     m_current_game_result.m_red_goals, m_current_game_result.m_blue_goals,
                     m_current_game_result.m_played_field, m_referee, m_video);
             SaveMatchPlan();
         }
         m_current_game_result.m_elapsed_time = m_elapsed_time;
         m_game_results[m_current_game_index] = m_current_game_result;
+        m_current_game_result.m_blue_goals = 0;
+        m_current_game_result.m_red_goals = 0;
         m_current_game_index = -1;
     }
 }
@@ -155,7 +160,7 @@ void TournamentManager::InitializePlayersAndTeams(std::string red_team, std::str
     try
     {
         std::ifstream teams_file(ServerConfig::m_teams_path, std::ios_base::in);
-        teams_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+        teams_file.exceptions(std::ifstream::badbit);
         if (!teams_file.is_open())
         {
             Log::error("TournamentManager", "File %s does not exist.", ServerConfig::m_teams_path.c_str());
@@ -285,15 +290,47 @@ bool TournamentManager::CountPlayerVote(STKPeer* peer) const
     return false;
 }
 
+void TournamentManager::StartNextGame(const bool announce)
+{
+    if (m_current_game_index < 1)
+        m_current_game_index = 1;
+    else if (m_current_game_index > m_game_setup.size())
+    {
+        m_current_game_index = -1;
+        return;
+    }
+
+    while (GameDone(m_current_game_index))
+    {
+        if (m_current_game_index > m_game_setup.size())
+        {
+            m_current_game_index = -1;
+            return;
+        }
+        m_current_game_index++;
+    }
+    if (m_current_game_index > m_game_setup.size())
+    {
+        m_current_game_index = -1;
+        return;
+    }
+    StartGame(m_current_game_index, announce);
+}
+
 void TournamentManager::StartGame(int index, float target_time, bool announce)
 {
     assert(index < m_game_setup.size());
     m_current_game_index = index;
-    m_current_game_result = GameResult();
+    if (m_current_game_result.m_blue_goals != 0 || m_current_game_result.m_red_goals != 0)
+    {
+        m_game_results[index].m_blue_goals = m_current_game_result.m_blue_goals;
+        m_game_results[index].m_red_goals = m_current_game_result.m_red_goals;
+    }
+    m_current_game_result = m_game_results[index];
     m_target_time = target_time;
     m_elapsed_time = 0;
     m_stopped_at = 0;
-    m_player_karts.clear();
+    //m_player_karts.clear();
 
     if (index >= 1 && index <= TournamentManager::get()->GetMaxGames())
     {
@@ -313,27 +350,10 @@ void TournamentManager::StartGame(int index, float target_time, bool announce)
 
 void TournamentManager::StartGame(int index, bool announce)
 {
-    assert(index < m_game_setup.size());
-    m_current_game_index = index;
-    m_current_game_result = GameResult();
-    m_target_time = m_game_setup[index].m_game_minutes * 60.0f;
-    m_elapsed_time = 0;
-    m_stopped_at = 0;
-    m_player_karts.clear();
-    if (index >= 1 && index <= TournamentManager::get()->GetMaxGames())
-    {
-        const int minutes = GetAdditionalMinutesRounded();
-        Log::info("TournamentManager", "game %d %d", index, minutes);
-        if (!announce)
-            return;
-        auto sl = LobbyProtocol::get<ServerLobby>();
-        if (!sl)
-            return;
+    if (index > m_game_setup.size() || index < 1)
+        return;
 
-        std::string msg = "Ready to start game " + std::to_string(index) + " for " + std::to_string(minutes) + " minutes!";
-        sl->sendStringToAllPeers(msg);
-        GlobalLog::writeLog(msg + "\n", GlobalLogTypes::GOAL_LOG);
-    }
+    StartGame(index, m_game_setup[index - 1].m_game_minutes * 60.0f, announce);
 }
 
 void TournamentManager::StopGame(float elapsed_time, bool announce)
@@ -429,6 +449,17 @@ void TournamentManager::SetCurrentResult(int red_goals, int blue_goals)
 {
     m_current_game_result.m_red_goals = red_goals;
     m_current_game_result.m_blue_goals = blue_goals;
+
+    World* world = World::getWorld();
+    if (!world)
+        return;
+
+    SoccerWorld* sworld = dynamic_cast<SoccerWorld*>(world);
+    if (!sworld)
+        return;
+
+    sworld->setInitialCount(red_goals, blue_goals);
+    sworld->tellCountIfDiffers();
 }
 
 float TournamentManager::GetAdditionalSeconds() const
@@ -471,6 +502,11 @@ void TournamentManager::AddAdditionalSeconds(int game, float seconds, const bool
     if (GameDone(game))
     {
         m_current_game_index = game;
+        if (m_current_game_result.m_blue_goals != 0 || m_current_game_result.m_red_goals != 0)
+        {
+            m_game_results[game].m_blue_goals = m_current_game_result.m_blue_goals;
+            m_game_results[game].m_red_goals = m_current_game_result.m_red_goals;
+        }
         m_current_game_result = m_game_results[game];
         m_target_time = m_current_game_result.m_elapsed_time + seconds;
         m_elapsed_time = m_current_game_result.m_elapsed_time;
@@ -515,6 +551,8 @@ bool TournamentManager::IsGameVotable() const
 {
     if (m_current_game_index > m_game_setup.size())
         return true;
+    if (!m_current_game_result.m_played_field.empty())
+        return false;
     const TournamentManager::TournGameSetup& cur = m_game_setup[m_current_game_index - 1];
     return cur.m_votable_addons || cur.m_votable_fields.empty() || cur.m_votable_fields.size() > 1;
 }
@@ -529,24 +567,32 @@ PeerVote TournamentManager::GetForcedVote() const
 {
     PeerVote res;
     res.m_reverse = false;
+    res.m_player_name = L"";
     if (m_current_game_index > m_game_setup.size())
         return res;
     const struct TournGameSetup& gs = m_game_setup[m_current_game_index - 1];
-    if (!gs.m_votable_addons && gs.m_votable_fields.size() == 1)
+    res.m_reverse = gs.m_random_items;
+
+    const bool game_open = GameOpen();
+    if (game_open && !m_current_game_result.m_played_field.empty())
     {
-        res.m_player_name = L"";
-        res.m_num_laps = gs.m_game_minutes;
-        res.m_reverse = gs.m_random_items;
-        res.m_track_name = *gs.m_votable_fields.begin();
+        res.m_num_laps = GetAdditionalMinutesRounded();
+        res.m_track_name = GetPlayedField();
+        Log::verbose("TournamentManager", "Forced vote: Additional minutes will be used, voted early: %d", res.m_num_laps);
         return res;
     }
-
-    if (m_elapsed_time < m_target_time && !m_current_game_result.m_played_field.empty())
+    else if (game_open)
     {
-        res.m_player_name = L"";
         res.m_num_laps = GetAdditionalMinutesRounded();
-        res.m_reverse = gs.m_random_items;
-        res.m_track_name = GetPlayedField();
+        res.m_track_name = *gs.m_votable_fields.begin();
+        Log::verbose("TournamentManager", "Forced vote: Additional minutes will be used, but was always fixed: %d", res.m_num_laps);
+        return res;
+    }
+    else if (!gs.m_votable_addons && gs.m_votable_fields.size() == 1)
+    {
+        res.m_num_laps = gs.m_game_minutes;
+        res.m_track_name = *gs.m_votable_fields.begin();
+        Log::verbose("TournamentManager", "Forced vote: Fixed game field will be used.");
         return res;
     }
     return res;
@@ -561,6 +607,7 @@ void TournamentManager::SetPlayedField(std::string field, const bool force)
 {
     m_current_game_result.m_played_field = field;
     m_current_game_result.m_forced = force;
+    Log::verbose("TournamentManager", "Field set: %s", field.c_str());
 }
 
 bool TournamentManager::HasRequiredAddons(const std::set<std::string>& player_tracks) const
@@ -615,20 +662,26 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
     
     if (cur.m_votable_addons)
     {
-        for (const std::string& track_name : excluded_addons)
+        Log::verbose("TournamentManager", "->This game is only for addons.");
+        for (const std::string& track_name : available_tracks)
             if (!StringUtils::startsWith(track_name, "addon_"))
+            {
                 excluded_addons.insert(track_name);
+            }
     }
     else if (cur.m_votable_fields.empty())
         return excluded_addons;
     else
     {
         excluded_addons.insert(available_tracks.begin(), available_tracks.end());
-        excluded_addons.erase(cur.m_votable_fields.begin(), cur.m_votable_fields.end());
+        for (const std::string& field : cur.m_votable_fields)
+        {
+            excluded_addons.erase(field);
+        }
     }
     for (auto& game_result : m_game_results)
     {
-        if (game_result.first > m_current_game_index)
+        if (game_result.first >= m_current_game_index)
             return excluded_addons;
         // do not repeat already played addons
         excluded_addons.insert(game_result.second.m_played_field);
@@ -638,13 +691,15 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
 std::pair<size_t, std::string> TournamentManager::FormatMissingAddons(STKPeer* const peer,
         bool semi_required)
 {
-    std::set<std::string> missing_addons, installed_addons;
-    if (semi_required)
-        missing_addons.insert(m_semi_required_fields.cbegin(), m_semi_required_fields.cend());
+    std::set<std::string> missing_addons;
+    std::set<std::string> installed_addons;
+    if (semi_required && !m_semi_required_fields.empty())
+        installed_addons.insert(m_semi_required_fields.cbegin(), m_semi_required_fields.cend());
+    else if (!semi_required && !m_required_fields.empty())
+        installed_addons.insert(m_required_fields.cbegin(), m_required_fields.cend());
     else
-        missing_addons.insert(m_required_fields.cbegin(), m_required_fields.cend());
-    peer->eraseServerTracks(missing_addons, installed_addons);
-    missing_addons.erase(installed_addons.cbegin(), installed_addons.cend());
+        return std::make_pair(0, "");
+    peer->eraseServerTracks(installed_addons, missing_addons);
     
     size_t max_l = missing_addons.size();
     size_t cur_l = 0;
@@ -699,35 +754,38 @@ TournamentManager::ParseGameEntryFrom(const std::string& str)
     }
     return res;
 }
-bool TournamentManager::LoadMatchPlan()
+bool TournamentManager::LoadMatchPlan(const bool load_game_results)
 {
     bool success = false;
     try
     {
         std::ifstream matchplan_file(ServerConfig::m_matchplan_path, std::ios_base::in);
-        matchplan_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+        matchplan_file.exceptions(std::ifstream::badbit);
         
         char c_line[2048];
         std::string line;
-        unsigned line_count = 1;
-        MatchplanEntry entry = {};
+        unsigned line_count = 0;
 
         // Clear previous matchplan
         m_match_plan.clear();
         m_matchplan_map.clear();
 
         for(;!matchplan_file.eof() && !matchplan_file.bad() && !matchplan_file.fail();
-                matchplan_file.getline(c_line, 2048), line = c_line, ++line_count)
+                matchplan_file.getline(c_line, 2048), line = c_line)
         {
+            MatchplanEntry entry = {};
             if (line.empty() || line[0] == '#')
                 continue;
+            ++line_count;
 
+            auto votable_game_setup = m_game_setup.begin();
+            int votable_game = 1;
             std::vector<std::string> contents = StringUtils::split(line, ' ');
 
-            if (contents.size() < 11 + m_game_setup.size() + m_votable_amount)
+            if (contents.size() < 11 - 2 + m_game_setup.size() + m_votable_amount)
             {
                 Log::error("TournamentManager", "Invalid matchplan entry on line %d, expected at least %d columns, got %d",
-                        line_count, 11 + m_game_setup.size() + m_votable_amount, contents.size());
+                        line_count, 11 - 2 + m_game_setup.size() + m_votable_amount, contents.size());
             }
 
             // Order of the elements in the matchplan
@@ -744,7 +802,7 @@ bool TournamentManager::LoadMatchPlan()
             }
             // the time is always formatted like HH:MM
             std::string time_str = contents[4];
-            if (date_str.size() != 5)
+            if (time_str.size() != 5)
             {
                 Log::error("TournamentManager", "Invalid time specified in %s, line %d: %s",
                         ServerConfig::m_matchplan_path.c_str(), line_count, time_str.c_str());
@@ -757,28 +815,59 @@ bool TournamentManager::LoadMatchPlan()
             entry.m_hour    = std::stoi(time_str.substr(0, 2));
             entry.m_minute  = std::stoi(time_str.substr(3, 2));
 
-            entry.m_referee = contents[5];
+            entry.m_referee = contents[5] != g_matchplan_blank_word ? contents[5] : "";
+            if (load_game_results && !entry.m_referee.empty())
+                SetReferee(entry.m_referee);
             unsigned offset;
-            entry.m_game_results.reserve(m_game_setup.size());
+            entry.m_game_results.resize(m_game_setup.size());
             for (offset = 0; offset < m_game_setup.size(); ++offset)
             {
-                entry.m_game_results.push_back(
-                        ParseGameEntryFrom(contents[6 + offset]));
+                MatchplanGameResult mpgr = ParseGameEntryFrom(contents[6 + offset]);
+                entry.m_game_results[offset] = mpgr;
+                if (load_game_results && mpgr.m_set)
+                {
+                    m_game_results[offset + 1].m_red_goals = mpgr.m_goal_red;
+                    m_game_results[offset + 1].m_blue_goals = mpgr.m_goal_blue;
+                }
             }
-            entry.m_final_score = ParseGameEntryFrom(contents[7 + offset]);
-            entry.m_winner_team = contents[8 + offset] != g_matchplan_blank_word ? contents[8 + offset] : "";
+            entry.m_final_score = ParseGameEntryFrom(contents[6 + offset]);
+            entry.m_winner_team = contents[7 + offset] != g_matchplan_blank_word ? contents[7 + offset] : "";
 
-            entry.m_fields.reserve(m_votable_amount);
+            entry.m_fields.resize(m_votable_amount);
             for (; offset < m_game_setup.size() + m_votable_amount; ++offset)
             {
-                entry.m_fields.push_back(contents[9 + offset] != g_matchplan_blank_word ? contents[9 + offset] : "");
+                const std::string& field_id = contents[8 + offset];
+                entry.m_fields[offset - m_game_setup.size()] = field_id != g_matchplan_blank_word ? contents[8 + offset] : "";
+
+                // when ran out of votable game setup, don't update any played fields
+                if (!load_game_results || field_id == g_matchplan_blank_word || votable_game_setup >= m_game_setup.end())
+                    continue;
+
+                // find the next votable game and advance forward
+                TournGameSetup gr = *votable_game_setup;
+                while (votable_game_setup < m_game_setup.end() && (!gr.m_votable_addons && gr.m_votable_fields.size() == 1))
+                {
+                    votable_game_setup++;
+                    votable_game++;
+                    gr = *votable_game_setup;
+                }
+                if (votable_game_setup >= m_game_setup.end())
+                    continue;
+
+                // set the played field
+                m_game_results[votable_game].m_played_field = field_id;
+                // load next game
+                votable_game_setup++;
+                votable_game++;
             }
-            entry.m_footage_url = contents[10 + offset] != g_matchplan_blank_word ? contents[10 + offset] : "";
+            entry.m_footage_url = contents[8 + offset] != g_matchplan_blank_word ? contents[8 + offset] : "";
+            if (load_game_results && !entry.m_footage_url.empty())
+                SetVideo(entry.m_footage_url);
 
             m_match_plan.push_back(entry);
             std::string key = entry.m_team_red + entry.m_team_blue;
             // also create an easy access to the MatchplanEntry
-            m_matchplan_map[key] = &*(m_match_plan.end()--);
+            m_matchplan_map[key] = &(*(m_match_plan.end() - 1));
             success = true;
 
         }
@@ -816,9 +905,24 @@ void TournamentManager::SaveMatchPlan()
             "FieldChoice1 FieldChoice2... FootageURL" << std::endl;
         for (auto& entry : m_match_plan)
         {
-            matchplan_file << entry.m_team_red << " " << entry.m_team_blue << " ";
-            matchplan_file << entry.m_year << "-" << entry.m_month << "-" << entry.m_day << " ";
-            matchplan_file << entry.m_hour << ":" << entry.m_minute << " ";
+            if (entry.m_game_results.size() != m_game_setup.size())
+            {
+                Log::error("TournamentManager", "Game results amount doesn't match with the game setup, size expected: %d, got: %d",
+                        m_game_setup.size(), entry.m_game_results.size());
+            }
+            if (entry.m_fields.size() != m_votable_amount)
+            {
+                Log::error("TournamentManager", "Votable addon amount doesn't match with the game setup, size expected: %d, got: %d",
+                        m_votable_amount, entry.m_fields.size());
+                return;
+            }
+            char date_res[11];
+            char time_res[6];
+            std::snprintf(date_res, 11, "%.4u-%.2u-%.2u", entry.m_year, entry.m_month, entry.m_day);
+            std::snprintf(time_res, 6, "%.2u:%.2u", entry.m_hour, entry.m_minute);
+            matchplan_file << entry.m_team_red << " " << entry.m_team_blue << " " << 
+                (entry.m_weekday_name.empty() ? g_matchplan_blank_word : entry.m_weekday_name) << " ";
+            matchplan_file << date_res << " " << time_res << " ";
             matchplan_file << (entry.m_referee.empty() ? g_matchplan_blank_word : entry.m_referee) << " ";
             for (auto& game_entry : entry.m_game_results)
             {
@@ -841,9 +945,9 @@ void TournamentManager::SaveMatchPlan()
                 else
                     matchplan_file << field_id << " ";
             }
-            matchplan_file << entry.m_footage_url << std::endl;
+            matchplan_file << (entry.m_footage_url.empty() ? g_matchplan_blank_word : entry.m_footage_url) << std::endl;
+            matchplan_file.flush();
         }
-        matchplan_file.flush();
         Log::info("TournamentManager", "File %s has been updated with %d rows.",
                 ServerConfig::m_matchplan_path.c_str(), m_match_plan.size());
     }
@@ -853,12 +957,10 @@ void TournamentManager::SaveMatchPlan()
                 ServerConfig::m_matchplan_path.c_str(), exception.what());
     }
 }
-void TournamentManager::UpdateMatchPlan(const std::string& team_red, std::string& team_blue, unsigned game_index,
-        unsigned field_index,
-        unsigned goal_red, unsigned goal_blue, const std::string& field_id,
+void TournamentManager::UpdateMatchPlan(const std::string& team_red, const std::string& team_blue, const unsigned game_index,
+        const unsigned goal_red, const unsigned goal_blue, const std::string& field_id,
         const std::string& referee, const std::string& footage_url)
 {
-    assert(field_index < m_votable_amount - 1);
     std::string key = team_red + team_blue;
     MatchplanEntry* ent = m_matchplan_map[key];
     if (!ent)
@@ -868,23 +970,72 @@ void TournamentManager::UpdateMatchPlan(const std::string& team_red, std::string
                 team_red.c_str(), team_blue.c_str(), key.c_str());
         return;
     }
-    MatchplanGameResult* gres = &ent->m_game_results[game_index];
-    gres->m_set = true;
-    gres->m_goal_blue = goal_blue;
-    gres->m_goal_red = goal_red;
-    if (!field_id.empty())
-        ent->m_fields[field_index] = field_id;
+    if (game_index > ent->m_game_results.size())
+    {
+        Log::error("TournamentManager", "Unable to update the matchplan, game index (%d) exceeds set game size (%d).",
+                game_index, ent->m_game_results.size());
+    }
+    MatchplanGameResult& gres = ent->m_game_results[game_index - 1];
+    gres.m_set = true;
+    gres.m_goal_blue = goal_blue;
+    gres.m_goal_red = goal_red;
+    if (!field_id.empty() && IsGameSetupVotable(m_game_setup[game_index - 1]))
+        ent->m_fields[m_game_setup[game_index - 1].m_votable_offset] = field_id;
     if (!referee.empty())
         ent->m_referee = referee;
     if (!footage_url.empty())
         ent->m_footage_url = footage_url;
+    
+    // try to determine the final score and the winner
+    unsigned int final_red = 0, final_blue = 0;
+    for (const auto& gres2 : ent->m_game_results)
+    {
+        if (!gres2.m_set)
+            return;
+
+        if (gres2.m_goal_blue < gres2.m_goal_red)
+            final_red++;
+        else if (gres2.m_goal_red < gres2.m_goal_blue)
+            final_blue++;
+        else
+        {
+            final_red++;
+            final_blue++;
+        }
+    }
+    ent->m_final_score.m_set = true;
+    ent->m_final_score.m_goal_red = final_red;
+    ent->m_final_score.m_goal_blue = final_blue;
+    if (final_blue < final_red)
+        ent->m_winner_team = ent->m_team_red;
+    else if (final_red < final_blue)
+        ent->m_winner_team = ent->m_team_blue;
+    else
+        ent->m_winner_team = "Draw";
+
+    LogMatchResults(*ent);
 }
+void TournamentManager::LogMatchResults(const MatchplanEntry& ent) const
+{
+    std::stringstream ss;
+    ss << "match_finished " << ent.m_team_red << " " << ent.m_team_blue << " " << ent.m_referee << " ";
+    for (const auto& gs : ent.m_game_results)
+        ss << gs.m_goal_red << "-" << gs.m_goal_blue << " ";
+    ss << ent.m_final_score.m_goal_red << "-" << ent.m_final_score.m_goal_blue << " ";
+    ss << ent.m_winner_team << " ";
+    for (const auto& field_id : ent.m_fields)
+        ss << field_id << " ";
+    ss << ent.m_footage_url;
+
+    Log::info("TournamentManager", ss.str().c_str());
+}
+
 void TournamentManager::LoadGamePlan()
 {
     try
     {
         std::ifstream gameplan_file(ServerConfig::m_gameplan_path, std::ios::in);
-        gameplan_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+        gameplan_file.exceptions(std::ifstream::badbit);
         if (!gameplan_file.is_open())
         {
             Log::fatal("TournamentManager", "Cannot load file %s, file does not exist.",
@@ -897,13 +1048,15 @@ void TournamentManager::LoadGamePlan()
 
         char c_line[2048];
         std::string line;
-        unsigned line_count = 1;
+        unsigned line_count = 0;
         struct TournGameSetup game_setup;
         for (; !gameplan_file.eof() && !gameplan_file.bad() && !gameplan_file.fail();
-                gameplan_file.getline(c_line, 2048), line = c_line, ++line_count)
+                gameplan_file.getline(c_line, 2048), line = c_line)
         {
             if (line.empty() || line[0] == '#')
                 continue;
+            ++line_count;
+
 
             std::vector<std::string> contents = StringUtils::split(line, ' ');
             if (contents.size() < 3)
@@ -923,6 +1076,7 @@ void TournamentManager::LoadGamePlan()
             else if (contents[2][0] == 'n' || contents[2][0] == 'a')
                 game_setup.m_team_choosing = KART_TEAM_NONE;
 
+            game_setup.m_votable_offset = m_votable_amount;
             if (contents.size() > 3)
             {
                 if (contents[3] == "=ADDONS")
@@ -936,10 +1090,14 @@ void TournamentManager::LoadGamePlan()
                     contents.erase(contents.cbegin(), contents.cbegin() + 3);
                     game_setup.m_votable_fields.insert(contents.cbegin(), contents.cend());
                     if (contents.size() > 1)
+                    {
                         m_votable_amount++;
+                    }
                 }
                 else
+                {
                     m_votable_amount++;
+                }
             }
             else
                 m_votable_amount++;
@@ -958,8 +1116,8 @@ void TournamentManager::LoadSTDSetFromFile(std::set<std::string>& target, const 
 {
     try
     {
-        std::ifstream ssv_file(ServerConfig::m_gameplan_path, std::ios::in);
-        ssv_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+        std::ifstream ssv_file(filename, std::ios::in);
+        ssv_file.exceptions(std::ifstream::badbit);
         if (!ssv_file.is_open())
         {
             Log::fatal("TournamentManager", "Cannot load file %s, file does not exist.",
@@ -973,7 +1131,8 @@ void TournamentManager::LoadSTDSetFromFile(std::set<std::string>& target, const 
         {
             std::string word;
             ssv_file >> word;
-            target.insert(word);
+            if (!word.empty())
+                target.insert(word);
         }
     }
     catch (const std::exception& exception)
@@ -990,5 +1149,9 @@ void TournamentManager::LoadRequiredFields()
 void TournamentManager::LoadSemiRequiredFields()
 {
     m_semi_required_fields.clear();
-    LoadSTDSetFromFile(m_semi_required_fields, ServerConfig::m_tourn_required_fields_path);
+    LoadSTDSetFromFile(m_semi_required_fields, ServerConfig::m_tourn_semi_required_fields_path);
+}
+bool TournamentManager::IsGameSetupVotable(const TournamentManager::TournGameSetup setup) const
+{
+    return setup.m_votable_addons || setup.m_votable_fields.size() != 1;
 }

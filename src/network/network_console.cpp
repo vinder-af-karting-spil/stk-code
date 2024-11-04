@@ -724,14 +724,18 @@ void mainLoop(STKHost* host)
             sl->updateTournamentTeams(str2, str3);
             std::cout << "Red team: " << str2 << " / Blue team: " << str3 << std::endl;
         }
-        else if (ServerConfig::m_supertournament && str == "game" && !str2.empty() &&
+        else if (ServerConfig::m_supertournament && str == "game" &&
                 NetworkConfig::get()->isServer())
         {
             auto sl = LobbyProtocol::get<ServerLobby>();
             if (!sl)
                 continue;
 
-            int game = std::stoi(str2);
+            int game;
+            if (str2.empty())
+                game = -1;
+            else
+                game = std::stoi(str2);
             int minutes = -1;
             std::string str_minutes_or_reset;
             ss >> str_minutes_or_reset;
@@ -749,11 +753,11 @@ void mainLoop(STKHost* host)
             else if (!str_minutes_or_reset.empty())
                 minutes = std::stoi(str_minutes_or_reset);
 
-            bool ok = game > 0 && game <= 5;
+            bool ok = game > 0 && game <= TournamentManager::get()->GetMaxGames();
             if (!str_minutes_or_reset.empty())
                 ok &= minutes > 0 && minutes <= 15;
             
-            if (!ok)
+            if (game != -1 && !ok)
             {
                 std::cout << "Please specify a correct number. Format: game n minutes" << std::endl;
                 continue;
@@ -764,7 +768,7 @@ void mainLoop(STKHost* host)
                     " or use /gameend to force terminating it." << std::endl;
                 continue;
             }
-            else if (TournamentManager::get()->GameDone(game))
+            else if (game != -1 && TournamentManager::get()->GameDone(game))
             {
                 if (minutes > 0)
                 {
@@ -773,9 +777,19 @@ void mainLoop(STKHost* host)
                 }
                 else
                 {
-                    std::cout << "Game " << game << " has already been played. Use \"game " << game << " [time]\" to play some additional time. To restart and overwrite the game, use \"game " << game << " reset\".";
+                    std::cout << "Game " << game << " has already been played. Use \"game " << game << " [time]\" to play some additional time. To restart and overwrite the game, use \"game " << game << " reset\"." << std::endl;
                 }
                 continue;
+            }
+            else if (game <= 1)
+            {
+                std::cout << "Starting next game" << std::endl;
+                TournamentManager::get()->StartNextGame(true);
+            }
+            else if (minutes <= 0)
+            {
+                std::cout << "Automatically assuming the length of the game." << std::endl;
+                TournamentManager::get()->StartGame(game, true);
             }
             else
             {
@@ -839,7 +853,7 @@ void mainLoop(STKHost* host)
                 continue;
             }
             TournamentManager::get()->SetCurrentResult(red, blue);
-            std::cout << "The game is initialized with result " << red << "-" << blue;
+            std::cout << "The game is initialized with result " << red << "-" << blue << std::endl;
         }
         else if (str == "setperm" && !str2.empty() &&
                 NetworkConfig::get()->isServer())
@@ -1004,6 +1018,16 @@ void mainLoop(STKHost* host)
                     StringUtils::utf8ToWide(playername), true, true, &t_player);
             if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
             {
+                if (ServerConfig::m_supertournament)
+                {
+                    if (ServerConfig::m_supertournament)
+                    {
+                        TournamentManager::get()->SetKart(playername,
+                                str2 == "off" ? "" : str2);
+                        std::cout << "Changed kart for offline player " << playername << std::endl;
+                        continue;
+                    }
+                }
                 std::cout << "Invalid target player: " << playername << std::endl;
                 continue;
             }
@@ -1050,27 +1074,22 @@ void mainLoop(STKHost* host)
 
             bool isField = (str == "setfield");
 
-            const char* wrong_usage = isField ?
+            /*const char* wrong_usage = isField ?
                 "Format: setfield soccer_field_id minutes/- scatter:on/off" :
-                "Format: settrack track_id laps/- reverse:yes/no";
+                "Format: settrack track_id laps/- reverse:yes/no";*/
 
             std::string soccer_field_id = str2;
+            std::string str_laps;
             int laps;
-            ss >> laps;
-            if (ss.bad() || ss.fail())
+            ss >> str_laps;
+            if (ss.bad() || ss.fail() || str_laps == "-")
             {
-                std::cout << wrong_usage << std::endl;
-                continue;
+                laps = -1;
             }
-            std::string specvalue;
+            std::string specvalue = "off";
             ss >> specvalue;
-            if (ss.bad() || ss.fail())
-            {
-                std::cout << wrong_usage << std::endl;
-                continue;
-            }
 
-            if (str2 == "-")
+            if (str_laps.empty() || str_laps == "-")
                 laps = -1;
             else
                 laps = std::stoi(str2);

@@ -83,6 +83,7 @@ public:
         std::set<std::string> m_votable_fields;
         // ... or, specify this as true, makes votable only addon fields.
         bool m_votable_addons = false;
+        unsigned int m_votable_offset = 0;
     };
     struct MatchplanGameResult
     {
@@ -130,6 +131,7 @@ private:
     std::vector<struct TournGameSetup> m_game_setup;
     std::map<int, GameResult> m_game_results;
     unsigned int m_votable_amount = 0;
+    int m_current_votable_game = -1;
     int m_current_game_index = -1; // 1-based count index of the games
     GameResult m_current_game_result;
     float m_target_time = 0;
@@ -139,6 +141,7 @@ private:
     void FilterScorerData(std::vector<SoccerWorld::ScorerData>& scorers);
     void GetAdditionalTime(int& minutes, int& seconds) const;
     void OnGameEnded();
+    bool IsGameSetupVotable(TournGameSetup setup) const;
     static MatchplanGameResult ParseGameEntryFrom(const std::string& str);
     static const char*         g_matchplan_blank_word;
 
@@ -174,6 +177,7 @@ public:
     bool CountPlayerVote(std::string player_name) const;
     bool CountPlayerVote(STKPeer* peer) const;
 
+    void StartNextGame(bool announce = true);
     void StartGame(int index, float target_time, bool announce = true);
     void StartGame(int index, bool announce = true);
     void StopGame(float elapsed_time, bool announce = true);
@@ -206,15 +210,15 @@ public:
     void SetReferee(std::string name);
     void SetVideo(std::string name);
 
-    bool LoadMatchPlan();
+    bool LoadMatchPlan(bool load_game_results = true);
     void SaveMatchPlan();
-    void UpdateMatchPlan(const std::string& team_red, std::string& team_blue, unsigned game_index,
-            unsigned field_index,
+    void UpdateMatchPlan(const std::string& team_red, const std::string& team_blue, unsigned game_index,
             unsigned goal_red, unsigned goal_blue, const std::string& field_id,
             const std::string& referee, const std::string& footage_url);
     void LoadGamePlan();
     void LoadRequiredFields();
     void LoadSemiRequiredFields();
+    void LogMatchResults(const MatchplanEntry& ent) const;
 };
 
 #endif
