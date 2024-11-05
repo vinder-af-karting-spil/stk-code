@@ -460,6 +460,7 @@ void TournamentManager::SetCurrentResult(int red_goals, int blue_goals)
 
     sworld->setInitialCount(red_goals, blue_goals);
     sworld->tellCountIfDiffers();
+    Log::info("TournamentManager", "init %d %d", red_goals, blue_goals);
 }
 
 float TournamentManager::GetAdditionalSeconds() const
