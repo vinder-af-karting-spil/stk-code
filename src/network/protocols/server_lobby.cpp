@@ -8236,6 +8236,12 @@ unmute_error:
             sendStringToPeer(msg, peer);
             return;
         }
+      else if (argv[1] == "ranking")
+	{
+		std::string msg= "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+		sendStringToPeer(msg, peer);
+		return;
+	}
     }
         else
         {
@@ -8250,13 +8256,6 @@ unmute_error:
         sendStringToPeer(msg, peer);
         return;
     }
-    else if (argv[0] == "help" && argv[1] == "ranking")
-    {
-        std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
-        sendStringToPeer(msg, peer);
-        return;
-    }
-
     else if (argv[0] == "website")
     {
         if (argv.size() > 2) return;
