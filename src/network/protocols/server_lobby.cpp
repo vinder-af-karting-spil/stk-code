@@ -8228,6 +8228,15 @@ unmute_error:
               sendStringToPeer(msg, peer);
               return;
       }
+      else if (argv[1] == "referee")
+    {
+        if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
+        {
+            std::string msg = "/game X Y : Starts game number X with Y minutes. - /setkart kart-id player : Give players a particular kart (punishment or balance). - /lobby : To make players go to lobby. - /yellow P R : Gives a yellow card to player P with reason R. - /referee and /video : Update the match details on wiki.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+    }
         else
         {
             std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
