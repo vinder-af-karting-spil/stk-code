@@ -1920,6 +1920,7 @@ void ServerLobby::asynchronousUpdate()
                 SoccerWorld* sw = dynamic_cast<SoccerWorld*>(w);
                 sw->setInitialCount(red_goals, blue_goals);
                 sw->tellCount();
+                Log::info("TournamentManager", "init %d %d", red_goals, blue_goals);
             }
         }
         break;
