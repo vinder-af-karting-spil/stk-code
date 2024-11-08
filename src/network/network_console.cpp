@@ -688,9 +688,10 @@ void mainLoop(STKHost* host)
             if (!sl)
                 continue;
 
+            const std::string cmd = ss.str();
             const char* wrong_usage = "Format: yellow player_name reason";
-            std::string msg = str + " was shown a yellow card by the Referee. Reason: ";
-            std::string reason = g_cmd_buffer.substr(std::min(8 + str2.length(), g_cmd_buffer.length()));
+            std::string msg = str2 + " was shown a yellow card by the Referee. Reason: ";
+            std::string reason = cmd.substr(std::min(8 + str2.length(), g_cmd_buffer.length()));
             if (reason.empty())
             {
                 std::cout << wrong_usage << std::endl;
