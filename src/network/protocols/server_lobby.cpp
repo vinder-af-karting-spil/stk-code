@@ -977,7 +977,7 @@ void ServerLobby::handleChat(Event* event)
                     }
                     // supertournament game: players should not be seeing spectator 
                     // messages, that are distracting
-                    if (ServerConfig::m_supertournament && game_started &&
+                    if (ServerConfig::m_supertournament && game_started && !sender_in_game &&
                             !p->isSpectator() && TournamentManager::get()->GameInitialized())
                     {
                         for (auto& player : p->getPlayerProfiles())
