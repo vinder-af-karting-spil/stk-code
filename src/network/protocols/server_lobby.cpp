@@ -4799,7 +4799,11 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
         }
     }
 
-
+    if (peer->hasPlayerProfiles())
+        Log::verbose("ServerLobby", "playerjoin %s %d",
+                StringUtils::wideToUtf8(
+                    peer->getPlayerProfiles()[0]->getName()).c_str(),
+                peer->getPlayerProfiles()[0]->getOnlineId());
 #ifdef ENABLE_SQLITE3
     if (m_server_stats_table.empty() || peer->isAIPeer())
         return;
@@ -4869,14 +4873,6 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             }
         }
     );
-    for (auto cmd : m_command_voters)
-    {
-    }
-    if (peer->hasPlayerProfiles())
-        Log::verbose("ServerLobby", "playerjoin %s %d",
-                StringUtils::wideToUtf8(
-                    peer->getPlayerProfiles()[0]->getName()).c_str(),
-                peer->getPlayerProfiles()[0]->getOnlineId());
 #endif
 }   // handleUnencryptedConnection
 
