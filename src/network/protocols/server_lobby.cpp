@@ -8221,7 +8221,7 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if (!ServerConfig::m_tiers_roulette &&
+        if (!ServerConfig::m_tiers_roulette && ServerConfig::m_allow_plungerparty &&
                 (noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -8289,7 +8289,7 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if (!ServerConfig::m_tiers_roulette &&
+        if (!ServerConfig::m_tiers_roulette && ServerConfig::m_allow_zipperparty &&
                 (noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -8352,7 +8352,7 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if (!ServerConfig::m_tiers_roulette &&
+        if (!ServerConfig::m_tiers_roulette && ServerConfig::m_allow_bowlparty &&
                 (noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -8421,7 +8421,7 @@ void ServerLobby::handleServerCommand(Event* event,
             return;
         }
 
-        if (!ServerConfig::m_tiers_roulette &&
+        if (!ServerConfig::m_tiers_roulette && ServerConfig::m_allow_cakeparty &&
                 (noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
