@@ -943,6 +943,7 @@ void ServerLobby::handleChat(Event* event)
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
         const bool global_chat = ServerConfig::m_global_chat;
+        Log::debug("ServerLobby", "[CHAT] is %s in game? %s.", sender_in_game ? "yes" : "no");
 
         STKHost::get()->sendPacketToAllPeersWith(
             [game_started, global_chat, sender_in_game, target_team, sender_name, team_speak, teams, this]
@@ -978,7 +979,7 @@ void ServerLobby::handleChat(Event* event)
                     // supertournament game: players should not be seeing spectator 
                     // messages, that are distracting
                     if (ServerConfig::m_supertournament && game_started && !sender_in_game &&
-                            !p->isSpectator() && TournamentManager::get()->GameInitialized())
+                            !p->isWaitingForGame() && TournamentManager::get()->GameInitialized())
                     {
                         for (auto& player : p->getPlayerProfiles())
                         {
