@@ -834,7 +834,7 @@ void ServerLobby::handleChat(Event* event)
 
     // Update so that the peer is not kicked
     event->getPeer()->updateLastActivity();
-    const bool sender_in_game = event->getPeer()->isWaitingForGame();
+    const bool sender_in_lobby = event->getPeer()->isWaitingForGame();
 
     int64_t last_message = event->getPeer()->getLastMessage();
     int64_t elapsed_time = (int64_t)StkTime::getMonoTimeMs() - last_message;
@@ -943,16 +943,16 @@ void ServerLobby::handleChat(Event* event)
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
         const bool global_chat = ServerConfig::m_global_chat;
-        Log::verbose("ServerLobby", "[CHAT] is %s in game? %s.", StringUtils::wideToUtf8(sender_name).c_str(), sender_in_game ? "yes" : "no");
+        Log::verbose("ServerLobby", "[CHAT] is %s in game? %s.", StringUtils::wideToUtf8(sender_name).c_str(), sender_in_lobby ? "yes" : "no");
 
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, global_chat, sender_in_game, target_team, sender_name, team_speak, teams, this]
+            [game_started, global_chat, sender_in_lobby, target_team, sender_name, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
                 {
                     // separates the chat between lobby peers, and ingame players/spectators
-                    if (!global_chat && p->isWaitingForGame() != sender_in_game)
+                    if (!global_chat && p->isWaitingForGame() != sender_in_lobby)
                         return false;
 #if 0
                     if (p->isWaitingForGame() && !sender_in_game)
@@ -978,7 +978,7 @@ void ServerLobby::handleChat(Event* event)
                     }
                     // supertournament game: players should not be seeing spectator 
                     // messages, that are distracting
-                    if (!sender_in_game && ServerConfig::m_supertournament && game_started &&
+                    if (sender_in_lobby && ServerConfig::m_supertournament && game_started &&
                             (!p->isWaitingForGame() && !p->isSpectator()) && TournamentManager::get()->GameInitialized())
                     {
                         for (auto& player : p->getPlayerProfiles())
