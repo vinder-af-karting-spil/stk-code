@@ -680,6 +680,7 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
             excluded_addons.erase(field);
         }
     }
+    Log::verbose("TournamentManager", "->The other game results will be ruled out.");
     for (auto& game_result : m_game_results)
     {
         if (game_result.first >= m_current_game_index)
@@ -755,7 +756,7 @@ TournamentManager::ParseGameEntryFrom(const std::string& str)
     }
     return res;
 }
-bool TournamentManager::LoadMatchPlan(const bool load_game_results)
+bool TournamentManager::LoadMatchPlan(bool load_game_results)
 {
     bool success = false;
     try
@@ -792,6 +793,13 @@ bool TournamentManager::LoadMatchPlan(const bool load_game_results)
             // Order of the elements in the matchplan
             entry.m_team_red = contents[0];
             entry.m_team_blue = contents[1];
+
+            // If this value is true, current entry is the currently configured match,
+            // this will update the current game data
+            const bool is_current_match =
+                entry.m_team_red  == (std::string)ServerConfig::m_red_team &&
+                entry.m_team_blue == (std::string)ServerConfig::m_blue_team;
+
             entry.m_weekday_name = contents[2];
             // the date is always formatted as YYYY-MM-DD
             std::string date_str = contents[3];
@@ -817,7 +825,7 @@ bool TournamentManager::LoadMatchPlan(const bool load_game_results)
             entry.m_minute  = std::stoi(time_str.substr(3, 2));
 
             entry.m_referee = contents[5] != g_matchplan_blank_word ? contents[5] : "";
-            if (load_game_results && !entry.m_referee.empty())
+            if (load_game_results && is_current_match && !entry.m_referee.empty())
                 SetReferee(entry.m_referee);
             unsigned offset;
             entry.m_game_results.resize(m_game_setup.size());
@@ -825,7 +833,7 @@ bool TournamentManager::LoadMatchPlan(const bool load_game_results)
             {
                 MatchplanGameResult mpgr = ParseGameEntryFrom(contents[6 + offset]);
                 entry.m_game_results[offset] = mpgr;
-                if (load_game_results && mpgr.m_set)
+                if (load_game_results && is_current_match && mpgr.m_set)
                 {
                     m_game_results[offset + 1].m_red_goals = mpgr.m_goal_red;
                     m_game_results[offset + 1].m_blue_goals = mpgr.m_goal_blue;
@@ -841,7 +849,7 @@ bool TournamentManager::LoadMatchPlan(const bool load_game_results)
                 entry.m_fields[offset - m_game_setup.size()] = field_id != g_matchplan_blank_word ? contents[8 + offset] : "";
 
                 // when ran out of votable game setup, don't update any played fields
-                if (!load_game_results || field_id == g_matchplan_blank_word || votable_game_setup >= m_game_setup.end())
+                if (!is_current_match || !load_game_results || field_id == g_matchplan_blank_word || votable_game_setup >= m_game_setup.end())
                     continue;
 
                 // find the next votable game and advance forward
@@ -862,13 +870,19 @@ bool TournamentManager::LoadMatchPlan(const bool load_game_results)
                 votable_game++;
             }
             entry.m_footage_url = contents[8 + offset] != g_matchplan_blank_word ? contents[8 + offset] : "";
-            if (load_game_results && !entry.m_footage_url.empty())
+            if (load_game_results && is_current_match && !entry.m_footage_url.empty())
                 SetVideo(entry.m_footage_url);
 
             m_match_plan.push_back(entry);
             std::string key = entry.m_team_red + entry.m_team_blue;
             // also create an easy access to the MatchplanEntry
-            m_matchplan_map[key] = &(*(m_match_plan.end() - 1));
+            MatchplanEntry* const ptr = &(*(m_match_plan.end() - 1));
+            if (ptr->m_team_red != entry.m_team_red || ptr->m_team_blue != entry.m_team_blue)
+            {
+                Log::fatal("TournamentManager", "Literally bug in the code when assigning matchplan entry to the mapping. Tell DernisNW he sucks at coding.");
+                std::raise(SIGABRT);
+            }
+            m_matchplan_map[key] = ptr;
             success = true;
 
         }
