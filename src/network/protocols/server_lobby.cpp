@@ -9406,7 +9406,7 @@ if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() < 
 
     if (!found)
     {
-        // I HOPE THIS NEVER HAS TO BE FUCKING USED
+        // I HOPE THIS NEVER HAS TO BE USED
         sendStringToPeer(std::string("Error: Field/Track not found or not installed."), peer);
         return;
     }
