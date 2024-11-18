@@ -3293,12 +3293,6 @@ void ServerLobby::startSelection(const Event *event)
         }
     }
 
-    if (m_available_kts.second.empty())
-    {
-        Log::error("ServerLobby", "No tracks for playing!");
-        return;
-    }
-
     RandomGenerator rg;
     std::set<std::string>::iterator it;
     bool track_voting = ServerConfig::m_track_voting;
@@ -3311,8 +3305,17 @@ void ServerLobby::startSelection(const Event *event)
         m_default_vote->m_reverse = m_set_specvalue;
         m_fixed_laps = m_set_laps;
         track_voting = false;
+        // ensure that the m_available_kts.second has the said set field.
+        m_available_kts.second.insert(m_set_field);
         goto skip_default_vote_randomizing;
     }
+
+    if (m_available_kts.second.empty())
+    {
+        Log::error("ServerLobby", "No tracks for playing!");
+        return;
+    }
+
     else if (ServerConfig::m_supertournament &&
             !TournamentManager::get()->IsGameVotable())
     {

@@ -782,7 +782,7 @@ void mainLoop(STKHost* host)
                 }
                 continue;
             }
-            else if (game <= 1)
+            else if (game < 1)
             {
                 std::cout << "Starting next game" << std::endl;
                 TournamentManager::get()->StartNextGame(true);
@@ -1093,7 +1093,7 @@ void mainLoop(STKHost* host)
             if (str_laps.empty() || str_laps == "-")
                 laps = -1;
             else
-                laps = std::stoi(str2);
+                laps = std::stoi(str_laps);
             
             // Check that peer and server have the track
             bool found = sl->forceSetTrack(soccer_field_id, laps, specvalue == "on", isField, true);
