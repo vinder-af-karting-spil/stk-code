@@ -9369,44 +9369,52 @@ unmute_error:
             TournamentManager::get()->SetKart(playername, argv[1]);
         }
     }
-    else if (argv[0] == "setfield" || argv[0] == "settrack" || argv[0] == "setarena")
+else if (argv[0] == "setfield" || argv[0] == "settrack" || argv[0] == "setarena")
+{
+    std::string msg;
+if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() < 50))
     {
-        std::string msg;
-        if (!player || player->getPermissionLevel() < PERM_REFEREE)
-        {
-            sendNoPermissionToPeer(peer.get(), argv);
-            return;
-        }
-        bool isField = (argv[0] == "setfield");
-
-        if (argv.size() < 2)
-        {
-            std::string msg = isField ? "Format: /setfield soccer_field_id [minutes/- scatter:on/off]" :
-                "Format: /settrack track_id [laps/- reverse:yes/no]";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-
-        std::string soccer_field_id = argv[1];
-        int laps;
-        bool specvalue = false;
-        if (argv.size() < 3 || argv[2] == "-")
-            laps = -1;
-        else
-            laps = std::stoi(argv[2]);
-        
-        if (argv.size() >= 4 && argv[3] == "on")
-            specvalue = true;
-        // Check that peer and server have the track
-        bool found = forceSetTrack(soccer_field_id, laps, specvalue, isField, true);
-        if (!found)
-        {
-            std::string msg = isField ? "Soccer field \'" + soccer_field_id + "\' does not exist or is not installed." :
-                "Track \'" + soccer_field_id + "\' does not exist or is not installed.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
+        sendNoPermissionToPeer(peer.get(), argv);
+        return;
     }
+
+    bool isField = (argv[0] == "setfield");
+    std::string soccer_field_id;
+
+    if (argv.size() < 2)
+    {
+        msg = isField ? "Format: /setfield soccer_field_id [minutes/- scatter:on/off]" :
+                        "Format: /settrack track_id [laps/- reverse:yes/no]";
+        sendStringToPeer(msg, peer);
+        return;
+    }
+
+    soccer_field_id = argv[1];
+    int laps;
+    bool specvalue = false;
+
+    if (argv.size() < 3 || argv[2] == "-")
+        laps = -1;
+    else
+        laps = std::stoi(argv[2]);
+
+    if (argv.size() >= 4 && argv[3] == "on")
+        specvalue = true;
+
+    bool found = forceSetTrack(soccer_field_id, laps, specvalue, isField, true);
+
+    if (!found)
+    {
+        // I HOPE THIS NEVER HAS TO BE FUCKING USED
+        sendStringToPeer(std::string("Error: Field/Track not found or not installed."), peer);
+        return;
+    }
+
+    // PLEASE LET THIS BE THE CASE IN THE TOURNY!!!!!!!!!!!
+    sendStringToPeer("Successfully set the " + std::string(isField ? "soccer field" : "track") + " to '" + soccer_field_id + "'.", peer);
+}
+
+
     else if (argv[0] == "sethandicap")
     {
         std::string msg;
