@@ -943,7 +943,7 @@ void ServerLobby::handleChat(Event* event)
         chat->addUInt8(LE_CHAT).encodeString16(message);
         const bool game_started = m_state.load() != WAITING_FOR_START_GAME;
         const bool global_chat = ServerConfig::m_global_chat;
-        Log::debug("ServerLobby", "[CHAT] is %s in game? %s.", sender_in_game ? "yes" : "no");
+        Log::verbose("ServerLobby", "[CHAT] is %s in game? %s.", StringUtils::wideToUtf8(sender_name).c_str(), sender_in_game ? "yes" : "no");
 
         STKHost::get()->sendPacketToAllPeersWith(
             [game_started, global_chat, sender_in_game, target_team, sender_name, team_speak, teams, this]
@@ -986,7 +986,10 @@ void ServerLobby::handleChat(Event* event)
                             if (TournamentManager::get()->GetKartTeam(
                                         StringUtils::wideToUtf8(player->getName())
                                         ) != KART_TEAM_NONE)
+			    {
+				Log::verbose("ServerLobby", "Rejected chat message.");
                                 return false;
+			    }
                         }
                     }
                 }
