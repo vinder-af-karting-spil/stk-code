@@ -8876,7 +8876,7 @@ unmute_error:
     }
     else if (argv[0] == "addons")
     {
-	    std::string msg = "Click here to download the required addons: https://www.tierchester.eu/static/supertournamentaddons.zip";
+	    std::string msg = "/installaddon https://www.tierchester.eu/static/supertournamentaddons.zip";
 	    sendStringToPeer(msg, peer);
 	    return;
     }
