@@ -834,7 +834,9 @@ void ServerLobby::handleChat(Event* event)
 
     // Update so that the peer is not kicked
     event->getPeer()->updateLastActivity();
-    const bool sender_in_game = event->getPeer()->isWaitingForGame();
+    const bool sender_in_lobby = event->getPeer()->isWaitingForGame();
+    const bool sender_spectating = 
+        !sender_in_lobby && event->getPeer()->isSpectator();
 
     int64_t last_message = event->getPeer()->getLastMessage();
     int64_t elapsed_time = (int64_t)StkTime::getMonoTimeMs() - last_message;
@@ -945,13 +947,13 @@ void ServerLobby::handleChat(Event* event)
         const bool global_chat = ServerConfig::m_global_chat;
 
         STKHost::get()->sendPacketToAllPeersWith(
-            [game_started, global_chat, sender_in_game, target_team, sender_name, team_speak, teams, this]
+            [game_started, global_chat, sender_in_lobby, sender_spectating, target_team, sender_name, team_speak, teams, this]
             (STKPeer* p)
             {
                 if (game_started)
                 {
                     // separates the chat between lobby peers, and ingame players/spectators
-                    if (!global_chat && p->isWaitingForGame() != sender_in_game)
+                    if (!global_chat && p->isWaitingForGame() != sender_in_lobby)
                         return false;
 #if 0
                     if (p->isWaitingForGame() && !sender_in_game)
@@ -977,15 +979,17 @@ void ServerLobby::handleChat(Event* event)
                     }
                     // supertournament game: players should not be seeing spectator 
                     // messages, that are distracting
-                    if (ServerConfig::m_supertournament && game_started &&
-                            !p->isSpectator() && TournamentManager::get()->GameInitialized())
+                    if (!sender_in_lobby && sender_spectating && ServerConfig::m_supertournament && game_started &&
+                            (!p->isWaitingForGame() && !p->isSpectator()) && TournamentManager::get()->GameInitialized())
                     {
                         for (auto& player : p->getPlayerProfiles())
                         {
                             if (TournamentManager::get()->GetKartTeam(
                                         StringUtils::wideToUtf8(player->getName())
                                         ) != KART_TEAM_NONE)
+                            {
                                 return false;
+                            }
                         }
                     }
                 }
@@ -1671,10 +1675,12 @@ void ServerLobby::sendWANListToPeer(std::shared_ptr<STKPeer> peer)
         RaceManager::MinorRaceModeType m =
             ServerConfig::getLocalGameMode(serverPtr->getServerMode()).first;
 
+        int playerCount = players.size();
+
         responseMsg += StringUtils::getCountryFlag(serverPtr->getCountryCode());
         responseMsg += serverPtr->getName();
         responseMsg += L" (";
-        responseMsg += players.size();
+        responseMsg += playerCount;
         responseMsg += L"/";
         responseMsg += serverPtr->getMaxPlayers();
         responseMsg += L"), ";
@@ -1920,6 +1926,7 @@ void ServerLobby::asynchronousUpdate()
                 SoccerWorld* sw = dynamic_cast<SoccerWorld*>(w);
                 sw->setInitialCount(red_goals, blue_goals);
                 sw->tellCount();
+                Log::info("TournamentManager", "init %d %d", red_goals, blue_goals);
             }
         }
         break;
@@ -3286,12 +3293,6 @@ void ServerLobby::startSelection(const Event *event)
         }
     }
 
-    if (m_available_kts.second.empty())
-    {
-        Log::error("ServerLobby", "No tracks for playing!");
-        return;
-    }
-
     RandomGenerator rg;
     std::set<std::string>::iterator it;
     bool track_voting = ServerConfig::m_track_voting;
@@ -3304,6 +3305,8 @@ void ServerLobby::startSelection(const Event *event)
         m_default_vote->m_reverse = m_set_specvalue;
         m_fixed_laps = m_set_laps;
         track_voting = false;
+        // ensure that the m_available_kts.second has the said set field.
+        m_available_kts.second.insert(m_set_field);
         goto skip_default_vote_randomizing;
     }
     else if (ServerConfig::m_supertournament &&
@@ -3313,7 +3316,15 @@ void ServerLobby::startSelection(const Event *event)
         track_voting = false;
         *m_default_vote = TournamentManager::get()->GetForcedVote();
         m_fixed_laps = m_default_vote->m_num_laps;
+        // ensure that the m_available_kts.second has the said set field.
+        m_available_kts.second.insert(m_default_vote->m_track_name);
         goto skip_default_vote_randomizing;
+    }
+
+    if (m_available_kts.second.empty())
+    {
+        Log::error("ServerLobby", "No tracks for playing!");
+        return;
     }
 
     it = m_available_kts.second.begin();
@@ -4755,11 +4766,7 @@ void ServerLobby::handleUnencryptedConnection(std::shared_ptr<STKPeer> peer,
             ai_add = max_players - player_count - 1;
         for (unsigned i = 0; i < ai_add; i++)
         {
-#ifdef SERVER_ONLY
             core::stringw name = L"Bot";
-#else
-            core::stringw name = _("Bot");
-#endif
             name += core::stringw(" ") + StringUtils::toWString(i + 1);
             
             m_ai_profiles.push_back(std::make_shared<NetworkPlayerProfile>
@@ -8789,6 +8796,21 @@ unmute_error:
               sendStringToPeer(msg, peer);
               return;
       }
+      else if (argv[1] == "referee")
+    {
+        if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
+        {
+            std::string msg = "/game X Y : Starts game number X with Y minutes. - /setkart kart-id player : Give players a particular kart (punishment or balance). - /lobby : To make players go to lobby. - /yellow P R : Gives a yellow card to player P with reason R. - /referee and /video : Update the match details on wiki.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+      else if (argv[1] == "ranking")
+	{
+		std::string msg= "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
+		sendStringToPeer(msg, peer);
+		return;
+	}
+    }
         else
         {
             std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
@@ -8802,13 +8824,6 @@ unmute_error:
         sendStringToPeer(msg, peer);
         return;
     }
-    else if (argv[0] == "help" && argv[1] == "ranking")
-    {
-        std::string msg = "To check your rank, go to: https://www.tierchester.eu/ranking or use /rank10 /rank /top.";
-        sendStringToPeer(msg, peer);
-        return;
-    }
-
     else if (argv[0] == "website")
     {
         if (argv.size() > 2) return;
@@ -9375,7 +9390,7 @@ unmute_error:
         if (argv.size() < 2)
         {
             std::string msg = isField ? "Format: /setfield soccer_field_id [minutes/- scatter:on/off]" :
-                "Format: /settrack track_id [laps/- reverse:yes/no]";
+                "Format: /settrack track_id [laps/- reverse:on/off]";
             sendStringToPeer(msg, peer);
             return;
         }

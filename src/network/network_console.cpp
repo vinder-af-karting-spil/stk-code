@@ -688,9 +688,10 @@ void mainLoop(STKHost* host)
             if (!sl)
                 continue;
 
+            const std::string cmd = ss.str();
             const char* wrong_usage = "Format: yellow player_name reason";
-            std::string msg = str + " was shown a yellow card by the Referee. Reason: ";
-            std::string reason = g_cmd_buffer.substr(std::min(8 + str2.length(), g_cmd_buffer.length()));
+            std::string msg = str2 + " was shown a yellow card by the Referee. Reason: ";
+            std::string reason = cmd.substr(std::min(8 + str2.length(), cmd.length()));
             if (reason.empty())
             {
                 std::cout << wrong_usage << std::endl;
@@ -781,7 +782,7 @@ void mainLoop(STKHost* host)
                 }
                 continue;
             }
-            else if (game <= 1)
+            else if (game < 1)
             {
                 std::cout << "Starting next game" << std::endl;
                 TournamentManager::get()->StartNextGame(true);
@@ -1092,7 +1093,7 @@ void mainLoop(STKHost* host)
             if (str_laps.empty() || str_laps == "-")
                 laps = -1;
             else
-                laps = std::stoi(str2);
+                laps = std::stoi(str_laps);
             
             // Check that peer and server have the track
             bool found = sl->forceSetTrack(soccer_field_id, laps, specvalue == "on", isField, true);
