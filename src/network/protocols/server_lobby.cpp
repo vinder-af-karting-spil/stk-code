@@ -8874,6 +8874,12 @@ unmute_error:
             return;
         }
     }
+    else if (argv[0] == "addons")
+    {
+	    std::string msg = "/installaddon https://www.tierchester.eu/static/supertournamentaddons.zip";
+	    sendStringToPeer(msg, peer);
+	    return;
+    }
     else if (!ServerConfig::m_supertournament && (argv[0] == "autoteams" || argv[0] == "mix"))
     {
 	    if (argv[0] == "mix")
@@ -8885,6 +8891,12 @@ unmute_error:
         if ((noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
+        }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < PERM_REFEREE))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
         }
         if (m_state.load() != WAITING_FOR_START_GAME)
         {
