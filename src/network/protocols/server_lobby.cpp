@@ -8892,6 +8892,12 @@ unmute_error:
         {
             if (!voteForCommand(peer,cmd)) return;
         }
+        else if (m_server_owner.lock() != peer &&
+                (!player || player->getPermissionLevel() < PERM_REFEREE))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
         if (m_state.load() != WAITING_FOR_START_GAME)
         {
             std::string msg = "Auto team generation not possible during game.";
