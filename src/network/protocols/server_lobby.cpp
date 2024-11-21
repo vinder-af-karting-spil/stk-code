@@ -8874,6 +8874,12 @@ unmute_error:
             return;
         }
     }
+    else if (argv[0] == "addons")
+    {
+	    std::string msg = "Click here to download the required addons: https://www.tierchester.eu/static/supertournamentaddons.zip";
+	    sendStringToPeer(msg, peer);
+	    return;
+    }
     else if (!ServerConfig::m_supertournament && (argv[0] == "autoteams" || argv[0] == "mix"))
     {
 	    if (argv[0] == "mix")
