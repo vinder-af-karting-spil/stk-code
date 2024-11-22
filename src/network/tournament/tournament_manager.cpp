@@ -680,14 +680,14 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
             excluded_addons.erase(field);
         }
     }
-    Log::verbose("TournamentManager", "->The other game results will be ruled out.");
-    for (auto& game_result : m_game_results)
-    {
-        if (game_result.first >= m_current_game_index)
-            return excluded_addons;
-        // do not repeat already played addons
-        excluded_addons.insert(game_result.second.m_played_field);
-    }
+    // Log::verbose("TournamentManager", "->The other game results will be ruled out.");
+    // for (auto& game_result : m_game_results)
+    // {
+    //     if (game_result.first >= m_current_game_index)
+    //         return excluded_addons;
+    //     // do not repeat already played addons
+    //     excluded_addons.insert(game_result.second.m_played_field);
+    // }
     return excluded_addons;
 }
 std::pair<size_t, std::string> TournamentManager::FormatMissingAddons(STKPeer* const peer,
