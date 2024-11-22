@@ -8606,12 +8606,12 @@ unmute_error:
         chat->addUInt8(LE_CHAT);
         chat->setSynchronous(true);
         core::stringw res = (
-            L"/showcommands|commands|cmds|cmd, /vote, /spectate|s|sp|spec|spect, /addtime|addt"
-            L" /score|sc, /teamchat|tc|tchat "
-            L"/to|msg|dm|pm, /slots|sl, /public|pub|all "
-            L"/listserveraddon|lsa, /playerhasaddon|psa, /kick, /playeraddonscore|psa, /serverhasaddon|sha, /inform|ifm "
-            L"/report, /heavyparty|hp, /mediumparty|mp, /lightparty|lp, /scanservers|online|o, /mute, /unmute, /listmute, /pole"
-            L" /start, /end, /bug, /rank, /rank10|top, /autoteams " 
+            L"/showcommands|commands|cmds|cmd, /vote, /spectate|s|sp|spec|spect, /addtime|addt,"
+            L" /score|sc, /teamchat|tc|tchat,"
+            L"/to|msg|dm|pm, /slots|sl, /public|pub|all,"
+            L"/listserveraddon|lsa, /playerhasaddon|psa, /kick, /playeraddonscore|psa, /serverhasaddon|sha, /inform|ifm,"
+            L"/report, /heavyparty|hp, /mediumparty|mp, /lightparty|lp, /scanservers|online|o, /mute, /unmute, /listmute, /pole,"
+            L" /start, /end, /bug, /rank, /rank10|top, /autoteams," 
             L"/bowlparty|bp, /cakeparty|cp|cakefest, /plungerparty|pp|plungerfest, /zipperparty|zp|zipperfest, /start, /end, /bug, /feature|suggest, /rank, /rank10|top, /autoteams, /help (command), /when eventsoccer"
         );
         chat->encodeString16(res);
