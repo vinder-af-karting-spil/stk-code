@@ -2073,6 +2073,11 @@ void ServerLobby::asynchronousUpdate()
                         rg.get((int)m_available_kts.first.size()));
                     players[i]->setKartName(*it);
                 }
+                // log the current players
+                if (players[i]->getTeam() != KART_TEAM_NONE)
+                    Log::verbose("ServerLobby", "%s joined the %s team at 0.0",
+                            StringUtils::wideToUtf8(players[i]->getName()).c_str(),
+                            players[i]->getTeam() == KART_TEAM_BLUE ? "blue" : "red");
             }
 
             if (players.size() > 0)
@@ -2525,10 +2530,11 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
             if (w)
 	    {
 	        std::string time = std::to_string(w->getTime());
-		auto kart_team = w->getKartTeam(id);
-		std::string team =  kart_team==KART_TEAM_RED ? "red" : "blue";
-	        msg =  StringUtils::wideToUtf8(rki.getPlayerName()) + " joined the " + team + " team at "+ time + "\n";
-                GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
+            auto kart_team = w->getKartTeam(id);
+            std::string team =  kart_team==KART_TEAM_RED ? "red" : "blue";
+            msg =  StringUtils::wideToUtf8(rki.getPlayerName()) + " joined the " + team + " team at "+ time + "\n";
+            GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
+            Log::verbose("ServerLobby", "%s", msg.c_str());
 	    }
 	}
     }
