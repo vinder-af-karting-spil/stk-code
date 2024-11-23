@@ -3166,16 +3166,19 @@ void ServerLobby::startSelection(const Event *event)
         if (!peer->isValidated() || peer->isWaitingForGame())
             continue;
 
-        peer->eraseServerKarts(m_available_kts.first, karts_erase);
-        peer->eraseServerTracks(m_available_kts.second, tracks_erase);
         if (peer->alwaysSpectate())
             always_spectate_peers.insert(peer.get());
         else if (!peer->isAIPeer() && peer->hasPlayerProfiles()
                 && peer->getPlayerProfiles()[0]->notRestrictedBy(PRF_NOGAME)
                 && peer->getPlayerProfiles()[0]->getPermissionLevel()
                         >= PERM_PLAYER && canRace(peer))
+        {
+            peer->eraseServerKarts(m_available_kts.first, karts_erase);
+            peer->eraseServerTracks(m_available_kts.second, tracks_erase);
             has_peer_plays_game = true;
-        else {
+        }
+        else
+        {
             for (auto& player : peer->getPlayerProfiles())
             {
                 if (player->getPermissionLevel() >= PERM_SPECTATOR)

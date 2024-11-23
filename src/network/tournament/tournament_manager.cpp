@@ -671,7 +671,10 @@ std::set<std::string> TournamentManager::GetExcludedAddons(
             }
     }
     else if (cur.m_votable_fields.empty())
+    {
+        Log::verbose("TournamentManager", "->No whitelist for the votable fields.");
         return excluded_addons;
+    }
     else
     {
         excluded_addons.insert(available_tracks.begin(), available_tracks.end());
