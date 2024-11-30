@@ -8618,7 +8618,7 @@ unmute_error:
             L"/to|msg|dm|pm, /slots|sl, /public|pub|all,"
             L"/listserveraddon|lsa, /playerhasaddon|psa, /kick, /playeraddonscore|psa, /serverhasaddon|sha, /inform|ifm"
             L"/report, /heavyparty|hp, /mediumparty|mp, /lightparty|lp, /scanservers|online|o, /mute, /unmute, /listmute, /pole"
-            L" /start, /end, /bug, /rank, /rank10|top, /autoteams" 
+            L" /start, /end, /bug, /rank, /rank10|top, /autoteams, /results|rs" 
             L"/bowlparty|bp, /cakeparty|cp|cakefest, /plungerparty|pp|plungerfest, /zipperparty|zp|zipperfest, /start, /end, /bug, /feature|suggest, /rank, /rank10|top, /autoteams, /help (command), /when eventsoccer, /addons"
         );
         chat->encodeString16(res);
@@ -8887,7 +8887,7 @@ unmute_error:
 	    sendStringToPeer(msg, peer);
 	    return;
     }
-    else if (argv[0] == "results")
+    else if (argv[0] == "results" || argv[0] == "rs")
     {
         std::string result = ServerLobby::get_elo_change_string();
         
