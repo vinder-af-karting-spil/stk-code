@@ -452,6 +452,35 @@ void mainLoop(STKHost* host)
                     StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()
                     ) << "." << std::endl;
         }
+        else if (str == "pole" && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+            if (
+                RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_SOCCER &&
+                RaceManager::get()->getMinorMode() != RaceManager::MINOR_MODE_CAPTURE_THE_FLAG
+            )
+            {
+                std::cout << "Pole only applies to team games." << std::endl;
+                continue;
+            }
+            if (str2 != "on" && str2 != "off")
+            {
+                std::cout << "Specify on or off as a second argument." << std::endl;
+                continue;
+            }
+            bool state = str2 == "on";
+
+            if (state == sl->isPoleEnabled())
+            {
+                std::cout << "Pole voting is already active or inactive." << std::endl;
+                continue;
+            }
+
+            sl->setPoleEnabled(state);
+        }
         else if (str == "kickall")
         {
             auto peers = host->getPeers();
