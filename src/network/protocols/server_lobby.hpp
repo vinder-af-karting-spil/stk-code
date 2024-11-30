@@ -598,6 +598,7 @@ public:
     int getMaxPlayers() const                                           { return m_max_players; }
     int getMaxPlayersInGame() const                                     { return m_max_players_in_game; }
     void setMaxPlayersInGame(int value, bool notify = true);
+    std::string get_elo_change_string();
     std::pair<unsigned int, int> getPlayerRanking(std::string username) const;
     std::pair<std::vector<std::string>, std::vector<std::string>> createBalancedTeams(std::vector<std::pair<std::string, int>>& elo_players);
     void soccer_ranked_make_teams(std::pair<std::vector<std::string>, std::vector<std::string>> teams, int min, std::vector <std::pair<std::string, int>> player_vec);
