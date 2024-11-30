@@ -85,6 +85,9 @@
 #include <utility>
 #include <regex>
 
+
+
+
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
@@ -3920,6 +3923,7 @@ void ServerLobby::computeNewRankings()
 
             // If there was a disconnect in this race, RD was handled once already
             if (!w->getKart(i)->isEliminated()) {
+
                 // First the RD reduction based on accuracy and current RD
                 double rd_change_factor = accuracy * 0.0016;
                 double rd_change = (-1) * prev_rating_deviations[i] * rd_change_factor;
@@ -8883,6 +8887,13 @@ unmute_error:
 	    sendStringToPeer(msg, peer);
 	    return;
     }
+    else if (argv[0] == "results")
+    {
+        std::string result = ServerLobby::get_elo_change_string();
+        
+        sendStringToPeer(result.empty() ? "No ELO changes" : result, peer);
+        return;
+    }    
     else if (!ServerConfig::m_supertournament && (argv[0] == "autoteams" || argv[0] == "mix"))
     {
 	    if (argv[0] == "mix")
@@ -11361,6 +11372,31 @@ void ServerLobby::setMaxPlayersInGame(const int value, const bool notify)
         std::string message = "The number of slots have been changed to " + std::to_string(m_max_players_in_game)+".";
         sendStringToAllPeers(message);
     }
+}
+
+
+std::string ServerLobby::get_elo_change_string()
+{
+    std::string fileName = "elo_changes.txt";
+    std::ifstream in_file2(fileName);
+    std::string result = "";
+    std::string player;
+    std::string elo_change;
+    std::vector<std::string> split;
+    if (in_file2.is_open())
+    {
+        std::string line;
+        while (std::getline(in_file2, line))
+        {
+            split = StringUtils::split(line, ' ');
+            if (split.size() < 2) continue;
+            player = split[0];
+            elo_change = split[1];
+            result += player + " " + elo_change + "\n";
+        }
+    }
+    //result.pop_back();
+    return result;
 }
 
 // returns rank and elo
