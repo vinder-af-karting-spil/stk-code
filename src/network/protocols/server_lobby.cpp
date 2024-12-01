@@ -11406,6 +11406,32 @@ std::string ServerLobby::get_elo_change_string()
 }
 
 // returns rank and elo
+std::string ServerLobby::getPlayerAlt(std::string username) const
+{
+    std::string fileName = "soccer_ranking_altlist.txt";
+    std::ifstream in_file(fileName);
+    std::string player = "";
+    std::string player_alt = "";
+    std::string alt = "";
+    std::vector<std::string> split;
+    if (in_file.is_open())
+    {
+        std::string line;
+        while (std::getline(in_file, line))
+        {
+            split = StringUtils::split(line, ' ');
+            if (split.size() < 2) continue;
+            alt = split[1];
+            player = split[0];
+            if (player == username)
+                return alt;
+        }
+    }
+    in_file.close();
+    return player_alt;
+}
+
+// returns rank and elo
 std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username) const
 {
     std::string fileName = "soccer_ranking.txt";
@@ -11413,6 +11439,8 @@ std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username)
     int elo = 0;
     unsigned int rank = 1;
     std::string player = "";
+    std::string alt = ServerLobby::getPlayerAlt(username);
+    if (alt!="") username = alt;
     std::vector<std::string> split;
     if (in_file.is_open())
     {
