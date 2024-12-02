@@ -3239,7 +3239,19 @@ void ServerLobby::startSelection(const Event *event)
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
     
-    if (ServerConfig::m_soccer_log) GlobalLog::writeLog("GAME_START\n", GlobalLogTypes::POS_LOG);
+    if (ServerConfig::m_soccer_log)
+    {
+        GlobalLog::writeLog("GAME_START\n", GlobalLogTypes::POS_LOG);
+	time_t now;
+        time(&now);
+        char buf[sizeof "2011-10-08T07:07:09Z"];
+        strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+	std::string buf2;
+	for (int i=0;i< sizeof buf - 1 ;i++)
+	    buf2 += buf[i];
+	std::string msg = "Match started at " + buf2 + "\n";
+        GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
+    }
 
     // Set late coming player to spectate if too many players
     auto spectators_by_limit = getSpectatorsByLimit();
