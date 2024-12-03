@@ -503,6 +503,8 @@ public:
     std::set<std::string> m_trusted_players;
     std::set<std::string> m_red_team;
     std::set<std::string> m_blue_team;
+    std::set<std::string> m_must_have_tracks;
+    std::set<std::string> m_only_played_tracks;
     std::vector<std::vector<std::string>>
                           m_tournament_fields_per_game;
     bool serverAndPeerHaveTrack(std::shared_ptr<STKPeer>& peer, std::string track_id) const;

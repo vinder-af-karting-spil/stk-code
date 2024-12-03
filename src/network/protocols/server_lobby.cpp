@@ -283,6 +283,16 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
     m_show_elo = ServerConfig::m_show_elo;
     m_show_rank = ServerConfig::m_show_rank;
+    std::vector<std::string> mht = StringUtils::split(ServerConfig::m_must_have_tracks, ' ');
+    for (auto track : mht)
+    {
+        if (track!="") m_must_have_tracks.insert(track);
+    }
+    std::vector<std::string> opt = StringUtils::split(ServerConfig::m_only_played_tracks, ' ');
+    for (auto track : opt)
+    {
+        if (track!="") m_only_played_tracks.insert(track);
+    }
     m_last_wanrefresh_cmd_time = 0UL;
     m_last_wanrefresh_res = nullptr;
     m_last_wanrefresh_requester.reset();
@@ -3058,12 +3068,32 @@ void ServerLobby::startSelection(const Event *event)
         // when the field is forced, check if the player has the field
         if (!canRace(peer))
         {
-            std::string msg = "You need to install ";
-            std::shared_ptr<STKPeer> peer = event->getPeerSP();
-            msg += m_set_field;
-            msg += " in order to play. Click the link below to install it:\n/installaddon ";
-            msg += m_set_field;
-            sendStringToPeer(msg, peer);
+	    if (m_set_field!="")
+            {
+                std::string msg = "You need to install ";
+                std::shared_ptr<STKPeer> peer = event->getPeerSP();
+                msg += m_set_field;
+                msg += " in order to play. Click the link below to install it:\n/installaddon";
+                msg += m_set_field;
+                sendStringToPeer(msg, peer);
+	    }
+	    if (m_must_have_tracks.size() !=0)
+	    {
+                const auto& kt = peer->getClientAssets();
+		std::string real_track;
+                std::string msg = "You need to install the following addons to play:\n";
+                for (auto track : m_must_have_tracks)
+                {
+	            real_track = "addon_" + track;
+                    if (kt.second.find(real_track) == kt.second.end())
+                    {
+                        msg += "/installaddon ";
+                        msg += track;
+                        msg += "\n";
+	                sendStringToPeer(msg, peer);
+	            }
+	        }
+            }
             return;
         }
         if (ServerConfig::m_supertournament)
@@ -3275,6 +3305,23 @@ void ServerLobby::startSelection(const Event *event)
     for (const std::string& track_erase : tracks_erase)
     {
         m_available_kts.second.erase(track_erase);
+    }
+
+    if (m_only_played_tracks.size()!=0)
+    {
+        auto tracks = m_available_kts.second;
+	bool found;
+	std::string real_track;
+	for (auto track: tracks)
+	{
+	    found = false;
+	    for (auto t2:m_only_played_tracks)
+	    {
+	        real_track = "addon_" + t2;
+	        if (track==real_track) found = true;
+	    }
+	    if (not found) m_available_kts.second.erase(track);
+	}
     }
 
     max_player = 0;
@@ -9931,11 +9978,12 @@ bool ServerLobby::canRace(STKPeer* peer) const
 {
   if (peer == NULL || peer->getPlayerProfiles().size() == 0) return false;
   std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+  const auto& kt = peer->getClientAssets();
+
   // Players who do not have the addon defined via /setfield are not allowed to play.
   if (!m_set_field.empty())
   {
       bool has_addon = false;
-      const auto& kt = peer->getClientAssets();
       for (auto& track : kt.second)
       {
           if (track == m_set_field)
@@ -9945,6 +9993,18 @@ bool ServerLobby::canRace(STKPeer* peer) const
           }
       }
       if (has_addon == false) return false;
+    }
+    if (m_must_have_tracks.size()!=0)
+    {
+	std::string real_track;
+        for (auto track : m_must_have_tracks)
+        {
+	    real_track = "addon_" + track;
+            if (kt.second.find(real_track) == kt.second.end())
+            {
+                return false;
+	    }
+        }
     }
     //if (ServerConfig::m_supertournament)
     //{
