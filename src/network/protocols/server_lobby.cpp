@@ -7183,6 +7183,13 @@ void ServerLobby::handleServerCommand(Event* event,
             sendStringToPeer(msg, peer);
             return;
         }
+        int limit = std::stoi(argv[1]);	
+        if (limit >= 11) 
+	{
+            std::string msg = "The number of slots must be less than 11.";
+            sendStringToPeer(msg, peer);
+            return;
+	}	    
         if ((noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -7193,7 +7200,6 @@ void ServerLobby::handleServerCommand(Event* event,
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
-        int limit = std::stoi(argv[1]);
 
         const int max = std::min((int)ServerConfig::m_slots_max, m_max_players);
 
