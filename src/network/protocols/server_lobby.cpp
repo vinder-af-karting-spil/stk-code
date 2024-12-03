@@ -8826,7 +8826,7 @@ unmute_error:
     }
         else
         {
-            std::string msg = "Unknown help command: " + argv[1] + ". Use /help to see the available commands.";
+            std::string msg = "Unknown help command: " + argv[1] + ". Use /showcommands to see all the available commands";
             sendStringToPeer(msg, peer);
             return;
         }
@@ -8878,15 +8878,6 @@ unmute_error:
 	}
             return;
         }
-    else if (argv[0] == "admins")
-    {
-        if (m_server_owner.lock() != peer && (!player || player->getPermissionLevel() > 50))
-        {
-            std::string msg = "Vinder-af-karting-spil, BcfWorld, DernisNW";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-    }
     else if (argv[0] == "addons")
     {
 	    std::string msg = "/installaddon https://www.tierchester.eu/static/supertournamentaddons.zip";
