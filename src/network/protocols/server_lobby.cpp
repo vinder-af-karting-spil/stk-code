@@ -10209,7 +10209,7 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
         return;
     }
     if (mapping->count(voter_p)) {
-        sendStringToPeer(L"You have already voted. You can only vote once.", voter);
+        sendStringToPeer(L"You have already voted. You can only vote once. Use /999 to delete your vote.", voter);
         return;
     }
     
