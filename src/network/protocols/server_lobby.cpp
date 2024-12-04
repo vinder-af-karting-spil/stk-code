@@ -7248,7 +7248,7 @@ void ServerLobby::handleServerCommand(Event* event,
             std::string msg = "The number of slots must be less than 11.";
             sendStringToPeer(msg, peer);
             return;
-	}	    
+	}
         if ((noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -10228,7 +10228,9 @@ void ServerLobby::setPoleEnabled(bool mode)
 //------------------------------------------------------------------------------------------
 void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned int vote)
 {
+    static bool isVoteCommandActive = true;	
     STKPeer* const voter_p = voter.get();
+    std::set<STKPeer*> removedVoteOnce;
 
     if (!voter->hasPlayerProfiles())
         return;
@@ -10239,6 +10241,11 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
         return;
     }
 
+    if (!isVoteCommandActive)
+    {
+        sendStringToPeer(L"Voting is currently disabled. Please wait for the pole command to be activated.", voter);
+        return;
+    }
     std::shared_ptr<NetworkPlayerProfile> voter_profile = voter->getPlayerProfiles()[0];
     const KartTeam team = voter_profile->getTeam();
     std::map<STKPeer*, std::weak_ptr<NetworkPlayerProfile>>*
@@ -10254,12 +10261,30 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
 
     auto teammates = STKHost::get()->getPlayerProfilesOfTeam(team);
 
+    if (vote == 999) 
+    {
+        if (mapping->count(voter_p)) 
+	{
+            mapping->erase(voter_p);
+            removedVoteOnce.insert(voter_p);
+            sendStringToPeer(L"Your vote has been removed.", voter);
+        }
+       	else 
+	{
+            sendStringToPeer(L"You haven't voted yet, so there's nothing to remove.", voter);
+        }
+        return;
+    }
     if (vote == 0 || teammates.size() == 0 || vote > teammates.size())
     {
         sendStringToPeer(L"Out of range. Please select one of the listed teammates.", voter);
         return;
     }
-
+    if (mapping->count(voter_p)) {
+        sendStringToPeer(L"You have already voted. You can only vote once.", voter);
+        return;
+    }
+    
     std::weak_ptr<NetworkPlayerProfile> teammate = teammates[vote - 1];
     auto teammate_p = teammate.lock();
     const core::stringw& tmName = teammate_p->getName();
