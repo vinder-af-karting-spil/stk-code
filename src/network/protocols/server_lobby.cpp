@@ -67,7 +67,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
 //#include "utils/translation.hpp"
-
+#include <unordered_map>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -8884,12 +8884,106 @@ unmute_error:
 	}
             return;
         }
+    
+
     else if (argv[0] == "addons")
     {
 	    std::string msg = "/installaddon https://www.tierchester.eu/static/supertournamentaddons.zip";
 	    sendStringToPeer(msg, peer);
 	    return;
     }
+    else if (argv[0] == "randomkarts" || argv[0] == "rk")
+    {
+    if ((noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
+    {
+        if (!voteForCommand(peer, cmd)) return;
+    }
+    else if (m_server_owner.lock() != peer &&
+             (!player || player->getPermissionLevel() < PERM_REFEREE))
+    {
+        sendNoPermissionToPeer(peer.get(), argv);
+        return;
+    }	    
+    if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off"))
+    {
+        auto chat = getNetworkString();
+        chat->setSynchronous(true);
+        chat->addUInt8(LE_CHAT);
+        std::string response = "Specify on or off as a second argument.";
+        irr::core::stringw wresponse(response.c_str());
+        chat->encodeString16(wresponse);
+        peer->sendPacket(chat, true);
+        delete chat;
+        return;
+    }
+
+    bool state = argv[1] == "on";
+    static bool randomKartsActive = false;	    
+
+    if (state == randomKartsActive)
+    {
+        std::string msg = std::string("Random karts are already ") + (state ? "ACTIVE." : "INACTIVE.");
+        sendStringToPeer(msg, peer);
+        return;
+    }
+
+    randomKartsActive = state;
+
+    if (state)
+    {
+        if (m_peers_ready.empty())
+        {
+            Log::error("ServerLobby", "No players in the lobby to assign random karts.");
+            return;
+        }
+
+        if (m_available_kts.first.empty())
+        {
+            Log::error("ServerLobby", "No karts available.");
+            return;
+        }
+
+        RandomGenerator random_gen;
+
+        for (auto& peer : m_peers_ready)
+        {
+            auto locked_peer = peer.first.lock();
+            if (!locked_peer)
+                continue;
+
+            auto player = locked_peer->getPlayerProfiles();
+            if (!player.empty())
+            {
+                for (unsigned i = 0; i < player.size(); i++)
+                {
+                    auto& player_profile = player[i];
+
+                    std::set<std::string>::iterator it = m_available_kts.first.begin();
+                    std::advance(it, random_gen.get((int)m_available_kts.first.size()));
+                    std::string selected_kart = *it;
+
+                    player_profile->forceKart(selected_kart);
+
+                    std::string msg = "You have been forced to the random kart: " + selected_kart;
+                    sendStringToPeer(msg, locked_peer);
+                }
+            }
+        }
+
+        std::string msg = "Random karts have been forcibly assigned to all players.";
+        sendStringToAllPeers(msg);
+    }
+    else
+    {
+        std::string msg = "Random karts have been deactivated.";
+        sendStringToAllPeers(msg);
+    }
+
+    updatePlayerList();
+    return;
+}
+
+ 
     else if (argv[0] == "results" || argv[0] == "rs")
     {
         std::string result = ServerLobby::get_elo_change_string();
