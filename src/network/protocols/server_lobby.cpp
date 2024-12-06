@@ -8892,7 +8892,7 @@ unmute_error:
 	    sendStringToPeer(msg, peer);
 	    return;
     }
-    else if (argv[0] == "randomkarts" || argv[0] == "rk")
+    else if (argv[0] == "randomkarts" || argv[0] == "rks")
     {
     if ((noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
     {
