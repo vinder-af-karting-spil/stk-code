@@ -67,6 +67,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
 //#include "utils/translation.hpp"
+#include <nlohmann/json.hpp>
 #include <unordered_map>
 #include <algorithm>
 #include <cassert>
@@ -84,10 +85,57 @@
 #include <tuple>
 #include <utility>
 #include <regex>
+#include <array>
+#include <memory>
+#include <cstdio>
+std::string ServerLobby::exec_python_script()
+{
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(
+        popen("python3 /home/supertuxkart/stk-code/src/network/protocols/track_records.py", "r"), pclose);
+
+    if (!pipe)
+    {
+        throw std::runtime_error("popen() failed!");
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        result += buffer.data();
+    }
+    return result;
+}
 
 
+nlohmann::json loadRecords() {
+    std::ifstream file("track_records.json");
+    nlohmann::json records;
+    file >> records;
+    return records;
+}
+std::vector<std::string> getRecordForTrack(const std::string& trackName, const std::string& direction = "normal") {
+    nlohmann::json records = loadRecords();
+    if (records.contains(trackName)) {
+        if (records[trackName].contains(direction)) {
+            return records[trackName][direction].get<std::vector<std::string>>();
+        }
+    }
+    return {};
+}
+std::string ServerLobby::getTrackNameFromGame()
+{
+    return currentTrackName;
 
-
+}
+std::string ServerLobby::getCurrentPlayerNameFromGame()
+{
+    return currentPlayerName;
+}
+std::string ServerLobby::getCurrentRecordTime()
+{
+	return currentRecordTime;
+}
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
@@ -3028,7 +3076,7 @@ void ServerLobby::setKartRestrictionMode(const enum KartRestrictionMode mode)
  *  the command comes from the owner less server.
  */
 void ServerLobby::startSelection(const Event *event)
-{
+{	
     if (event != NULL)
     {
         std::shared_ptr<STKPeer> peer = event->getPeerSP();
@@ -3494,7 +3542,7 @@ skip_default_vote_randomizing:
     }, ns);
 #endif
 
-    m_state = SELECTING;
+    m_state = SELECTING;    
     if (!always_spectate_peers.empty())
     {
         NetworkString* back_lobby = getNetworkString(2);
@@ -3521,9 +3569,10 @@ skip_default_vote_randomizing:
         m_keys.clear();
         ul.unlock();
     }
-
     // Will be changed after the first vote received
     m_timeout.store(std::numeric_limits<int64_t>::max());
+
+
 }   // startSelection
 
 //-----------------------------------------------------------------------------
@@ -3584,7 +3633,7 @@ void ServerLobby::checkIncomingConnectionRequests()
                 return;
             sl->m_last_success_poll_time.store(StkTime::getMonoTimeMs());
             if (sl->m_state.load() != WAITING_FOR_START_GAME &&
-                !sl->allowJoinedPlayersWaiting())
+	    		    !sl->allowJoinedPlayersWaiting())
             {
                 sl->replaceKeys(keys);
                 return;
@@ -5690,6 +5739,8 @@ void ServerLobby::broadcastMessageInGame(const irr::core::stringw& message)
  */
 void ServerLobby::configPeersStartTime()
 {
+    std::ofstream logFile("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::trunc);
+    logFile.close();
     uint32_t max_ping = 0;
     const unsigned max_ping_from_peers = ServerConfig::m_max_ping;
     bool peer_exceeded_max_ping = false;
@@ -5754,6 +5805,45 @@ void ServerLobby::configPeersStartTime()
             m_state.store(RACING);
 	    const std::string game_start_message = ServerConfig::m_game_start_message;
 
+	    std::string log_msg;
+	    if ((RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_NORMAL_RACE) ||
+               (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL) ||
+               (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_LAP_TRIAL))
+	    {
+	    log_msg = "Track: " + std::string(RaceManager::get()->getTrackName()) + ", "
+	              + "Reverse: " + (RaceManager::get()->getReverseTrack() ? "Yes" : "No") + ", "
+		      + "Laps: " + std::to_string(RaceManager::get()->getNumLaps());
+
+	    }
+	    else 
+	    {
+		    log_msg =  "Track: " + std::string(RaceManager::get()->getTrackName());	  
+	    }
+	    std::ofstream logFile;
+	    logFile.open("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::app);
+	    if (logFile.is_open())
+	    {
+	        logFile << log_msg << "\n";
+                logFile.close();
+                Log::info("ServerLobby", log_msg.c_str());
+	    }
+            else 
+	    {
+	        Log::error("ServerLobby", "Failed to open the .txt");
+	    }
+
+	    try 
+	    {
+		    std::string python_output = ServerLobby::exec_python_script();
+		    Log::info("ServerLobby", ("Python script output: " + python_output).c_str());
+	            sendStringToAllPeers(python_output);
+	    
+	    }
+	    catch (const std::exception& e)
+	    {
+		    Log::error("ServerLobby", ("Error while trying to run the python script: " + std::string(e.what())).c_str());
+	    }
+           	    
 	    // Have Fun
 	    if (!game_start_message.empty())
 	    {
