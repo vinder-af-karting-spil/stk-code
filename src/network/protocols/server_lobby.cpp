@@ -334,6 +334,16 @@ ServerLobby::ServerLobby() : LobbyProtocol()
     m_allow_powerupper = ServerConfig::m_allow_powerupper;
     m_show_elo = ServerConfig::m_show_elo;
     m_show_rank = ServerConfig::m_show_rank;
+    std::vector<std::string> mht = StringUtils::split(ServerConfig::m_must_have_tracks, ' ');
+    for (auto track : mht)
+    {
+        if (track!="") m_must_have_tracks.insert(track);
+    }
+    std::vector<std::string> opt = StringUtils::split(ServerConfig::m_only_played_tracks, ' ');
+    for (auto track : opt)
+    {
+        if (track!="") m_only_played_tracks.insert(track);
+    }
     m_last_wanrefresh_cmd_time = 0UL;
     m_last_wanrefresh_res = nullptr;
     m_last_wanrefresh_requester.reset();
@@ -3128,12 +3138,32 @@ void ServerLobby::startSelection(const Event *event)
         // when the field is forced, check if the player has the field
         if (!canRace(peer))
         {
-            std::string msg = "You need to install ";
-            std::shared_ptr<STKPeer> peer = event->getPeerSP();
-            msg += m_set_field;
-            msg += " in order to play. Click the link below to install it:\n/installaddon ";
-            msg += m_set_field;
-            sendStringToPeer(msg, peer);
+	    if (m_set_field!="")
+            {
+                std::string msg = "You need to install ";
+                std::shared_ptr<STKPeer> peer = event->getPeerSP();
+                msg += m_set_field;
+                msg += " in order to play. Click the link below to install it:\n/installaddon";
+                msg += m_set_field;
+                sendStringToPeer(msg, peer);
+	    }
+	    if (m_must_have_tracks.size() !=0)
+	    {
+                const auto& kt = peer->getClientAssets();
+		std::string real_track;
+                std::string msg = "You need to install the following addons to play:\n";
+                for (auto track : m_must_have_tracks)
+                {
+	            real_track = "addon_" + track;
+                    if (kt.second.find(real_track) == kt.second.end())
+                    {
+                        msg += "/installaddon ";
+                        msg += track;
+                        msg += "\n";
+	                sendStringToPeer(msg, peer);
+	            }
+	        }
+            }
             return;
         }
         if (ServerConfig::m_supertournament)
@@ -3309,7 +3339,19 @@ void ServerLobby::startSelection(const Event *event)
     unsigned max_player = 0;
     STKHost::get()->updatePlayers(&max_player);
     
-    if (ServerConfig::m_soccer_log) GlobalLog::writeLog("GAME_START\n", GlobalLogTypes::POS_LOG);
+    if (ServerConfig::m_soccer_log)
+    {
+        GlobalLog::writeLog("GAME_START\n", GlobalLogTypes::POS_LOG);
+	time_t now;
+        time(&now);
+        char buf[sizeof "2011-10-08T07:07:09Z"];
+        strftime(buf, sizeof buf, "%FT%TZ", gmtime(&now));
+	std::string buf2;
+	for (int i=0;i< sizeof buf - 1 ;i++)
+	    buf2 += buf[i];
+	std::string msg = "Match started at " + buf2 + "\n";
+        GlobalLog::writeLog(msg, GlobalLogTypes::POS_LOG);
+    }
 
     // Set late coming player to spectate if too many players
     auto spectators_by_limit = getSpectatorsByLimit();
@@ -3333,6 +3375,23 @@ void ServerLobby::startSelection(const Event *event)
     for (const std::string& track_erase : tracks_erase)
     {
         m_available_kts.second.erase(track_erase);
+    }
+
+    if (m_only_played_tracks.size()!=0)
+    {
+        auto tracks = m_available_kts.second;
+	bool found;
+	std::string real_track;
+	for (auto track: tracks)
+	{
+	    found = false;
+	    for (auto t2:m_only_played_tracks)
+	    {
+	        real_track = "addon_" + t2;
+	        if (track==real_track) found = true;
+	    }
+	    if (not found) m_available_kts.second.erase(track);
+	}
     }
 
     max_player = 0;
@@ -7320,7 +7379,7 @@ void ServerLobby::handleServerCommand(Event* event,
             std::string msg = "The number of slots must be less than 11.";
             sendStringToPeer(msg, peer);
             return;
-	}	 	
+	}
         if ((noVeto || player->getVeto() < PERM_REFEREE) && m_server_owner.lock() != peer)
         {
             if (!voteForCommand(peer,cmd)) return;
@@ -10145,11 +10204,12 @@ bool ServerLobby::canRace(STKPeer* peer) const
 {
   if (peer == NULL || peer->getPlayerProfiles().size() == 0) return false;
   std::string username = StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName());
+  const auto& kt = peer->getClientAssets();
+
   // Players who do not have the addon defined via /setfield are not allowed to play.
   if (!m_set_field.empty())
   {
       bool has_addon = false;
-      const auto& kt = peer->getClientAssets();
       for (auto& track : kt.second)
       {
           if (track == m_set_field)
@@ -10159,6 +10219,18 @@ bool ServerLobby::canRace(STKPeer* peer) const
           }
       }
       if (has_addon == false) return false;
+    }
+    if (m_must_have_tracks.size()!=0)
+    {
+	std::string real_track;
+        for (auto track : m_must_have_tracks)
+        {
+	    real_track = "addon_" + track;
+            if (kt.second.find(real_track) == kt.second.end())
+            {
+                return false;
+	    }
+        }
     }
     //if (ServerConfig::m_supertournament)
     //{
@@ -10438,7 +10510,7 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
         return;
     }
     if (mapping->count(voter_p)) {
-        sendStringToPeer(L"You have already voted. You can only vote once.", voter);
+        sendStringToPeer(L"You have already voted. You can only vote once. Use /999 to delete your vote.", voter);
         return;
     }
     
@@ -11657,6 +11729,32 @@ std::string ServerLobby::get_elo_change_string()
 }
 
 // returns rank and elo
+std::string ServerLobby::getPlayerAlt(std::string username) const
+{
+    std::string fileName = "soccer_ranking_altlist.txt";
+    std::ifstream in_file(fileName);
+    std::string player = "";
+    std::string player_alt = "";
+    std::string alt = "";
+    std::vector<std::string> split;
+    if (in_file.is_open())
+    {
+        std::string line;
+        while (std::getline(in_file, line))
+        {
+            split = StringUtils::split(line, ' ');
+            if (split.size() < 2) continue;
+            alt = split[1];
+            player = split[0];
+            if (player == username)
+                return alt;
+        }
+    }
+    in_file.close();
+    return player_alt;
+}
+
+// returns rank and elo
 std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username) const
 {
     std::string fileName = "soccer_ranking.txt";
@@ -11664,6 +11762,8 @@ std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username)
     int elo = 0;
     unsigned int rank = 1;
     std::string player = "";
+    std::string alt = ServerLobby::getPlayerAlt(username);
+    if (alt!="") username = alt;
     std::vector<std::string> split;
     if (in_file.is_open())
     {
