@@ -51,6 +51,8 @@ ReplayRecorder::ReplayRecorder()
 {
     m_complete_replay = false;
     m_incorrect_replay = false;
+    Log::info("ServerLobby", "Replay Recorder: Constructor: incorrect=%d, complete=%d",
+		 m_incorrect_replay, m_complete_replay);   
     m_previous_steer   = 0.0f;
 
     assert(stk_config->m_replay_max_frames >= 0);
@@ -69,6 +71,8 @@ void ReplayRecorder::reset()
 {
     m_complete_replay = false;
     m_incorrect_replay = false;
+    Log::info("ServerLobby", "Replay Recorder Reset: incorrect=%d, complete=%d",
+		    m_incorrect_replay, m_complete_replay);
     m_transform_events.clear();
     m_physic_info.clear();
     m_bonus_info.clear();
@@ -89,7 +93,11 @@ void ReplayRecorder::reset()
  */
 void ReplayRecorder::init()
 {
+    Log::info("ReplayRecorder", "init start: incorrect=%d, complete=%d",
+		   m_incorrect_replay, m_complete_replay); 
     reset();
+    m_incorrect_replay = false;	
+    m_complete_replay = false; 
     m_transform_events.resize(RaceManager::get()->getNumberOfKarts());
     m_physic_info.resize(RaceManager::get()->getNumberOfKarts());
     m_bonus_info.resize(RaceManager::get()->getNumberOfKarts());
@@ -114,7 +122,8 @@ void ReplayRecorder::init()
  */
 void ReplayRecorder::update(int ticks)
 {
-    if (m_incorrect_replay || m_complete_replay) return;
+    Log::info("ReplayRecorder", "Update called - incorrect=%d, complete=%d", 
+                m_incorrect_replay, m_complete_replay);
 
     World *world = World::getWorld();
     const bool single_player = RaceManager::get()->getNumPlayers() == 1;
@@ -306,8 +315,9 @@ void ReplayRecorder::update(int ticks)
 
     if (world->getPhase() == World::RESULT_DISPLAY_PHASE && !m_complete_replay)
     {
+	Log::info("ReplayRecorder", "Race finished, marking replay as complete");    
         m_complete_replay = true;
-        save();
+	save();
     }
 }   // update
 
@@ -352,19 +362,28 @@ uint64_t ReplayRecorder::computeUID(float min_time)
  */
 void ReplayRecorder::save()
 {
-    if (m_incorrect_replay || !m_complete_replay)
+    Log::info("ServerLobby", "Starting save save process");
+    if (m_incorrect_replay)
     {
-        MessageQueue::add(MessageQueue::MT_ERROR,
-            _("Incomplete replay file will not be saved."));
-        return;
+	    MessageQueue::add(MessageQueue::MT_ERROR,
+			    _("Incomplete replay file will not be saved."));
+	    Log::info("ReplayRecorder", "Save skipped: incorrect=%d, transforms=%d",
+			    m_incorrect_replay, m_count_transforms.size());
+	    return;
+    }
+    else
+    {
+	    Log::info("ReplayRecorder", "Proceeding with save...");
     }
 
 #ifdef DEBUG
     Log::debug("ReplayRecorder", "%d frames, %d removed because of"
         "frequency compression", m_count, m_count_skipped_time);
 #endif
+    Log::info("ServerLobby", "Getting world data...");
     const World *world           = World::getWorld();
     const unsigned int num_karts = world->getNumKarts();
+    Log::info("ServerLobby", "Calculating min time...");
     float min_time = 99999.99f;
     for (unsigned int k = 0; k < num_karts; k++)
     {
@@ -373,6 +392,7 @@ void ReplayRecorder::save()
         if (cur_time < min_time)
             min_time = cur_time;
     }
+    Log::info("ServerLobby", "Creating filename...");
 
     int day, month, year;
     StkTime::getDate(&day, &month, &year);
@@ -382,46 +402,58 @@ void ReplayRecorder::save()
     oss << Track::getCurrentTrack()->getIdent() << "_" << year << month << day
         << "_" << num_karts << "_" << time << ".replay";
     m_filename = oss.str();
-
+    Log::info("ServerLobby", "Opening file for writing...");
+    Log::info("ServerLobby", "Filename: %s", getReplayFilename().c_str());
     FILE *fd = openReplayFile(/*writeable*/true);
     if (!fd)
     {
-        Log::error("ReplayRecorder", "Can't open '%s' for writing - "
-            "can't save replay data.", getReplayFilename().c_str());
+        Log::error("ServerLobby", "Can't open '%s' for writing", getReplayFilename().c_str());
         return;
     }
+    Log::info("ServerLobby", "File opened successfully");
 
     core::stringw msg = _("Replay saved in \"%s\".",
         StringUtils::utf8ToWide(file_manager->getReplayDir() + getReplayFilename()));
     MessageQueue::add(MessageQueue::MT_GENERIC, msg);
-
+    Log::info("ServerLobby", "Writing version info...");
     fprintf(fd, "version: %d\n", getCurrentReplayVersion());
     fprintf(fd, "stk_version: %s\n", STK_VERSION);
-
+    Log::info("ServerLobby", "Writing kart list...");
     unsigned int player_count = 0;
     for (unsigned int real_karts = 0; real_karts < num_karts; real_karts++)
     {
         const AbstractKart *kart = world->getKart(real_karts);
         if (kart->isGhostKart()) continue;
-
+        Log::info("ServerLobby", "Writing kart %d info...", real_karts);
+	Log::info("ServerLobby", "Getting kart ident...");
         // XML encode the username to handle Unicode
-        fprintf(fd, "kart: %s %s\n", kart->getIdent().c_str(),
+	Log::info("ServerLobby", "Getting controller info...");
+        fprintf(fd, "kart: %s %s\n", kart->getIdent().c_str(),			
                 StringUtils::xmlEncode(kart->getController()->getName()).c_str());
-
+	Log::info("ServerLobby", "Writing kart basic info...");
+        
         if (kart->getController()->isPlayerController())
         {
-            fprintf(fd, "kart_color: %f\n", StateManager::get()->getActivePlayer(player_count)->getConstProfile()->getDefaultKartColor());
-            player_count++;
-        }
-        else
-            fprintf(fd, "kart_color: 0\n");
+           Log::info("ServerLobby", "Writing player color info...");
+           StateManager* state_manager = StateManager::get();
+	   if (state_manager && state_manager->getActivePlayer(player_count) &&
+			   state_manager->getActivePlayer(player_count)->getConstProfile())
+		   {
+			   fprintf(fd, "kart_color: %f\n", state_manager->getActivePlayer(player_count)->getConstProfile()->getDefaultKartColor());
+		   }
+	   else
+	   {
+		   fprintf(fd, "kart_color: 0\n");
+	   }
+	  player_count++;
+    }
     }
 
     m_last_uid = computeUID(min_time);
 
     int num_laps = RaceManager::get()->getNumLaps();
     if (num_laps == 9999) num_laps = 0; // no lap in that race mode
-
+    Log::info("ServerLobby", "Writing header data..."); 
     fprintf(fd, "kart_list_end\n");
     fprintf(fd, "reverse: %d\n",    (int)RaceManager::get()->getReverseTrack());
     fprintf(fd, "difficulty: %d\n", RaceManager::get()->getDifficulty());
@@ -430,7 +462,8 @@ void ReplayRecorder::save()
     fprintf(fd, "laps: %d\n",       num_laps);
     fprintf(fd, "min_time: %f\n",   min_time);
     fprintf(fd, "replay_uid: %" PRIu64 "\n", m_last_uid);
-
+    Log::info("ServerLobby", "Writing kart data...");
+    Log::info("ServerLobby", "Writing transform data...");
     for (unsigned int k = 0; k < num_karts; k++)
     {
         if (world->getKart(k)->isGhostKart()) continue;
@@ -476,7 +509,9 @@ void ReplayRecorder::save()
                 );
         }   // for i
     }
+    Log::info("ServerLobby", "Closing file...");
     fclose(fd);
+    Log::info("ServerLobby", "Save completed successfully");
 }   // save
 
 /* Returns an encoding value for a given attachment type.

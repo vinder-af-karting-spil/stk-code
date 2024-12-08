@@ -114,6 +114,9 @@ public:
                                  // Specified in the configuration file.
     };
 private:
+    std::string m_replay_dir;
+    bool m_replay_requested = false;    
+    std::string getTimeStamp();    
     std::string exec_python_script();    
     std::string currentTrackName;
     std::string currentPlayerName;

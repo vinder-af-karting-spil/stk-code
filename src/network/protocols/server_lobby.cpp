@@ -88,6 +88,21 @@
 #include <array>
 #include <memory>
 #include <cstdio>
+#include "replay/replay_recorder.hpp"
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include "modes/world.hpp"
+#include "io/file_manager.hpp"
+#include "utils/file_utils.hpp"
+#include "utils/file_utils.hpp"
+#include "io/file_manager.hpp"
+#include "io/file_manager.hpp"
+#include "utils/file_utils.hpp"
+
+
+
+
 std::string ServerLobby::exec_python_script()
 {
     std::array<char, 128> buffer;
@@ -123,19 +138,7 @@ std::vector<std::string> getRecordForTrack(const std::string& trackName, const s
     }
     return {};
 }
-std::string ServerLobby::getTrackNameFromGame()
-{
-    return currentTrackName;
 
-}
-std::string ServerLobby::getCurrentPlayerNameFromGame()
-{
-    return currentPlayerName;
-}
-std::string ServerLobby::getCurrentRecordTime()
-{
-	return currentRecordTime;
-}
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
@@ -2821,7 +2824,26 @@ void ServerLobby::update(int ticks)
 	}
         if (ServerConfig::m_supertournament)
             onTournamentGameEnded();
-		    
+	if (m_replay_requested && World::getWorld() && World::getWorld()->isRacePhase())	
+	{
+           World::getWorld()->setPhase(WorldStatus::RESULT_DISPLAY_PHASE);
+	   Log::info("ServerLobby", "Attempting to save replay...(custom path)");
+	   m_replay_dir = "/home/supertuxkart/stk-code/data/replay/";
+
+	   ReplayRecorder::get()->save();
+	   std::string replay_path = file_manager->getReplayDir() + ReplayRecorder::get()->getReplayFilename();
+	   if (file_manager->fileExists(replay_path))
+	   {
+		   Log::info("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
+		   Log::info("ServerLobby", "Replay saved successfully");
+	   }
+	   else
+	   {
+		   Log::error("ServerLobby", "Replay file not found at: %s", replay_path.c_str());
+                   Log::error("ServerLobby", "Failed to save replay"); 
+	   }
+	   m_replay_requested = false;
+	}
         // This will go back to lobby in server (and exit the current race)
         exitGameState();
         // Reset for next state usage
@@ -3574,6 +3596,16 @@ skip_default_vote_randomizing:
 
 
 }   // startSelection
+//----------------------------------------------------------------------------
+// if time stamp needed
+std::string ServerLobby::getTimeStamp()
+{
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S");
+    return ss.str();
+}
 
 //-----------------------------------------------------------------------------
 /** Query the STK server for connection requests. For each connection request
@@ -5843,6 +5875,15 @@ void ServerLobby::configPeersStartTime()
 	    {
 		    Log::error("ServerLobby", ("Error while trying to run the python script: " + std::string(e.what())).c_str());
 	    }
+	        if (m_replay_requested)
+    {
+                   std::string replay_path = "/home/supertuxkart/stk-code/data/replay/";
+                   std::string replay_name = replay_path + "race_" + getTimeStamp() + ".replay";
+                   ReplayRecorder::get()->setFilename(replay_name);
+                   ReplayRecorder::get()->init();
+                   Log::info("ServerLobby", "Starting replay recording with filename: %s", replay_name.c_str());
+    }
+
            	    
 	    // Have Fun
 	    if (!game_start_message.empty())
@@ -9072,9 +9113,13 @@ unmute_error:
     updatePlayerList();
     return;
 }
-
- 
-    else if (argv[0] == "results" || argv[0] == "rs")
+    else if (argv[0] == "replay")
+{
+	m_replay_requested = true;
+	sendStringToPeer(StringUtils::utf8ToWide("Replay will start recording at race start"), peer);
+	return;
+}
+     else if (argv[0] == "results" || argv[0] == "rs")
     {
         std::string result = ServerLobby::get_elo_change_string();
         
