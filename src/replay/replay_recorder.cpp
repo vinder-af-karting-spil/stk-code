@@ -122,9 +122,9 @@ void ReplayRecorder::init()
  */
 void ReplayRecorder::update(int ticks)
 {
-    Log::info("ReplayRecorder", "Update called - incorrect=%d, complete=%d", 
+    Log::info("ServerLobby", "Update called - incorrect=%d, complete=%d", 
                 m_incorrect_replay, m_complete_replay);
-
+    Log::info("ServerLobby", "Update called with ticks=%d, time=%f", ticks, World::getWorld()->getTime());	
     World *world = World::getWorld();
     const bool single_player = RaceManager::get()->getNumPlayers() == 1;
     unsigned int num_karts = world->getNumKarts();
@@ -464,12 +464,14 @@ void ReplayRecorder::save()
     fprintf(fd, "replay_uid: %" PRIu64 "\n", m_last_uid);
     Log::info("ServerLobby", "Writing kart data...");
     Log::info("ServerLobby", "Writing transform data...");
+    Log::info("ServerLobby", "Number of karts: %d", num_karts);
     for (unsigned int k = 0; k < num_karts; k++)
     {
         if (world->getKart(k)->isGhostKart()) continue;
 
         const unsigned int num_transforms = std::min(m_max_frames,
                                                      m_count_transforms[k]);
+	Log::info("ServerLobby", "Kart %d has %d transforms", k, num_transforms);
 
         fprintf(fd, "size:     %d\n", num_transforms);
 
@@ -479,6 +481,21 @@ void ReplayRecorder::save()
             const PhysicInfo *q      = &(m_physic_info[k][i]);
             const BonusInfo *b      = &(m_bonus_info[k][i]);
             const KartReplayEvent *r = &(m_kart_replay_event[k][i]);
+
+
+
+
+
+            Log::info("ServerLobby", "Writing frame - Time: %f, Pos: (%f,%f,%f)", 
+			    	p->m_time,
+				p->m_transform.getOrigin().getX(),
+				p->m_transform.getOrigin().getY(),
+				p->m_transform.getOrigin().getZ());
+	    Log::info("ServerLobby", "Recording transform for kart %d at time %f, pos=(%f,%f,%f)", 
+			    p->m_time,
+                            p->m_transform.getOrigin().getX(),
+			    p->m_transform.getOrigin().getY(),
+			    p->m_transform.getOrigin().getZ()); 
             fprintf(fd, "%f  %f %f %f  %f %f %f %f  %f  %f  %f %f %f %f %d  %d %f %d %d %d  %f %d %d %d %d %d\n",
                     p->m_time,
                     p->m_transform.getOrigin().getX(),

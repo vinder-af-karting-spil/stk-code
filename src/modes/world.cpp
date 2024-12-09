@@ -1039,7 +1039,6 @@ void World::updateWorld(int ticks)
         unpause();
         m_schedule_unpause = false;
     }
-
     // Don't update world if a menu is shown or the race is over.
     // Exceptions : - Networking (local pause doesn't affect the server or other players)
     //              - Benchmarking (a pause would mess up measurements)

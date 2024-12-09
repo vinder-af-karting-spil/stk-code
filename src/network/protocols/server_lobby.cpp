@@ -2650,7 +2650,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
  *  client can find it.
  */
 void ServerLobby::update(int ticks)
-{
+{	
     World* w = World::getWorld();
     bool world_started = m_state.load() >= WAIT_FOR_WORLD_LOADED &&
         m_state.load() <= RACING && m_server_has_loaded_world.load();
@@ -2658,6 +2658,11 @@ void ServerLobby::update(int ticks)
     int sec = ServerConfig::m_kick_idle_player_seconds;
     if (world_started)
     {
+	    if (ReplayRecorder::get() && m_state.load() == RACING)
+	    {
+		    ReplayRecorder::get()->update(ticks);
+		    Log::info("ServerLobby", "Update ticks in serverlobbycpp update called"); 
+	    }
         for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
         {
             RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
@@ -2812,7 +2817,8 @@ void ServerLobby::update(int ticks)
     case RACING:
         if (World::getWorld() && RaceEventManager::get() &&
             RaceEventManager::get()->isRunning())
-        {
+	{
+            Log::info("ServerLobby", "Race is running, world exists");
             checkRaceFinished();
         }
         break;
@@ -5893,6 +5899,7 @@ void ServerLobby::configPeersStartTime()
             //Log::info("ServerLobby", "Start game after %dms", sleep_time);
             StkTime::sleep(sleep_time);
             //Log::info("ServerLobby", "Started at %lf", StkTime::getRealTime());
+	    Log::info("ServerLobby","World::getWorld()->setPhase(WorldStatus::RACE_PHASE); fase starting...");
             m_state.store(RACING);
 	    const std::string game_start_message = ServerConfig::m_game_start_message;
 

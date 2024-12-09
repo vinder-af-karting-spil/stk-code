@@ -112,6 +112,7 @@ private:
           ReplayRecorder();
          ~ReplayRecorder();
 public:
+    bool isRecording() const { return m_complete_replay == false; } 	 
     bool isReplayComplete() const { return m_complete_replay; }
     bool getSaveStatus() const { return !m_count_transforms.empty() && !m_incorrect_replay; }
     bool  m_complete_replay;
