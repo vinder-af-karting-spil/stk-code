@@ -52,7 +52,8 @@ ReplayRecorder::ReplayRecorder()
     m_complete_replay = false;
     m_incorrect_replay = false;
     Log::info("ServerLobby", "Replay Recorder: Constructor: incorrect=%d, complete=%d",
-		 m_incorrect_replay, m_complete_replay);   
+		 m_incorrect_replay, m_complete_replay);  
+
     m_previous_steer   = 0.0f;
 
     assert(stk_config->m_replay_max_frames >= 0);
@@ -105,7 +106,8 @@ void ReplayRecorder::init()
 
     for(unsigned int i=0; i<RaceManager::get()->getNumberOfKarts(); i++)
     {
-        m_transform_events[i].resize(m_max_frames);
+        m_transform_events.resize(1);
+	m_transform_events[0].resize(m_max_frames);
         m_physic_info[i].resize(m_max_frames);
         m_bonus_info[i].resize(m_max_frames);
         m_kart_replay_event[i].resize(m_max_frames);
@@ -122,21 +124,42 @@ void ReplayRecorder::init()
  */
 void ReplayRecorder::update(int ticks)
 {
+	if (m_transform_events.empty())
+	{
+		Log::info("ReplayRecorder", "Arrays not initialized, calling init()");
+		init();
+	}
     Log::info("ServerLobby", "Update called - incorrect=%d, complete=%d", 
                 m_incorrect_replay, m_complete_replay);
     Log::info("ServerLobby", "Update called with ticks=%d, time=%f", ticks, World::getWorld()->getTime());	
     World *world = World::getWorld();
+    Log::info("ServerLobby", "World check point 1");
     const bool single_player = RaceManager::get()->getNumPlayers() == 1;
+    Log::info("ServerLobby", "Single player check point 2");
     unsigned int num_karts = world->getNumKarts();
+    Log::info("ServerLobby", "Num karts check point 3: %d", num_karts);
 
     float time = world->getTime();
     for(unsigned int i=0; i<num_karts; i++)
     {
+	Log::info("ServerLobby", "Starting kart loop: kart %d", i);    
         AbstractKart *kart = world->getKart(i);
+	Log::info("ServerLobby", "Got kart %d", i);
         // If a single player give up in game menu, stop recording
         if (kart->isEliminated() && single_player) return;
+	Log::info("ServerLobby", "Kart eliminated check");
 
         if (kart->isGhostKart()) continue;
+	Log::info("ServerLobby", "Ghost kart check");
+        Log::info("ServerLobby", "Proceeding with kart data recording");
+	Log::info("ReplayRecorder", "Got steer data: %f", kart->getControls().getSteer());
+        Log::info("ServerLobby", "Time: %f", time);
+        Log::info("ServerLobby", "m_transform_events size: %zu", m_transform_events.size());
+	if (i < m_transform_events.size())
+	{
+		Log::info("ServerLobby", "m_transform_events[i] size: %zu", m_transform_events[i].size());
+	}
+	
 #ifdef DEBUG
         m_count++;
 #endif
@@ -256,20 +279,25 @@ void ReplayRecorder::update(int ticks)
         }
 
         m_previous_steer = kart->getControls().getSteer();
+	Log::info("ServerLobby", "Got steer data");
         m_last_saved_time[i] = time;
         m_count_transforms[i]++;
+	Log::info("ServerLobby", "Transform count: %d", m_count_transforms[i]);
         if (m_count_transforms[i] >= m_transform_events[i].size())
         {
             // Only print this message once.
+	    Log::info("ServerLobby", "Transform array size check");
             if (m_count_transforms[i] == m_transform_events[i].size())
             {
-                Log::warn("ReplayRecorder", "Can't store more events for kart %s.",
+                Log::error("ServerLobby", "Can't store more events for kart %s.",
                     kart->getIdent().c_str());
                 m_incorrect_replay = single_player;
             }
             continue;
         }
+	Log::info("ServerLobby", "Getting transform event data");
         TransformEvent *p      = &(m_transform_events[i][m_count_transforms[i]-1]);
+	Log::info("ServerLobby", "Got transform event pointer");
         PhysicInfo *q          = &(m_physic_info[i][m_count_transforms[i]-1]);
         BonusInfo *b           = &(m_bonus_info[i][m_count_transforms[i]-1]);
         KartReplayEvent *r     = &(m_kart_replay_event[i][m_count_transforms[i]-1]);
@@ -471,6 +499,7 @@ void ReplayRecorder::save()
 
         const unsigned int num_transforms = std::min(m_max_frames,
                                                      m_count_transforms[k]);
+	Log::info("ServerLobby", "Number of transforms: %d", num_transforms);
 	Log::info("ServerLobby", "Kart %d has %d transforms", k, num_transforms);
 
         fprintf(fd, "size:     %d\n", num_transforms);

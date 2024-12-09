@@ -2658,11 +2658,6 @@ void ServerLobby::update(int ticks)
     int sec = ServerConfig::m_kick_idle_player_seconds;
     if (world_started)
     {
-	    if (ReplayRecorder::get() && m_state.load() == RACING)
-	    {
-		    ReplayRecorder::get()->update(ticks);
-		    Log::info("ServerLobby", "Update ticks in serverlobbycpp update called"); 
-	    }
         for (unsigned i = 0; i < RaceManager::get()->getNumPlayers(); i++)
         {
             RemoteKartInfo& rki = RaceManager::get()->getKartInfo(i);
@@ -2816,9 +2811,13 @@ void ServerLobby::update(int ticks)
         break;
     case RACING:
         if (World::getWorld() && RaceEventManager::get() &&
-            RaceEventManager::get()->isRunning())
+            RaceEventManager::get()->isRunning())	
 	{
-            Log::info("ServerLobby", "Race is running, world exists");
+	Log::info("ServerLobby", "Race is running, updating replay");	
+	if (ReplayRecorder::get())
+	{
+		ReplayRecorder::get()->update(ticks);
+	}
             checkRaceFinished();
         }
         break;
@@ -9178,6 +9177,14 @@ unmute_error:
 
     updatePlayerList();
     return;
+}
+    else if (argv[0] == "restart")
+{
+	World* w = World::getWorld();
+        if (!w || m_state.load() != RACING) return;
+	w->reset();
+	m_state.store(WAIT_FOR_WORLD_LOADED);
+	configPeersStartTime();
 }
     else if (argv[0] == "replay")
 {
