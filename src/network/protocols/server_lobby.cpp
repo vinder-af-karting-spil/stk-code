@@ -2842,15 +2842,15 @@ void ServerLobby::update(int ticks)
 	if (m_replay_requested && World::getWorld() && World::getWorld()->isRacePhase())	
 	{
            World::getWorld()->setPhase(WorldStatus::RESULT_DISPLAY_PHASE);
-	   Log::info("ServerLobby", "Attempting to save replay...(custom path)");
+	   Log::verbose("ServerLobby", "Attempting to save replay...(custom path)");
 	   m_replay_dir = "/home/supertuxkart/stk-code/data/replay/";
 
 	   ReplayRecorder::get()->save();
 	   std::string replay_path = file_manager->getReplayDir() + ReplayRecorder::get()->getReplayFilename();
 	   if (file_manager->fileExists(replay_path))
 	   {
-		   Log::info("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
-		   Log::info("ServerLobby", "Replay saved successfully");
+		   Log::verbose("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
+		   Log::verbose("ServerLobby", "Replay saved successfully");
 	   }
 	   else
 	   {
