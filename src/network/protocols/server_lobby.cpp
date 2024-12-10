@@ -2812,8 +2812,7 @@ void ServerLobby::update(int ticks)
     case RACING:
         if (World::getWorld() && RaceEventManager::get() &&
             RaceEventManager::get()->isRunning())	
-	{
-	Log::info("ServerLobby", "Race is running, updating replay");	
+	{	
 	if (ReplayRecorder::get())
 	{
 		ReplayRecorder::get()->update(ticks);
@@ -9189,7 +9188,7 @@ unmute_error:
     else if (argv[0] == "replay")
 {
 	m_replay_requested = true;
-	sendStringToPeer(StringUtils::utf8ToWide("Replay will start recording at race start"), peer);
+	sendStringToPeer(StringUtils::utf8ToWide("Replay recording started!"), peer);
 	return;
 }
      else if (argv[0] == "results" || argv[0] == "rs")
