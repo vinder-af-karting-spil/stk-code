@@ -9767,7 +9767,7 @@ unmute_error:
                 return;
             }
             else if (spectators_by_limit.find(peer) != spectators_by_limit.end() ||
-                    peer->isSpectator() || peer->alwaysSpectate()))
+                    peer->isSpectator() || peer->alwaysSpectate())
             {
                 msg = "You need to be able to play in order to use that command.";
                 sendStringToPeer(msg, peer.get());
