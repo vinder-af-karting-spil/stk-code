@@ -108,7 +108,7 @@ std::string ServerLobby::exec_python_script()
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(
-        popen("python3 ~/stk-code/src/network/protocols/track_records.py", "r"), pclose);
+        popen("python3 /home/supertuxkart/stk-code/src/network/protocols/track_records.py", "r"), pclose);
 
     if (!pipe)
     {
@@ -5854,7 +5854,7 @@ void ServerLobby::broadcastMessageInGame(const irr::core::stringw& message)
  */
 void ServerLobby::configPeersStartTime()
 {
-    std::ofstream logFile("~/stk-code/src/network/protocols/race_log.txt", std::ios::trunc);
+    std::ofstream logFile("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::trunc);
     logFile.close();
     uint32_t max_ping = 0;
     const unsigned max_ping_from_peers = ServerConfig::m_max_ping;
@@ -5936,7 +5936,7 @@ void ServerLobby::configPeersStartTime()
 		    log_msg =  "Track: " + std::string(RaceManager::get()->getTrackName());	  
 	    }
 	    std::ofstream logFile;
-	    logFile.open("~/stk-code/src/network/protocols/race_log.txt", std::ios::app);
+	    logFile.open("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::app);
 	    if (logFile.is_open())
 	    {
 	        logFile << log_msg << "\n";
@@ -5951,6 +5951,7 @@ void ServerLobby::configPeersStartTime()
 	    try 
 	    {
 		    std::string python_output = ServerLobby::exec_python_script();
+		    python_output.erase(std::remove(python_output.begin(), python_output.end(), '\n'), python_output.end());
 		    Log::info("ServerLobby", ("Python script output: " + python_output).c_str());
 	            sendStringToAllPeers(python_output);
 	    
