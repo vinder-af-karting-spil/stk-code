@@ -12019,6 +12019,9 @@ bool ServerLobby::forceSetTrack(std::string track_id,
                 {
                     if (ServerConfig::m_supertournament)
                         laps = fv.m_num_laps;
+                    else
+                     // apply default laps
+                        laps = t->getDefaultNumberOfLaps();
                 }
                 m_set_field = track_id;
                 m_set_laps = laps;
