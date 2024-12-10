@@ -2077,7 +2077,11 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (players[i]->getKartName().empty())
+                if (!players[i]->getForcedKart().empty())
+                {
+                    players[i]->setKartName(players[i]->getForcedKart());
+                }
+                else if (players[i]->getKartName().empty())
                 {
                     RandomGenerator rg;
                     std::set<std::string>::iterator it =
