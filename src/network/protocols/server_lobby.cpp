@@ -3205,6 +3205,18 @@ void ServerLobby::startSelection(const Event *event)
                 return;
             }
         }
+        if (ServerConfig::m_command_kart_mode && peer->hasPlayerProfiles() && peer->getPlayerProfiles()[0]->getForcedKart().empty())
+        {
+            const std::string msg = "Use /setkart (kart_name) to play the game.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        if (ServerConfig::m_command_track_mode && m_set_field.empty())
+        {
+            const std::string msg = "Use /settrack (track_name) - (reverse? y/n) to play the game.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
 
         if (ServerConfig::m_owner_less)
         {
@@ -9635,18 +9647,34 @@ unmute_error:
     else if (argv[0] == "setkart")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < 
+        auto spectators_by_limit = getSpectatorsByLimit();
+        if (ServerConfig::m_command_kart_mode && (!player || player->getPermissionLevel() < 
+                PERM_PLAYER))
+        {
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
+        }
+        else if (ServerConfig::m_command_kart_mode && (
+                    peer->isSpectator() || peer->alwaysSpectate() ||
+                    spectators_by_limit.find(peer) != spectators_by_limit.end()))
+        {
+            msg = "You need to be able to play in order use this command.";
+            sendStringToPeer(msg, peer);
+            return;
+        }
+        else if (!player || player->getPermissionLevel() < 
                 PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
-        if (argv.size() < 3)
+        if (argv.size() < 2)
         {
             msg = "Usage: /setkart [kart_name or off] [player] [permanent?]";
             sendStringToPeer(msg, peer);
             return;
         }
+        const bool canSpecifyExtra = player->getPermissionLevel() >= PERM_MODERATOR;
 
 #if 0
         if (ServerConfig::m_supertournament)
@@ -9671,8 +9699,12 @@ unmute_error:
             kart = nullptr;
 
         std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
-        auto t_peer = STKHost::get()->findPeerByName(
-                StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
+        std::shared_ptr<STKPeer> t_peer = nullptr;
+        if (canSpecifyExtra && argv.size() >= 3)
+            t_peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
+        else
+            t_peer = peer;
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             if (ServerConfig::m_supertournament)
@@ -9687,7 +9719,7 @@ unmute_error:
 
         const std::string playername = StringUtils::wideToUtf8(t_player->getName());
 
-        bool permanent = argv.size() >= 4 && (argv[3] == "on" || argv[3] == "permanent");
+        bool permanent = canSpecifyExtra && argv.size() >= 4 && (argv[3] == "on" || argv[3] == "permanent");
         if (argv[1] == "off")
         {
             std::string targetmsg = "You can choose any kart now.";
@@ -9695,8 +9727,11 @@ unmute_error:
             t_player->unforceKart();
             if (permanent)
                 writeRestrictionsForOID(t_player->getOnlineId(), "");
-            msg = "No longer forcing a kart for " + argv[2] + ".";
-            sendStringToPeer(msg, peer);
+            if (t_peer != peer)
+            {
+                msg = "No longer forcing a kart for " + argv[2] + ".";
+                sendStringToPeer(msg, peer);
+            }
         }
         else
         {
@@ -9705,10 +9740,13 @@ unmute_error:
             t_player->forceKart(argv[1]);
             if (permanent)
                 writeRestrictionsForOID(t_player->getOnlineId(), argv[1]);
-            msg = StringUtils::insertValues(
-                    "Made %s use kart %s.",
-                    playername.c_str(), argv[1]);
-            sendStringToPeer(msg, peer);
+            if (t_peer != peer)
+            {
+                msg = StringUtils::insertValues(
+                        "Made %s use kart %s.",
+                        playername.c_str(), argv[1]);
+                sendStringToPeer(msg, peer);
+            }
         }
         Log::info("ServerLobby", "setkart %s %s", argv[1].c_str(), playername.c_str());
         if (ServerConfig::m_supertournament)
@@ -9719,11 +9757,31 @@ unmute_error:
     else if (argv[0] == "setfield" || argv[0] == "settrack" || argv[0] == "setarena")
     {
         std::string msg;
-        if (!player || player->getPermissionLevel() < PERM_REFEREE)
+        if (ServerConfig::m_command_track_mode)
         {
-            sendNoPermissionToPeer(peer.get(), argv);
-            return;
+            auto spectators_by_limit = getSpectatorsByLimit();
+            if (!player || player->getPermissionLevel() < PERM_PLAYER)
+            {
+                sendNoPermissionToPeer(peer.get(), argv);
+                return;
+            }
+            else if (spectators_by_limit.find(peer) != spectators_by_limit.end() ||
+                    peer->isSpectator() || peer->alwaysSpectate()))
+            {
+                msg = "You need to be able to play in order to use that command.";
+                sendStringToPeer(msg, peer.get());
+                return;
+            }
         }
+        else
+        {
+            if (!player || player->getPermissionLevel() < PERM_REFEREE)
+            {
+                sendNoPermissionToPeer(peer.get(), argv);
+                return;
+            }
+        }
+        const bool canSpecifyExtra = player->getPermissionLevel() >= PERM_REFEREE;
         bool isField = (argv[0] == "setfield");
 
         if (argv.size() < 2)
@@ -9739,7 +9797,7 @@ unmute_error:
         bool specvalue = false;
         if (argv.size() < 3 || argv[2] == "-")
             laps = -1;
-        else
+        else if (canSpecifyExtra)
             laps = std::stoi(argv[2]);
         
         if (argv.size() >= 4 && argv[3] == "on")
