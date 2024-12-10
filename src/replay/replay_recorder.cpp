@@ -143,11 +143,7 @@ void ReplayRecorder::update(int ticks)
 	
 
         if (kart->isGhostKart()) continue;
-	
-	if (i < m_transform_events.size())
-	{
-		Log::info("ServerLobby", "m_transform_events[i] size: %zu", m_transform_events[i].size());
-	}
+
 	
 #ifdef DEBUG
         m_count++;
