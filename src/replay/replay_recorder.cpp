@@ -129,32 +129,21 @@ void ReplayRecorder::update(int ticks)
 		Log::info("ReplayRecorder", "Arrays not initialized, calling init()");
 		init();
 	}
-    Log::info("ServerLobby", "Update called - incorrect=%d, complete=%d", 
-                m_incorrect_replay, m_complete_replay);
-    Log::info("ServerLobby", "Update called with ticks=%d, time=%f", ticks, World::getWorld()->getTime());	
     World *world = World::getWorld();
-    Log::info("ServerLobby", "World check point 1");
     const bool single_player = RaceManager::get()->getNumPlayers() == 1;
-    Log::info("ServerLobby", "Single player check point 2");
     unsigned int num_karts = world->getNumKarts();
-    Log::info("ServerLobby", "Num karts check point 3: %d", num_karts);
 
     float time = world->getTime();
     for(unsigned int i=0; i<num_karts; i++)
     {
-	Log::info("ServerLobby", "Starting kart loop: kart %d", i);    
         AbstractKart *kart = world->getKart(i);
-	Log::info("ServerLobby", "Got kart %d", i);
+	
         // If a single player give up in game menu, stop recording
         if (kart->isEliminated() && single_player) return;
-	Log::info("ServerLobby", "Kart eliminated check");
+	
 
         if (kart->isGhostKart()) continue;
-	Log::info("ServerLobby", "Ghost kart check");
-        Log::info("ServerLobby", "Proceeding with kart data recording");
-	Log::info("ReplayRecorder", "Got steer data: %f", kart->getControls().getSteer());
-        Log::info("ServerLobby", "Time: %f", time);
-        Log::info("ServerLobby", "m_transform_events size: %zu", m_transform_events.size());
+	
 	if (i < m_transform_events.size())
 	{
 		Log::info("ServerLobby", "m_transform_events[i] size: %zu", m_transform_events[i].size());
@@ -279,10 +268,8 @@ void ReplayRecorder::update(int ticks)
         }
 
         m_previous_steer = kart->getControls().getSteer();
-	Log::info("ServerLobby", "Got steer data");
         m_last_saved_time[i] = time;
         m_count_transforms[i]++;
-	Log::info("ServerLobby", "Transform count: %d", m_count_transforms[i]);
         if (m_count_transforms[i] >= m_transform_events[i].size())
         {
             // Only print this message once.
@@ -295,9 +282,7 @@ void ReplayRecorder::update(int ticks)
             }
             continue;
         }
-	Log::info("ServerLobby", "Getting transform event data");
         TransformEvent *p      = &(m_transform_events[i][m_count_transforms[i]-1]);
-	Log::info("ServerLobby", "Got transform event pointer");
         PhysicInfo *q          = &(m_physic_info[i][m_count_transforms[i]-1]);
         BonusInfo *b           = &(m_bonus_info[i][m_count_transforms[i]-1]);
         KartReplayEvent *r     = &(m_kart_replay_event[i][m_count_transforms[i]-1]);
