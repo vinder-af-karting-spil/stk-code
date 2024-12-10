@@ -9770,7 +9770,7 @@ unmute_error:
                     peer->isSpectator() || peer->alwaysSpectate())
             {
                 msg = "You need to be able to play in order to use that command.";
-                sendStringToPeer(msg, peer.get());
+                sendStringToPeer(msg, peer);
                 return;
             }
         }
