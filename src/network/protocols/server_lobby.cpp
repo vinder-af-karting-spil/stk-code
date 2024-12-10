@@ -3586,21 +3586,21 @@ skip_default_vote_randomizing:
             m_fixed_laps != -1) ? 1 : 0)
            .addUInt8(track_voting ? 1 : 0);
 
-        if (hasEnforcedKart)
-            ns->addUInt16(1);
-        else
-            ns->addUInt16((uint16_t)all_k.size());
         ns->addUInt16((uint16_t)all_t.size());
 
         if (hasEnforcedKart)
         {
+            ns->addUInt16(1);
             ns->encodeString(forced_kart);
         }
         else
+        {
+            ns->addUInt16((uint16_t)all_k.size());
             for (const std::string& kart : all_k)
             {
                 ns->encodeString(kart);
             }
+        }
         for (const std::string& track : all_t)
         {
             ns->encodeString(track);
