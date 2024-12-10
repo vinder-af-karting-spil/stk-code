@@ -3573,6 +3573,10 @@ skip_default_vote_randomizing:
             if (!forced_kart.empty())
                 hasEnforcedKart = true;
         }
+        else if (hasEnforcedKart)
+        {
+            forced_kart = profiles[0]->getForcedKart();
+        }
         // INSERT YOUR SETKART HERE
         NetworkString *ns = getNetworkString(1);
         // Start selection - must be synchronous since the receiver pushes
