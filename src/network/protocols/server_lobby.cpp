@@ -9700,7 +9700,10 @@ unmute_error:
             t_peer = STKHost::get()->findPeerByName(
                     StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
         else
+        {
             t_peer = peer;
+            t_player = player;
+        }
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             if (ServerConfig::m_supertournament)
