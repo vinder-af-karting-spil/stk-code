@@ -2880,8 +2880,11 @@ void ServerLobby::update(int ticks)
                 sw->tellCountIfDiffers();
         }
         Log::info("ServerLobby", "End of game message sent");
-        if(ServerConfig::m_soccer_log) GlobalLog::writeLog("GAME_END\n", GlobalLogTypes::POS_LOG);
-        GlobalLog::closeLog(GlobalLogTypes::POS_LOG);
+        if(ServerConfig::m_soccer_log)
+	{
+	    GlobalLog::writeLog("GAME_END\n", GlobalLogTypes::POS_LOG);
+            GlobalLog::closeLog(GlobalLogTypes::POS_LOG);
+	}
         break;
     case RESULT_DISPLAY:
         if (checkPeersReady(true/*ignore_ai_peer*/) ||
@@ -11877,8 +11880,9 @@ std::pair<unsigned int, int> ServerLobby::getPlayerRanking(std::string username)
         while (std::getline(in_file, line))
         {
             split = StringUtils::split(line, ' ');
-            if (split.size() < 6) continue;
-            elo = int(stof(split[5]));
+            if (split.size() < 5) continue;
+            if (split.size() ==6) elo = int(stof(split[5]));
+	    else if (split.size() ==5) elo = int(stof(split[4]));
             player = split[0];
             if (player == username)
                 return std::make_pair(rank, elo);

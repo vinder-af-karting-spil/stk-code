@@ -1056,6 +1056,9 @@ void RaceManager::exitRace(bool delete_world)
     m_track_number = 0;
 
     RichPresenceNS::RichPresence::get()->update(true);
+
+    GlobalLog::closeLog(GlobalLogTypes::POS_LOG);
+
 }   // exitRace
 
 //---------------------------------------------------------------------------------------------
@@ -1098,8 +1101,8 @@ void RaceManager::kartFinishedRace(const AbstractKart *kart, float time)
         Log::verbose("RaceManager", "Finisher: %s %f %s",
                 player_name.c_str(), time, kart_name.c_str());
         // legacy support
-        GlobalLog::writeLog(kart_name + " " + std::to_string(time) + " " + kart_name + "\n",
-                GlobalLogTypes::GOAL_LOG);
+        GlobalLog::writeLog(player_name + " " + std::to_string(time) + " " + kart_name + "\n",
+                GlobalLogTypes::POS_LOG);
     }
     m_num_finished_karts ++;
     if(kart->getController()->isPlayerController())
