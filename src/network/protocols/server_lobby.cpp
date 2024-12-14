@@ -122,23 +122,6 @@ std::string ServerLobby::exec_python_script()
     return result;
 }
 
-
-nlohmann::json loadRecords() {
-    std::ifstream file("track_records.json");
-    nlohmann::json records;
-    file >> records;
-    return records;
-}
-std::vector<std::string> getRecordForTrack(const std::string& trackName, const std::string& direction = "normal") {
-    nlohmann::json records = loadRecords();
-    if (records.contains(trackName)) {
-        if (records[trackName].contains(direction)) {
-            return records[trackName][direction].get<std::vector<std::string>>();
-        }
-    }
-    return {};
-}
-
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
 class SubmitRankingRequest : public Online::XMLRequest
