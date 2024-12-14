@@ -269,7 +269,7 @@ void ReplayRecorder::update(int ticks)
         if (m_count_transforms[i] >= m_transform_events[i].size())
         {
             // Only print this message once.
-	    Log::info("ServerLobby", "Transform array size check");
+	    
             if (m_count_transforms[i] == m_transform_events[i].size())
             {
                 Log::error("ServerLobby", "Can't store more events for kart %s.",
