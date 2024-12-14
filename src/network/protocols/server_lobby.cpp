@@ -2850,6 +2850,8 @@ void ServerLobby::update(int ticks)
 	   {
 		   Log::info("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
 		   Log::info("ServerLobby", "Replay saved successfully");
+		   std::string msg= "The replay has been successfully recorded and properly saved";
+		   sendStringToAllPeers(msg);
 	   }
 	   else
 	   {
