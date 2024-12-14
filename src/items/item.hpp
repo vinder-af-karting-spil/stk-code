@@ -441,15 +441,26 @@ public:
 
 
 
-
+//===========================================================================
+//(coded by bcf, blame me when crash)
 
 
 class ItemStats {
 public:
     static int bowling_balls_used;
+    static int cakes_used;
+    static int plungers_used;
+    static int swatters_used;
+    static int anvils_used;
+    static int parachutes_used;
+    static int bubblegum_used;
+    static int switches_used;
+    static int zippers_used;
+
     static void resetStats();
     static std::string getStats();
 };
+
 
 
 #endif

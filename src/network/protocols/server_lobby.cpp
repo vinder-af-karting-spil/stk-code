@@ -9064,6 +9064,7 @@ unmute_error:
 	    if (argv.size() > 1) return;
 	    std::string msg = ItemStats::getStats();
 	    sendStringToPeer(msg, peer);
+	    Log::info("ServerLobby", "Someone used /stats!");
 	    return;
     }
     else if (argv[0] == "when") 
