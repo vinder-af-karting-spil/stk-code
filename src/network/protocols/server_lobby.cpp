@@ -5931,6 +5931,7 @@ void ServerLobby::configPeersStartTime()
 	    try 
 	    {
 		    std::string python_output = ServerLobby::exec_python_script();
+		    python_output.erase(std::remove(python_output.begin(), python_output.end(), '\n'), python_output.end());
 		    Log::info("ServerLobby", ("Python script output: " + python_output).c_str());
 	            sendStringToAllPeers(python_output);
 	    
@@ -9069,7 +9070,7 @@ unmute_error:
 	    std::string msg;
 	    if (argv.size() == 1)
 	    {
-		    std::string msg = "abyss, lighthouse, black_forest, candela_city, cocoa_temple, cornfield_crossing, fortmagma, gran_paradiso_island, hacienda, minigolf, scotland, snowmountain, mines, olivermath, ravenbridge_mansion, sandtrack, snowtuxpeak, stk_enterprise, volcano_island, xr591, zengarden"
+		    std::string msg = "abyss, lighthouse, black_forest, candela_city, cocoa_temple, cornfield_crossing, fortmagma, gran_paradiso_island, hacienda, minigolf, scotland, snowmountain, mines, olivermath, ravenbridge_mansion, sandtrack, snowtuxpeak, stk_enterprise, volcano_island, xr591, zengarden";
 			    sendStringToPeer(msg, peer);
 	    }
 	    return;
