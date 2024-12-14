@@ -497,11 +497,6 @@ void ReplayRecorder::save()
 
 
             
-	    Log::info("ServerLobby", "Recording transform for kart %d at time %f, pos=(%f,%f,%f)", 
-			    p->m_time,
-                            p->m_transform.getOrigin().getX(),
-			    p->m_transform.getOrigin().getY(),
-			    p->m_transform.getOrigin().getZ()); 
             fprintf(fd, "%f  %f %f %f  %f %f %f %f  %f  %f  %f %f %f %f %d  %d %f %d %d %d  %f %d %d %d %d %d\n",
                     p->m_time,
                     p->m_transform.getOrigin().getX(),
