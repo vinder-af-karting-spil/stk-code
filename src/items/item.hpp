@@ -439,4 +439,17 @@ public:
     }
 };   // class Item
 
+
+
+
+
+
+class ItemStats {
+public:
+    static int bowling_balls_used;
+    static void resetStats();
+    static std::string getStats();
+};
+
+
 #endif

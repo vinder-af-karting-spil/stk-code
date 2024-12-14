@@ -39,7 +39,7 @@
 #include <IBillboardSceneNode.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
-
+#include <sstream>
 const float ICON_SIZE = 0.7f;
 const int SPARK_AMOUNT = 10;
 const float SPARK_SIZE = 0.4f;
@@ -562,3 +562,22 @@ void Item::updateGraphics(float dt)
 
     m_was_available_previously = isAvailable();
 }   // updateGraphics
+
+
+
+
+
+
+
+int ItemStats::bowling_balls_used = 0;
+void ItemStats::resetStats()
+{
+    bowling_balls_used = 0;
+}
+std::string ItemStats::getStats()
+{
+    std::stringstream ss;
+    ss << "=== Item Statistics ===\n";
+    ss << "Bowling Balls: " << bowling_balls_used << "\n";
+    return ss.str();
+}

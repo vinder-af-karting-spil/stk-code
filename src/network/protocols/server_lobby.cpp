@@ -3098,6 +3098,7 @@ void ServerLobby::setKartRestrictionMode(const enum KartRestrictionMode mode)
  */
 void ServerLobby::startSelection(const Event *event)
 {	
+    ItemStats::resetStats();	
     if (event != NULL)
     {
         std::shared_ptr<STKPeer> peer = event->getPeerSP();
@@ -9056,6 +9057,13 @@ unmute_error:
 		    std::string msg = "abyss, lighthouse, black_forest, candela_city, cocoa_temple, cornfield_crossing, fortmagma, gran_paradiso_island, hacienda, minigolf, scotland, snowmountain, mines, olivermath, ravenbridge_mansion, sandtrack, snowtuxpeak, stk_enterprise, volcano_island, xr591, zengarden";
 			    sendStringToPeer(msg, peer);
 	    }
+	    return;
+    }
+    else if (argv[0] == "stats")
+    {
+	    if (argv.size() > 1) return;
+	    std::string msg = ItemStats::getStats();
+	    sendStringToPeer(msg, peer);
 	    return;
     }
     else if (argv[0] == "when") 
