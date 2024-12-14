@@ -2850,7 +2850,7 @@ void ServerLobby::update(int ticks)
 	   {
 		   Log::info("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
 		   Log::info("ServerLobby", "Replay saved successfully");
-		   std::string msg= "The replay has been successfully recorded and properly saved";
+		   std::string msg= "The replay has been successfully recorded and properly saved!";
 		   sendStringToAllPeers(msg);
 	   }
 	   else
@@ -9062,6 +9062,17 @@ unmute_error:
 		sendStringToPeer(msg, peer);
 	}
 	return;
+    }
+    else if (argv[0] == "tracks")
+    {
+	    if (argv.size() > 2) return;
+	    std::string msg;
+	    if (argv.size() == 1)
+	    {
+		    std::string msg = "abyss, lighthouse, black_forest, candela_city, cocoa_temple, cornfield_crossing, fortmagma, gran_paradiso_island, hacienda, minigolf, scotland, snowmountain, mines, olivermath, ravenbridge_mansion, sandtrack, snowtuxpeak, stk_enterprise, volcano_island, xr591, zengarden"
+			    sendStringToPeer(msg, peer);
+	    }
+	    return;
     }
     else if (argv[0] == "when") 
     {
