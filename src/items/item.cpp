@@ -159,7 +159,9 @@ void ItemState::collected(const AbstractKart *kart)
                 m_ticks_till_return = stk_config->m_bonusbox_item_return_ticks;
                 break;
             case ITEM_NITRO_BIG:
+		ItemStats::nitro_big_used++;
             case ITEM_NITRO_SMALL:
+		ItemStats::nitro_small_used++;
                 m_ticks_till_return = stk_config->m_nitro_item_return_ticks;
                 break;
             case ITEM_BANANA:
@@ -567,6 +569,7 @@ void Item::updateGraphics(float dt)
 
 //===========================================
 //(coded by bcf, blame me when crash)
+
 int ItemStats::bowling_balls_used = 0;
 int ItemStats::cakes_used = 0;
 int ItemStats::plungers_used = 0;
@@ -576,8 +579,11 @@ int ItemStats::parachutes_used = 0;
 int ItemStats::bubblegum_used = 0;
 int ItemStats::switches_used = 0;
 int ItemStats::zippers_used = 0;
+int ItemStats::nitro_big_used = 0;    
+int ItemStats::nitro_small_used = 0;  
 
-void ItemStats::resetStats() {
+void ItemStats::resetStats()
+{
     bowling_balls_used = 0;
     cakes_used = 0;
     plungers_used = 0;
@@ -587,7 +593,10 @@ void ItemStats::resetStats() {
     bubblegum_used = 0;
     switches_used = 0;
     zippers_used = 0;
+    nitro_big_used = 0;    
+    nitro_small_used = 0;  
 }
+
 std::string ItemStats::getStats()
 {
     std::stringstream ss;
@@ -610,6 +619,7 @@ std::string ItemStats::getStats()
         ss << "Switches: " << switches_used << "\n";
     if (zippers_used > 0)
         ss << "Zippers: " << zippers_used << "\n";
+    if (nitro_big_used > 0)
+        ss << "Nitro: " << nitro_big_used << "\n";
     return ss.str();
 }
-

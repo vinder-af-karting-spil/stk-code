@@ -456,6 +456,8 @@ public:
     static int bubblegum_used;
     static int switches_used;
     static int zippers_used;
+    static int nitro_big_used; 
+    static int nitro_small_used;
 
     static void resetStats();
     static std::string getStats();
