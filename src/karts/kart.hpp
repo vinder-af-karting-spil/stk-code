@@ -72,6 +72,7 @@ class Kart : public AbstractKart
 {
     friend class Skidding;
 private:
+    int m_goals;
     int m_network_finish_check_ticks;
     int m_network_confirmed_finish_ticks;
 protected:
@@ -109,6 +110,9 @@ protected:
     uint8_t      m_bounce_back_ticks;
 
 protected:
+    void incrementGoals() { m_goals++; }
+    int getGoals() const { return m_goals; }
+    void resetGoals() { m_goals = 0; }    
     /** Handles speed increase and capping due to powerup, terrain, ... */
     MaxSpeed *m_max_speed;
 

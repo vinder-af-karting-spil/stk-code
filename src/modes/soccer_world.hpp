@@ -59,6 +59,8 @@ public:
     };   // ScorerData
 
 private:
+    std::map<int, int> m_kart_goals;
+    std::map<int, int> m_player_goals;
     void updateTotalStats();
     class KartDistanceMap
     {

@@ -285,6 +285,7 @@ SoccerWorld::~SoccerWorld()
 int once = 1;
 void SoccerWorld::init()
 {
+    m_kart_goals.clear();	
     once = 1;
     m_kart_team_map.clear();
     m_kart_position_map.clear();
@@ -551,9 +552,10 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                 RaceManager::get()->getKartInfo(sd.m_id).getCountryCode();
         }
         if (sd.m_correct_goal)
-        {
+        {	
             m_karts[sd.m_id]->getKartModel()
                 ->setAnimation(KartModel::AF_WIN_START, true/* play_non_loop*/);
+	    m_kart_goals[sd.m_id]++;
         }
         else if (!sd.m_correct_goal)
         {
@@ -1389,8 +1391,14 @@ void SoccerWorld::logMatchResults() {
         logFile << "\nPlayer: " << StringUtils::wideToUtf8(kart->getController()->getName()) << "\n";
         logFile << "Kart: " << kart->getIdent() << "\n";
         logFile << "Team: " << (getKartTeam(i) == KART_TEAM_RED ? "Red" : "Blue") << "\n";
-        logFile << "Goals: " << getScore(getKartTeam(i)) << "\n";
-        logFile << "Average Speed: " << kart->getSpeed() << "\n";
+        int individual_goals = 0;
+	auto it = m_kart_goals.find(i);
+        if (it != m_kart_goals.end())
+	{
+		individual_goals = it->second;
+	}
+	logFile << "Goals: " << individual_goals << "\n";
+	logFile << "Average Speed: " << kart->getSpeed() << "\n";
     }
     
     logFile.close();
