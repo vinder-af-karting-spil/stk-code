@@ -3312,6 +3312,12 @@ void ServerLobby::startSelection(const Event *event)
         }
     }
 
+    // Debug stage 1:
+    if (!karts_erase.empty())
+    {
+        Log::info("ServerLobby", "karts_erase is not empty. Verbose logs will show which karts are excluded.");
+    }
+
     // Disable always spectate peers if no players join the game
     if (!has_peer_plays_game)
     {
