@@ -39,6 +39,7 @@ class TrackSector;
 class SoccerWorld : public WorldWithRank
 {
 public:
+    void logMatchResults();	
     struct ScorerData
     {
         /** World ID of kart which scores. */
@@ -58,6 +59,7 @@ public:
     };   // ScorerData
 
 private:
+    void updateTotalStats();
     class KartDistanceMap
     {
     public:
