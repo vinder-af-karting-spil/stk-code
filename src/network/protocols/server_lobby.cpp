@@ -2819,6 +2819,19 @@ void ServerLobby::update(int ticks)
 	    time_msg = "The game ended after " + time + " seconds.\n";
             GlobalLog::writeLog(time_msg, GlobalLogTypes::POS_LOG);
 	}
+
+	{
+		World* w = World::getWorld();
+		if (w)
+		{
+			SoccerWorld* sw = dynamic_cast<SoccerWorld*>(w);
+			if (sw)
+			{
+				sw->logMatchResults();
+				Log::info("ServerLobby", "Match statistics logged successfully");
+			}
+		}
+	}
         if (ServerConfig::m_supertournament)
             onTournamentGameEnded();
 	if (m_replay_requested && World::getWorld() && World::getWorld()->isRacePhase())	
