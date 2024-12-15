@@ -2111,7 +2111,11 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (players[i]->getKartName().empty())
+                if (!players[i]->getForcedKart().empty())
+                {
+                    players[i]->setKartName(players[i]->getForcedKart());
+                }
+                else if (players[i]->getKartName().empty())
                 {
                     RandomGenerator rg;
                     std::set<std::string>::iterator it =
@@ -2824,7 +2828,7 @@ void ServerLobby::update(int ticks)
 	if (m_replay_requested && World::getWorld() && World::getWorld()->isRacePhase())	
 	{
            World::getWorld()->setPhase(WorldStatus::RESULT_DISPLAY_PHASE);
-	   Log::info("ServerLobby", "Attempting to save replay...(custom path)");
+	   Log::verbose("ServerLobby", "Attempting to save replay...(custom path)");
 	   m_replay_dir = "/home/supertuxkart/stk-code/data/replay/";
 
 	   ReplayRecorder::get()->save();
@@ -3587,21 +3591,21 @@ skip_default_vote_randomizing:
             m_fixed_laps != -1) ? 1 : 0)
            .addUInt8(track_voting ? 1 : 0);
 
-        if (hasEnforcedKart)
-            ns->addUInt16(1);
-        else
-            ns->addUInt16((uint16_t)all_k.size());
         ns->addUInt16((uint16_t)all_t.size());
 
         if (!forced_kart.empty())
         {
+            ns->addUInt16(1);
             ns->encodeString(forced_kart);
         }
         else
+        {
+            ns->addUInt16((uint16_t)all_k.size());
             for (const std::string& kart : all_k)
             {
                 ns->encodeString(kart);
             }
+        }
         for (const std::string& track : all_t)
         {
             ns->encodeString(track);
