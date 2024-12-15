@@ -3528,7 +3528,7 @@ skip_default_vote_randomizing:
             ns->addUInt16((uint16_t)all_k.size());
         ns->addUInt16((uint16_t)all_t.size());
 
-        if (hasEnforcedKart)
+        if (!forced_kart.empty())
         {
             ns->encodeString(forced_kart);
         }
