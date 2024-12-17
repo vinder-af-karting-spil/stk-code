@@ -58,7 +58,7 @@ namespace Online
 
 class ServerLobby : public LobbyProtocol
 {
-public:	
+public:
     typedef std::map<STKPeer*,
                       std::weak_ptr<NetworkPlayerProfile>>
         PoleVoterMap;
@@ -114,13 +114,6 @@ public:
                                  // Specified in the configuration file.
     };
 private:
-    std::string m_replay_dir;
-    bool m_replay_requested = false;    
-    std::string getTimeStamp();    
-    std::string exec_python_script();    
-    std::string currentTrackName;
-    std::string currentPlayerName;
-    std::string currentRecordTime;
     struct KeyData
     {
         std::string m_aes_key;

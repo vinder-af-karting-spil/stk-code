@@ -331,22 +331,6 @@ namespace ServerConfig
         "Allow players to vote for which track to play. If this value is set "
         "to false, the server will randomly pick the next track to play."));
 
-    SERVER_CFG_PREFIX BoolServerConfigParam m_command_track_mode
-        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "command-track-mode",
-        "In order to play the next game, the player(s) need to use /settrack "
-        "command, in which case the track voting screen is skipped "
-        "(it will override track-voting parameter above). This will also "
-        "lower the permission level for settrack command to PLAYER, plus "
-        "the player being able to play the game (not being queued)."));
-
-    SERVER_CFG_PREFIX BoolServerConfigParam m_command_kart_mode
-        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "command-kart-mode",
-        "In order to play the next game, the player(s) need to use /setkart "
-        "command. "
-        "This will also "
-        "lower the permission level for setkart command to PLAYER, plus "
-        "the player being able to play the game (not being queued)."));
-
     SERVER_CFG_PREFIX FloatServerConfigParam m_voting_timeout
         SERVER_CFG_DEFAULT(FloatServerConfigParam(30.0f, "voting-timeout",
         "Timeout in seconds for selecting karts and (or) voting tracks in "

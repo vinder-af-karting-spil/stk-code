@@ -67,8 +67,7 @@
 #include "utils/string_utils.hpp"
 #include "utils/time.hpp"
 //#include "utils/translation.hpp"
-#include <nlohmann/json.hpp>
-#include <unordered_map>
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -85,42 +84,9 @@
 #include <tuple>
 #include <utility>
 #include <regex>
-#include <array>
-#include <memory>
-#include <cstdio>
-#include "replay/replay_recorder.hpp"
-#include <chrono>
-#include <iomanip>
-#include <sstream>
-#include "modes/world.hpp"
-#include "io/file_manager.hpp"
-#include "utils/file_utils.hpp"
-#include "utils/file_utils.hpp"
-#include "io/file_manager.hpp"
-#include "io/file_manager.hpp"
-#include "utils/file_utils.hpp"
 
 
 
-
-std::string ServerLobby::exec_python_script()
-{
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(
-        popen("python3 /home/supertuxkart/stk-code/src/network/protocols/track_records.py", "r"), pclose);
-
-    if (!pipe)
-    {
-        throw std::runtime_error("popen() failed!");
-    }
-
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-    {
-        result += buffer.data();
-    }
-    return result;
-}
 
 int ServerLobby::m_fixed_laps = -1;
 // ========================================================================
@@ -2111,11 +2077,7 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (!players[i]->getForcedKart().empty())
-                {
-                    players[i]->setKartName(players[i]->getForcedKart());
-                }
-                else if (players[i]->getKartName().empty())
+                if (players[i]->getKartName().empty())
                 {
                     RandomGenerator rg;
                     std::set<std::string>::iterator it =
@@ -2637,7 +2599,7 @@ void ServerLobby::finishedLoadingLiveJoinClient(Event* event)
  *  client can find it.
  */
 void ServerLobby::update(int ticks)
-{	
+{
     World* w = World::getWorld();
     bool world_started = m_state.load() >= WAIT_FOR_WORLD_LOADED &&
         m_state.load() <= RACING && m_server_has_loaded_world.load();
@@ -2798,12 +2760,8 @@ void ServerLobby::update(int ticks)
         break;
     case RACING:
         if (World::getWorld() && RaceEventManager::get() &&
-            RaceEventManager::get()->isRunning())	
-	{	
-	if (ReplayRecorder::get())
-	{
-		ReplayRecorder::get()->update(ticks);
-	}
+            RaceEventManager::get()->isRunning())
+        {
             checkRaceFinished();
         }
         break;
@@ -2823,43 +2781,9 @@ void ServerLobby::update(int ticks)
 	    time_msg = "The game ended after " + time + " seconds.\n";
             GlobalLog::writeLog(time_msg, GlobalLogTypes::POS_LOG);
 	}
-
-	{
-		World* w = World::getWorld();
-		if (w)
-		{
-			SoccerWorld* sw = dynamic_cast<SoccerWorld*>(w);
-			if (sw)
-			{
-				sw->logMatchResults();
-				Log::info("ServerLobby", "Match statistics logged successfully");
-			}
-		}
-	}
         if (ServerConfig::m_supertournament)
             onTournamentGameEnded();
-	if (m_replay_requested && World::getWorld() && World::getWorld()->isRacePhase())	
-	{
-           World::getWorld()->setPhase(WorldStatus::RESULT_DISPLAY_PHASE);
-	   Log::verbose("ServerLobby", "Attempting to save replay...(custom path)");
-	   m_replay_dir = "/home/supertuxkart/stk-code/data/replay/";
-
-	   ReplayRecorder::get()->save();
-	   std::string replay_path = file_manager->getReplayDir() + ReplayRecorder::get()->getReplayFilename();
-	   if (file_manager->fileExists(replay_path))
-	   {
-		   Log::info("ServerLobby", "Replay file verified at: %s", replay_path.c_str());
-		   Log::info("ServerLobby", "Replay saved successfully");
-		   std::string msg= "The replay has been successfully recorded and properly saved!";
-		   sendStringToAllPeers(msg);
-	   }
-	   else
-	   {
-		   Log::error("ServerLobby", "Replay file not found at: %s", replay_path.c_str());
-                   Log::error("ServerLobby", "Failed to save replay"); 
-	   }
-	   m_replay_requested = false;
-	}
+		    
         // This will go back to lobby in server (and exit the current race)
         exitGameState();
         // Reset for next state usage
@@ -3117,8 +3041,7 @@ void ServerLobby::setKartRestrictionMode(const enum KartRestrictionMode mode)
  *  the command comes from the owner less server.
  */
 void ServerLobby::startSelection(const Event *event)
-{	
-    ItemStats::resetStats();	
+{
     if (event != NULL)
     {
         std::shared_ptr<STKPeer> peer = event->getPeerSP();
@@ -3206,18 +3129,6 @@ void ServerLobby::startSelection(const Event *event)
                 sendStringToPeer(msg, peer);
                 return;
             }
-        }
-        if (ServerConfig::m_command_kart_mode && peer->hasPlayerProfiles() && peer->getPlayerProfiles()[0]->getForcedKart().empty())
-        {
-            const std::string msg = "Use /setkart (kart_name) to play the game.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        if (ServerConfig::m_command_track_mode && m_set_field.empty())
-        {
-            const std::string msg = "Use /settrack (track_name) - (reverse? y/n) to play the game.";
-            sendStringToPeer(msg, peer);
-            return;
         }
 
         if (ServerConfig::m_owner_less)
@@ -3326,12 +3237,6 @@ void ServerLobby::startSelection(const Event *event)
                 }
             }
         }
-    }
-
-    // Debug stage 1:
-    if (!karts_erase.empty())
-    {
-        Log::info("ServerLobby", "karts_erase is not empty. Verbose logs will show which karts are excluded.");
     }
 
     // Disable always spectate peers if no players join the game
@@ -3597,10 +3502,6 @@ skip_default_vote_randomizing:
             if (!forced_kart.empty())
                 hasEnforcedKart = true;
         }
-        else if (hasEnforcedKart)
-        {
-            forced_kart = profiles[0]->getForcedKart();
-        }
         // INSERT YOUR SETKART HERE
         NetworkString *ns = getNetworkString(1);
         // Start selection - must be synchronous since the receiver pushes
@@ -3613,21 +3514,21 @@ skip_default_vote_randomizing:
             m_fixed_laps != -1) ? 1 : 0)
            .addUInt8(track_voting ? 1 : 0);
 
+        if (hasEnforcedKart)
+            ns->addUInt16(1);
+        else
+            ns->addUInt16((uint16_t)all_k.size());
         ns->addUInt16((uint16_t)all_t.size());
 
-        if (!forced_kart.empty())
+        if (hasEnforcedKart)
         {
-            ns->addUInt16(1);
             ns->encodeString(forced_kart);
         }
         else
-        {
-            ns->addUInt16((uint16_t)all_k.size());
             for (const std::string& kart : all_k)
             {
                 ns->encodeString(kart);
             }
-        }
         for (const std::string& track : all_t)
         {
             ns->encodeString(track);
@@ -3655,7 +3556,7 @@ skip_default_vote_randomizing:
     }, ns);
 #endif
 
-    m_state = SELECTING;    
+    m_state = SELECTING;
     if (!always_spectate_peers.empty())
     {
         NetworkString* back_lobby = getNetworkString(2);
@@ -3682,21 +3583,10 @@ skip_default_vote_randomizing:
         m_keys.clear();
         ul.unlock();
     }
+
     // Will be changed after the first vote received
     m_timeout.store(std::numeric_limits<int64_t>::max());
-
-
 }   // startSelection
-//----------------------------------------------------------------------------
-// if time stamp needed
-std::string ServerLobby::getTimeStamp()
-{
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y%m%d_%H%M%S");
-    return ss.str();
-}
 
 //-----------------------------------------------------------------------------
 /** Query the STK server for connection requests. For each connection request
@@ -3756,7 +3646,7 @@ void ServerLobby::checkIncomingConnectionRequests()
                 return;
             sl->m_last_success_poll_time.store(StkTime::getMonoTimeMs());
             if (sl->m_state.load() != WAITING_FOR_START_GAME &&
-	    		    !sl->allowJoinedPlayersWaiting())
+                !sl->allowJoinedPlayersWaiting())
             {
                 sl->replaceKeys(keys);
                 return;
@@ -5862,8 +5752,6 @@ void ServerLobby::broadcastMessageInGame(const irr::core::stringw& message)
  */
 void ServerLobby::configPeersStartTime()
 {
-    std::ofstream logFile("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::trunc);
-    logFile.close();
     uint32_t max_ping = 0;
     const unsigned max_ping_from_peers = ServerConfig::m_max_ping;
     bool peer_exceeded_max_ping = false;
@@ -5925,57 +5813,9 @@ void ServerLobby::configPeersStartTime()
             //Log::info("ServerLobby", "Start game after %dms", sleep_time);
             StkTime::sleep(sleep_time);
             //Log::info("ServerLobby", "Started at %lf", StkTime::getRealTime());
-	    Log::info("ServerLobby","World::getWorld()->setPhase(WorldStatus::RACE_PHASE); fase starting...");
             m_state.store(RACING);
 	    const std::string game_start_message = ServerConfig::m_game_start_message;
 
-	    std::string log_msg;
-	    if (RaceManager::get()->getMinorMode() == RaceManager::MINOR_MODE_TIME_TRIAL)
-	    {
-	    log_msg = "Track: " + std::string(RaceManager::get()->getTrackName()) + ", "
-	              + "Reverse: " + (RaceManager::get()->getReverseTrack() ? "Yes" : "No") + ", "
-		      + "Laps: " + std::to_string(RaceManager::get()->getNumLaps());
-
-	    }
-	    else 
-	    {
-		    log_msg =  "Track: " + std::string(RaceManager::get()->getTrackName());	  
-	    }
-	    std::ofstream logFile;
-	    logFile.open("/home/supertuxkart/stk-code/src/network/protocols/race_log.txt", std::ios::app);
-	    if (logFile.is_open())
-	    {
-	        logFile << log_msg << "\n";
-                logFile.close();
-                Log::info("ServerLobby", log_msg.c_str());
-	    }
-            else 
-	    {
-	        Log::error("ServerLobby", "Failed to open the .txt");
-	    }
-
-	    try 
-	    {
-		    std::string python_output = ServerLobby::exec_python_script();
-		    python_output.erase(std::remove(python_output.begin(), python_output.end(), '\n'), python_output.end());
-		    Log::info("ServerLobby", ("Python script output: " + python_output).c_str());
-	            sendStringToAllPeers(python_output);
-	    
-	    }
-	    catch (const std::exception& e)
-	    {
-		    Log::error("ServerLobby", ("Error while trying to run the python script: " + std::string(e.what())).c_str());
-	    }
-	        if (m_replay_requested)
-    {
-                   std::string replay_path = "/home/supertuxkart/stk-code/data/replay/";
-                   std::string replay_name = replay_path + "race_" + getTimeStamp() + ".replay";
-                   ReplayRecorder::get()->setFilename(replay_name);
-                   ReplayRecorder::get()->init();
-                   Log::info("ServerLobby", "Starting replay recording with filename: %s", replay_name.c_str());
-    }
-
-           	    
 	    // Have Fun
 	    if (!game_start_message.empty())
 	    {
@@ -6664,7 +6504,6 @@ void ServerLobby::addLiveJoinPlaceholder(
 //-----------------------------------------------------------------------------
 void ServerLobby::setPlayerKarts(const NetworkString& ns, STKPeer* peer) const
 {
-    Log::verbose("ServerLobby", "ServerLobby::setPlayerKarts()");
     unsigned player_count = ns.getUInt8();
     for (unsigned i = 0; i < player_count; i++)
     {
@@ -9090,25 +8929,6 @@ unmute_error:
 	}
 	return;
     }
-    else if (argv[0] == "tracks")
-    {
-	    if (argv.size() > 2) return;
-	    std::string msg;
-	    if (argv.size() == 1)
-	    {
-		    std::string msg = "abyss, lighthouse, black_forest, candela_city, cocoa_temple, cornfield_crossing, fortmagma, gran_paradiso_island, hacienda, minigolf, scotland, snowmountain, mines, olivermath, ravenbridge_mansion, sandtrack, snowtuxpeak, stk_enterprise, volcano_island, xr591, zengarden";
-			    sendStringToPeer(msg, peer);
-	    }
-	    return;
-    }
-    else if (argv[0] == "stats")
-    {
-	    if (argv.size() > 1) return;
-	    std::string msg = ItemStats::getStats();
-	    sendStringToPeer(msg, peer);
-	    Log::info("ServerLobby", "Someone used /stats!");
-	    return;
-    }
     else if (argv[0] == "when") 
     {
         if (argv.size() > 2) return;
@@ -9126,119 +8946,13 @@ unmute_error:
 	}
             return;
         }
-    
-
     else if (argv[0] == "addons")
     {
 	    std::string msg = "/installaddon https://www.tierchester.eu/static/supertournamentaddons.zip";
 	    sendStringToPeer(msg, peer);
 	    return;
     }
-    else if (argv[0] == "randomkarts" || argv[0] == "rks")
-    {
-    if ((noVeto || (player && player->getVeto() < PERM_REFEREE)) && m_server_owner.lock() != peer)
-    {
-        if (!voteForCommand(peer, cmd)) return;
-    }
-    else if (m_server_owner.lock() != peer &&
-             (!player || player->getPermissionLevel() < PERM_REFEREE))
-    {
-        sendNoPermissionToPeer(peer.get(), argv);
-        return;
-    }	    
-    if (argv.size() < 2 || (argv[1] != "on" && argv[1] != "off"))
-    {
-        auto chat = getNetworkString();
-        chat->setSynchronous(true);
-        chat->addUInt8(LE_CHAT);
-        std::string response = "Specify on or off as a second argument.";
-        irr::core::stringw wresponse(response.c_str());
-        chat->encodeString16(wresponse);
-        peer->sendPacket(chat, true);
-        delete chat;
-        return;
-    }
-
-    bool state = argv[1] == "on";
-    static bool randomKartsActive = false;	    
-
-    if (state == randomKartsActive)
-    {
-        std::string msg = std::string("Random karts are already ") + (state ? "ACTIVE." : "INACTIVE.");
-        sendStringToPeer(msg, peer);
-        return;
-    }
-
-    randomKartsActive = state;
-
-    if (state)
-    {
-        if (m_peers_ready.empty())
-        {
-            Log::error("ServerLobby", "No players in the lobby to assign random karts.");
-            return;
-        }
-
-        if (m_available_kts.first.empty())
-        {
-            Log::error("ServerLobby", "No karts available.");
-            return;
-        }
-
-        RandomGenerator random_gen;
-
-        for (auto& peer : m_peers_ready)
-        {
-            auto locked_peer = peer.first.lock();
-            if (!locked_peer)
-                continue;
-
-            auto player = locked_peer->getPlayerProfiles();
-            if (!player.empty())
-            {
-                for (unsigned i = 0; i < player.size(); i++)
-                {
-                    auto& player_profile = player[i];
-
-                    std::set<std::string>::iterator it = m_available_kts.first.begin();
-                    std::advance(it, random_gen.get((int)m_available_kts.first.size()));
-                    std::string selected_kart = *it;
-
-                    player_profile->forceKart(selected_kart);
-
-                    std::string msg = "You have been forced to the random kart: " + selected_kart;
-                    sendStringToPeer(msg, locked_peer);
-                }
-            }
-        }
-
-        std::string msg = "Random karts have been forcibly assigned to all players.";
-        sendStringToAllPeers(msg);
-    }
-    else
-    {
-        std::string msg = "Random karts have been deactivated.";
-        sendStringToAllPeers(msg);
-    }
-
-    updatePlayerList();
-    return;
-}
-    else if (argv[0] == "restart")
-{
-	World* w = World::getWorld();
-        if (!w || m_state.load() != RACING) return;
-	w->reset();
-	m_state.store(WAIT_FOR_WORLD_LOADED);
-	configPeersStartTime();
-}
-    else if (argv[0] == "replay")
-{
-	m_replay_requested = true;
-	sendStringToPeer(StringUtils::utf8ToWide("Replay recording started!"), peer);
-	return;
-}
-     else if (argv[0] == "results" || argv[0] == "rs")
+    else if (argv[0] == "results" || argv[0] == "rs")
     {
         std::string result = ServerLobby::get_elo_change_string();
         
@@ -9673,34 +9387,18 @@ unmute_error:
     else if (argv[0] == "setkart")
     {
         std::string msg;
-        auto spectators_by_limit = getSpectatorsByLimit();
-        if (ServerConfig::m_command_kart_mode && (!player || player->getPermissionLevel() < 
-                PERM_PLAYER))
-        {
-            sendNoPermissionToPeer(peer.get(), argv);
-            return;
-        }
-        else if (ServerConfig::m_command_kart_mode && (
-                    peer->isSpectator() || peer->alwaysSpectate() ||
-                    spectators_by_limit.find(peer) != spectators_by_limit.end()))
-        {
-            msg = "You need to be able to play in order use this command.";
-            sendStringToPeer(msg, peer);
-            return;
-        }
-        else if (!player || player->getPermissionLevel() < 
+        if (!player || player->getPermissionLevel() < 
                 PERM_MODERATOR)
         {
             sendNoPermissionToPeer(peer.get(), argv);
             return;
         }
-        if (argv.size() < 2)
+        if (argv.size() < 3)
         {
             msg = "Usage: /setkart [kart_name or off] [player] [permanent?]";
             sendStringToPeer(msg, peer);
             return;
         }
-        const bool canSpecifyExtra = player->getPermissionLevel() >= PERM_MODERATOR;
 
 #if 0
         if (ServerConfig::m_supertournament)
@@ -9725,15 +9423,8 @@ unmute_error:
             kart = nullptr;
 
         std::shared_ptr<NetworkPlayerProfile> t_player = nullptr;
-        std::shared_ptr<STKPeer> t_peer = nullptr;
-        if (canSpecifyExtra && argv.size() >= 3)
-            t_peer = STKHost::get()->findPeerByName(
-                    StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
-        else
-        {
-            t_peer = peer;
-            t_player = player;
-        }
+        auto t_peer = STKHost::get()->findPeerByName(
+                StringUtils::utf8ToWide(argv[2]), true, true, &t_player);
         if (!t_player || !t_peer || !t_peer->hasPlayerProfiles())
         {
             if (ServerConfig::m_supertournament)
@@ -9748,7 +9439,7 @@ unmute_error:
 
         const std::string playername = StringUtils::wideToUtf8(t_player->getName());
 
-        bool permanent = canSpecifyExtra && argv.size() >= 4 && (argv[3] == "on" || argv[3] == "permanent");
+        bool permanent = argv.size() >= 4 && (argv[3] == "on" || argv[3] == "permanent");
         if (argv[1] == "off")
         {
             std::string targetmsg = "You can choose any kart now.";
@@ -9756,11 +9447,8 @@ unmute_error:
             t_player->unforceKart();
             if (permanent)
                 writeRestrictionsForOID(t_player->getOnlineId(), "");
-            if (t_peer != peer)
-            {
-                msg = "No longer forcing a kart for " + argv[2] + ".";
-                sendStringToPeer(msg, peer);
-            }
+            msg = "No longer forcing a kart for " + argv[2] + ".";
+            sendStringToPeer(msg, peer);
         }
         else
         {
@@ -9769,13 +9457,10 @@ unmute_error:
             t_player->forceKart(argv[1]);
             if (permanent)
                 writeRestrictionsForOID(t_player->getOnlineId(), argv[1]);
-            if (t_peer != peer)
-            {
-                msg = StringUtils::insertValues(
-                        "Made %s use kart %s.",
-                        playername.c_str(), argv[1]);
-                sendStringToPeer(msg, peer);
-            }
+            msg = StringUtils::insertValues(
+                    "Made %s use kart %s.",
+                    playername.c_str(), argv[1]);
+            sendStringToPeer(msg, peer);
         }
         Log::info("ServerLobby", "setkart %s %s", argv[1].c_str(), playername.c_str());
         if (ServerConfig::m_supertournament)
@@ -9786,31 +9471,11 @@ unmute_error:
     else if (argv[0] == "setfield" || argv[0] == "settrack" || argv[0] == "setarena")
     {
         std::string msg;
-        if (ServerConfig::m_command_track_mode)
+        if (!player || player->getPermissionLevel() < PERM_REFEREE)
         {
-            auto spectators_by_limit = getSpectatorsByLimit();
-            if (!player || player->getPermissionLevel() < PERM_PLAYER)
-            {
-                sendNoPermissionToPeer(peer.get(), argv);
-                return;
-            }
-            else if (spectators_by_limit.find(peer) != spectators_by_limit.end() ||
-                    peer->isSpectator() || peer->alwaysSpectate())
-            {
-                msg = "You need to be able to play in order to use that command.";
-                sendStringToPeer(msg, peer);
-                return;
-            }
+            sendNoPermissionToPeer(peer.get(), argv);
+            return;
         }
-        else
-        {
-            if (!player || player->getPermissionLevel() < PERM_REFEREE)
-            {
-                sendNoPermissionToPeer(peer.get(), argv);
-                return;
-            }
-        }
-        const bool canSpecifyExtra = player->getPermissionLevel() >= PERM_REFEREE;
         bool isField = (argv[0] == "setfield");
 
         if (argv.size() < 2)
@@ -9826,7 +9491,7 @@ unmute_error:
         bool specvalue = false;
         if (argv.size() < 3 || argv[2] == "-")
             laps = -1;
-        else if (canSpecifyExtra)
+        else
             laps = std::stoi(argv[2]);
         
         if (argv.size() >= 4 && argv[3] == "on")
@@ -10619,7 +10284,7 @@ void ServerLobby::submitPoleVote(std::shared_ptr<STKPeer>& voter, const unsigned
         return;
     }
     if (mapping->count(voter_p)) {
-        sendStringToPeer(L"You have already voted. You can only vote once. Use /999 to delete your vote.", voter);
+        sendStringToPeer(L"You have already voted. You can only vote once.", voter);
         return;
     }
     
@@ -12111,9 +11776,6 @@ bool ServerLobby::forceSetTrack(std::string track_id,
                 {
                     if (ServerConfig::m_supertournament)
                         laps = fv.m_num_laps;
-                    else
-                     // apply default laps
-                        laps = t->getDefaultNumberOfLaps();
                 }
                 m_set_field = track_id;
                 m_set_laps = laps;

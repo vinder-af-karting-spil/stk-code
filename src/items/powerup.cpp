@@ -164,46 +164,37 @@ void Powerup::set(PowerupManager::PowerupType type, int n)
     {
         // No sound effect when arming the glove
         case PowerupManager::POWERUP_SWATTER:
-		ItemStats::swatters_used++;
             break;
 
         case PowerupManager::POWERUP_ZIPPER:
-	    ItemStats::zippers_used++;
             break ;
 
         case PowerupManager::POWERUP_BOWLING:
-	    ItemStats::bowling_balls_used++;
             m_sound_use = SFXManager::get()->createSoundSource("bowling_shoot");
             break ;
 
         case PowerupManager::POWERUP_ANVIL:
-	    ItemStats::anvils_used++;
             m_sound_use = SFXManager::get()->createSoundSource("anvil");
             break;
 
         case PowerupManager::POWERUP_PARACHUTE:
-	    ItemStats::parachutes_used++;
-	    m_sound_use = SFXManager::get()->createSoundSource("parachute");
-	    break;
-	    
-	case PowerupManager::POWERUP_BUBBLEGUM:
-	    ItemStats::bubblegum_used++;
-	    m_sound_use = SFXManager::get()->createSoundSource("goo");
-	    break;
+            m_sound_use = SFXManager::get()->createSoundSource("parachute");
+            break;
 
-	case PowerupManager::POWERUP_SWITCH:
-	    ItemStats::switches_used++;
-	    m_sound_use = SFXManager::get()->createSoundSource("swap");
-	    break;
+        case PowerupManager::POWERUP_BUBBLEGUM:
+            m_sound_use = SFXManager::get()->createSoundSource("goo");
+            break ;
+
+        case PowerupManager::POWERUP_SWITCH:
+            m_sound_use = SFXManager::get()->createSoundSource("swap");
+            break;
 
         case PowerupManager::POWERUP_NOTHING:
-	case PowerupManager::POWERUP_CAKE:
-       	    ItemStats::cakes_used++;
+        case PowerupManager::POWERUP_CAKE:
         case PowerupManager::POWERUP_PLUNGER:
-	    ItemStats::plungers_used++;
-	default:
-	    m_sound_use = SFXManager::get()->createSoundSource("shoot");
-            break;
+        default :
+            m_sound_use = SFXManager::get()->createSoundSource("shoot");
+            break ;
     }
 
 }  // set

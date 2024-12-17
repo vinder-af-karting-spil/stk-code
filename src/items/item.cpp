@@ -39,7 +39,7 @@
 #include <IBillboardSceneNode.h>
 #include <IMeshSceneNode.h>
 #include <ISceneManager.h>
-#include <sstream>
+
 const float ICON_SIZE = 0.7f;
 const int SPARK_AMOUNT = 10;
 const float SPARK_SIZE = 0.4f;
@@ -159,9 +159,7 @@ void ItemState::collected(const AbstractKart *kart)
                 m_ticks_till_return = stk_config->m_bonusbox_item_return_ticks;
                 break;
             case ITEM_NITRO_BIG:
-		ItemStats::nitro_big_used++;
             case ITEM_NITRO_SMALL:
-		ItemStats::nitro_small_used++;
                 m_ticks_till_return = stk_config->m_nitro_item_return_ticks;
                 break;
             case ITEM_BANANA:
@@ -564,62 +562,3 @@ void Item::updateGraphics(float dt)
 
     m_was_available_previously = isAvailable();
 }   // updateGraphics
-
-
-
-//===========================================
-//(coded by bcf, blame me when crash)
-
-int ItemStats::bowling_balls_used = 0;
-int ItemStats::cakes_used = 0;
-int ItemStats::plungers_used = 0;
-int ItemStats::swatters_used = 0;
-int ItemStats::anvils_used = 0;
-int ItemStats::parachutes_used = 0;
-int ItemStats::bubblegum_used = 0;
-int ItemStats::switches_used = 0;
-int ItemStats::zippers_used = 0;
-int ItemStats::nitro_big_used = 0;    
-int ItemStats::nitro_small_used = 0;  
-
-void ItemStats::resetStats()
-{
-    bowling_balls_used = 0;
-    cakes_used = 0;
-    plungers_used = 0;
-    swatters_used = 0;
-    anvils_used = 0;
-    parachutes_used = 0;
-    bubblegum_used = 0;
-    switches_used = 0;
-    zippers_used = 0;
-    nitro_big_used = 0;    
-    nitro_small_used = 0;  
-}
-
-std::string ItemStats::getStats()
-{
-    std::stringstream ss;
-    ss << "=== Item Statistics ===\n";
-    if (bowling_balls_used > 0)
-        ss << "Bowling Balls: " << bowling_balls_used << "\n";
-    if (cakes_used > 0)
-        ss << "Cakes: " << cakes_used << "\n";
-    if (plungers_used > 0)
-        ss << "Plungers: " << plungers_used << "\n";
-    if (swatters_used > 0)
-        ss << "Swatters: " << swatters_used << "\n";
-    if (anvils_used > 0)
-        ss << "Anvils: " << anvils_used << "\n";
-    if (parachutes_used > 0)
-        ss << "Parachutes: " << parachutes_used << "\n";
-    if (bubblegum_used > 0)
-        ss << "Bubblegum: " << bubblegum_used << "\n";
-    if (switches_used > 0)
-        ss << "Switches: " << switches_used << "\n";
-    if (zippers_used > 0)
-        ss << "Zippers: " << zippers_used << "\n";
-    if (nitro_big_used > 0)
-        ss << "Nitro: " << nitro_big_used << "\n";
-    return ss.str();
-}

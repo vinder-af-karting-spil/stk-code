@@ -285,7 +285,6 @@ SoccerWorld::~SoccerWorld()
 int once = 1;
 void SoccerWorld::init()
 {
-    m_kart_goals.clear();	
     once = 1;
     m_kart_team_map.clear();
     m_kart_position_map.clear();
@@ -424,7 +423,6 @@ void SoccerWorld::terminateRace()
     }   // i<kart_amount
     tellCountIfDiffers();
     WorldWithRank::terminateRace();
-    logMatchResults();
 }   // terminateRace
 
 //-----------------------------------------------------------------------------
@@ -552,10 +550,9 @@ void SoccerWorld::onCheckGoalTriggered(bool first_goal)
                 RaceManager::get()->getKartInfo(sd.m_id).getCountryCode();
         }
         if (sd.m_correct_goal)
-        {	
+        {
             m_karts[sd.m_id]->getKartModel()
                 ->setAnimation(KartModel::AF_WIN_START, true/* play_non_loop*/);
-	    m_kart_goals[sd.m_id]++;
         }
         else if (!sd.m_correct_goal)
         {
@@ -1356,71 +1353,3 @@ void SoccerWorld::tellCountIfDiffers() const
         tellCount();
     }
 }   // tellCountIfDiffers
-    //
-//-----------------------------------------------------------------------------
-void SoccerWorld::logMatchResults() {
-    std::string customPath = file_manager->getUserConfigDir() + "/match_logs";
-    
-    if (!file_manager->checkAndCreateDirectory(customPath))
-        return;
-    
-    World* world = World::getWorld();
-    RaceManager* race_manager = RaceManager::get();
-    
-    float match_time = world->getTime();
-    
-    std::string filename = customPath + "/" + 
-        race_manager->getTrackName().c_str() + "_" +
-        StringUtils::toString((int)StkTime::getTimeSinceEpoch()) + ".txt";
-
-    std::ofstream logFile(filename);
-    
-    logFile << "=== SuperTuxKart Soccer Match Report ===\n\n";
-    logFile << "Track: " << race_manager->getTrackName().c_str() << "\n";
-    logFile << "Match Time: " << StringUtils::toString(match_time) << "\n";
-    logFile << "Game Mode: " << race_manager->getMinorModeName().c_str() << "\n\n";
-    
-    logFile << "=== Final Score ===\n";
-    logFile << "Red Team: " << getScore(KART_TEAM_RED) << "\n";
-    logFile << "Blue Team: " << getScore(KART_TEAM_BLUE) << "\n\n";
-    
-    logFile << "=== Player Statistics ===\n";
-    for (unsigned int i = 0; i < race_manager->getNumberOfKarts(); i++) {
-        AbstractKart* kart = world->getKart(i);
-        
-        logFile << "\nPlayer: " << StringUtils::wideToUtf8(kart->getController()->getName()) << "\n";
-        logFile << "Kart: " << kart->getIdent() << "\n";
-        logFile << "Team: " << (getKartTeam(i) == KART_TEAM_RED ? "Red" : "Blue") << "\n";
-        int individual_goals = 0;
-	auto it = m_kart_goals.find(i);
-        if (it != m_kart_goals.end())
-	{
-		individual_goals = it->second;
-	}
-	logFile << "Goals: " << individual_goals << "\n";
-	logFile << "Average Speed: " << kart->getSpeed() << "\n";
-    }
-    
-    logFile.close();
-    Log::info("SoccerWorld", "Match log created successfully at: %s", filename.c_str());
-    
-    updateTotalStats();
-}
-
-void SoccerWorld::updateTotalStats() {
-    std::string statsFile = file_manager->getUserConfigDir() + 
-                           "/match_logs/total_statistics.txt";
-                           
-    std::ofstream totalStats(statsFile, std::ios::app);
-    
-    RaceManager* race_manager = RaceManager::get();
-    totalStats << race_manager->getTrackName().c_str() << "," <<
-        StringUtils::toString((int)StkTime::getTimeSinceEpoch()) << "," <<
-        getScore(KART_TEAM_RED) << "," <<
-        getScore(KART_TEAM_BLUE) << "," <<
-        World::getWorld()->getTime() << "\n";
-    
-    totalStats.close();
-    Log::info("SoccerWorld", "Total statistics updated successfully at: %s", statsFile.c_str());
-}
-    
