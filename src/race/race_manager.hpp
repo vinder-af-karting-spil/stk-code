@@ -589,6 +589,8 @@ public:
             default: assert(false);         return "";
         }
     }
+    static bool getMinorModeFromName(const std::string& name, MinorRaceModeType* out,
+            bool allow_singleplayer = true, bool allow_experimental = false);
     // ----------------------------------------------------------------------------------------
     unsigned int getNumPlayers() const 
     {
@@ -628,6 +630,8 @@ public:
         }
         return "";
     }   // getDifficultyAsString
+
+    static bool getDifficultyFromName(const std::string& name, Difficulty* out);
 
     // ----------------------------------------------------------------------------------------
     core::stringw getDifficultyName(Difficulty diff) const;

@@ -1039,7 +1039,6 @@ void World::updateWorld(int ticks)
         unpause();
         m_schedule_unpause = false;
     }
-
     // Don't update world if a menu is shown or the race is over.
     // Exceptions : - Networking (local pause doesn't affect the server or other players)
     //              - Benchmarking (a pause would mess up measurements)
@@ -1151,10 +1150,14 @@ void World::updateGraphics(float dt)
     for (int i = 0; i < kart_amount; ++i)
     {
         // Update all karts that are visible
+#ifndef SERVER_ONLY
         if (m_karts[i]->isVisible())
         {
             m_karts[i]->updateGraphics(dt);
         }
+#else
+        m_karts[i]->updateGraphics(dt);
+#endif
     }
 
     PROFILER_PUSH_CPU_MARKER("World::updateGraphics (camera)", 0x60, 0x7F, 0);

@@ -1435,7 +1435,8 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
 }   // getAllPlayerProfiles
 //-----------------------------------------------------------------------------
 std::vector<std::shared_ptr<NetworkPlayerProfile> >
-    STKHost::getPlayerProfilesOfTeam(const KartTeam team) const
+    STKHost::getPlayerProfilesOfTeam(const KartTeam team,
+            const bool onlyCanPlay) const
 {
     std::vector<std::shared_ptr<NetworkPlayerProfile> > p;
     std::unique_lock<std::mutex> lock(m_peers_mutex);
@@ -1445,9 +1446,16 @@ std::vector<std::shared_ptr<NetworkPlayerProfile> >
             continue;
         if (ServerConfig::m_ai_handling && peer.second->isAIPeer())
             continue;
+        if (onlyCanPlay && (peer.second->isSpectator() ||
+                    peer.second->alwaysSpectate()))
+            continue;
         for (auto& profile : peer.second->getPlayerProfiles())
         {
             if (profile->getTeam() != team)
+                continue;
+
+            if (onlyCanPlay && (profile->getPermissionLevel() < ServerLobby::PERM_PLAYER ||
+                        profile->hasRestriction(PRF_NOGAME)))
                 continue;
 
             p.push_back(profile);
@@ -1475,6 +1483,10 @@ void STKHost::getTeamLists(
         for (auto& profile : peer.second->getPlayerProfiles())
         {
             if (profile->getTeam() == KART_TEAM_NONE)
+                continue;
+
+            if (onlyCanPlay && (profile->getPermissionLevel() < ServerLobby::PERM_PLAYER ||
+                        profile->hasRestriction(PRF_NOGAME)))
                 continue;
 
             if (profile->getTeam() == KART_TEAM_BLUE)

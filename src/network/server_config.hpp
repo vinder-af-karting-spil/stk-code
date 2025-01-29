@@ -256,10 +256,13 @@ namespace ServerConfig
 
     SERVER_CFG_PREFIX BoolServerConfigParam  m_soccer_log
         SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "soccer-log","Soccer Log (true or false.)"));
-    
+
     SERVER_CFG_PREFIX StringServerConfigParam m_soccer_log_path
         SERVER_CFG_DEFAULT(StringServerConfigParam("soccer_log.txt", "soccer-log-path", "Directory where the soccer log should be written to with / at the end."));
     
+    SERVER_CFG_PREFIX StringServerConfigParam m_live_soccer_log_path
+        SERVER_CFG_DEFAULT(StringServerConfigParam("soccer_match.log", "live-soccer-log-path", "File path to the live soccer log."));
+
     SERVER_CFG_PREFIX BoolServerConfigParam m_wan_server
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "wan-server",
         "Enable wan server, which requires you to have an stk-addons account "
@@ -330,6 +333,22 @@ namespace ServerConfig
         SERVER_CFG_DEFAULT(BoolServerConfigParam(true, "track-voting",
         "Allow players to vote for which track to play. If this value is set "
         "to false, the server will randomly pick the next track to play."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_command_track_mode
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "command-track-mode",
+        "In order to play the next game, the player(s) need to use /settrack "
+        "command, in which case the track voting screen is skipped "
+        "(it will override track-voting parameter above). This will also "
+        "lower the permission level for settrack command to PLAYER, plus "
+        "the player being able to play the game (not being queued)."));
+
+    SERVER_CFG_PREFIX BoolServerConfigParam m_command_kart_mode
+        SERVER_CFG_DEFAULT(BoolServerConfigParam(false, "command-kart-mode",
+        "In order to play the next game, the player(s) need to use /setkart "
+        "command. "
+        "This will also "
+        "lower the permission level for setkart command to PLAYER, plus "
+        "the player being able to play the game (not being queued)."));
 
     SERVER_CFG_PREFIX FloatServerConfigParam m_voting_timeout
         SERVER_CFG_DEFAULT(FloatServerConfigParam(30.0f, "voting-timeout",
@@ -714,6 +733,11 @@ namespace ServerConfig
     // ------------------------------------------------------------------------
     std::pair<RaceManager::MinorRaceModeType, RaceManager::MajorRaceModeType>
         getLocalGameMode(int mode);
+    // ------------------------------------------------------------------------
+    bool getLocalGameModeFromName(const std::string& name,
+            int* out,
+            bool allow_gp = true,
+            bool allow_singleplayer = true);
     // ------------------------------------------------------------------------
     core::stringw getModeName(unsigned id);
     // ------------------------------------------------------------------------

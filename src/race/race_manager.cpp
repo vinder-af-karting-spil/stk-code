@@ -1056,7 +1056,6 @@ void RaceManager::exitRace(bool delete_world)
     m_track_number = 0;
 
     RichPresenceNS::RichPresence::get()->update(true);
-
     GlobalLog::closeLog(GlobalLogTypes::POS_LOG);
 
 }   // exitRace
@@ -1375,6 +1374,87 @@ void RaceManager::scheduleBenchmark()
 {
     m_scheduled_benchmark = true;
 }   // scheduleBenchmark
+
+//---------------------------------------------------------------------------------------------
+bool RaceManager::getMinorModeFromName(const std::string& name, MinorRaceModeType* out,
+        const bool allow_singleplayer, const bool allow_experimental)
+{
+    if (name == "normal" || name == "race" || name == "normal-race")
+    {
+        *out = MINOR_MODE_NORMAL_RACE;
+        return true;
+    }
+    if (name == "timed" || name == "time" || name == "time-trial")
+    {
+        *out = MINOR_MODE_TIME_TRIAL;
+        return true;
+    }
+    if (allow_singleplayer && (name == "follow-the-leader" || name == "ftl"))
+    {
+        *out = MINOR_MODE_FOLLOW_LEADER;
+        return true;
+    }
+    if (allow_singleplayer && (name == "three-strikes-battle" ||
+                               name == "3-strikes-battle" ||
+                               name == "tsb" ||
+                               name == "3sb"))
+    {
+        *out = MINOR_MODE_3_STRIKES;
+        return true;
+    }
+    if (name == "free-for-all" || name == "ffa")
+    {
+        *out = MINOR_MODE_FREE_FOR_ALL;
+        return true;
+    }
+    if (name == "capture-the-flag" || name == "ctf")
+    {
+        *out = MINOR_MODE_CAPTURE_THE_FLAG;
+        return true;
+    }
+    if (allow_singleplayer && (name == "egg-hunt" ||
+                               name == "easter-egg-hunt" ||
+                               name == "eeh"))
+    {
+        *out = MINOR_MODE_EASTER_EGG;
+        return true;
+    }
+    if (name == "soccer")
+    {
+        *out = MINOR_MODE_SOCCER;
+        return true;
+    }
+
+    return false;
+}
+
+//---------------------------------------------------------------------------------------------
+bool RaceManager::getDifficultyFromName(const std::string& name, Difficulty* out)
+{
+    if (name == "novice" || name == "easy" || name == "noob" || name == "noob-difficulty")
+    {
+        *out = DIFFICULTY_EASY;
+        return true;
+    }
+    if (name == "intermediate" || name == "medium")
+    {
+        *out = DIFFICULTY_MEDIUM;
+        return true;
+    }
+    if (name == "expert" || name == "hard")
+    {
+        *out = DIFFICULTY_HARD;
+        return true;
+    }
+    if (name == "supertux" || name == "supertuxkart" || name == "best")
+    {
+        *out = DIFFICULTY_BEST;
+        return true;
+    }
+
+    return false;
+}
+
 //---------------------------------------------------------------------------------------------
 KartTeam RaceManager::getPoleTeam(NetworkPlayerProfile* profile) const
 {

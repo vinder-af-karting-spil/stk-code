@@ -58,7 +58,7 @@ namespace Online
 
 class ServerLobby : public LobbyProtocol
 {
-public:
+public:	
     typedef std::map<STKPeer*,
                       std::weak_ptr<NetworkPlayerProfile>>
         PoleVoterMap;
@@ -114,6 +114,15 @@ public:
                                  // Specified in the configuration file.
     };
 private:
+    bool m_random_karts_enabled;
+    void assignRandomKarts();
+    std::string m_replay_dir;
+    bool m_replay_requested = false;    
+    std::string getTimeStamp();    
+    std::string exec_python_script();    
+    std::string currentTrackName;
+    std::string currentPlayerName;
+    std::string currentRecordTime;
     struct KeyData
     {
         std::string m_aes_key;
@@ -438,7 +447,7 @@ public:
     virtual void asynchronousUpdate() OVERRIDE;
 
     void updatePlayerList(bool update_when_reset_server = false);
-    void updateServerOwner();
+    void updateServerOwner(std::shared_ptr<STKPeer> owner = nullptr);
     void updateTracksForMode();
     bool checkPeersReady(bool ignore_ai_peer) const;
     bool checkPeersCanPlay(bool ignore_ai_peer) const;
@@ -608,6 +617,8 @@ public:
 
     void onTournamentGameEnded();
     void updateTournamentTeams(const std::string& team_red, const std::string& team_blue);
+    bool isReplayRequested() const                                      { return m_replay_requested; }
+    void setReplayRequested(const bool value)                           { m_replay_requested = value; }
 };   // class ServerLobby
 
 #endif // SERVER_LOBBY_HPP

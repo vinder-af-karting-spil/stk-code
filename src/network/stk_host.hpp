@@ -275,7 +275,8 @@ public:
                                                   getAllPlayerProfiles() const;
     // ------------------------------------------------------------------------
     std::vector<std::shared_ptr<NetworkPlayerProfile> >
-                                  getPlayerProfilesOfTeam(KartTeam team) const;
+                                  getPlayerProfilesOfTeam(KartTeam team,
+                                          bool onlyCanPlay = true) const;
     // ------------------------------------------------------------------------
     /** Returns two vectors with player profiles for blue and red team. */
     void getTeamLists(

@@ -253,6 +253,61 @@ std::pair<RaceManager::MinorRaceModeType, RaceManager::MajorRaceModeType>
 }   // getLocalGameModeFromConfig
 
 // ----------------------------------------------------------------------------
+bool getLocalGameModeFromName(const std::string& name,
+        int* out,
+        const bool allow_gp,
+        const bool allow_singleplayer)
+{
+    if (allow_gp && name == "normal-gp")
+    {
+        *out = 0;
+        return true;
+    }
+    if (allow_gp && name == "time-trial-gp")
+    {
+        *out = 1;
+        return true;
+    }
+    if (allow_singleplayer && (name == "follow-the-leader-gp"))
+    {
+        *out = 2;
+        return true;
+    }
+    if (name == "standard" || name == "normal" || name == "race" || name == "normal-race")
+    {
+        *out = 3;
+        return true;
+    }
+    if (name == "timed" || name == "time" || name == "time-trial")
+    {
+        *out = 4;
+        return true;
+    }
+    if (allow_singleplayer && (name == "follow-the-leader" || name == "ftl"))
+    {
+        *out = 5;
+        return true;
+    }
+    if (name == "free-for-all" || name == "ffa")
+    {
+        *out = 7;
+        return true;
+    }
+    if (name == "capture-the-flag" || name == "ctf")
+    {
+        *out = 8;
+        return true;
+    }
+    if (name == "soccer")
+    {
+        *out = 6;
+        return true;
+    }
+
+    return false;
+}
+
+// ----------------------------------------------------------------------------
 core::stringw getModeName(unsigned id)
 {
     switch(id)

@@ -1337,6 +1337,131 @@ void mainLoop(STKHost* host)
             std::cout << msg << std::endl;
 
         }
+        else if (str == "replay" && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            const bool state = str2 == "on";
+            std::string msg;
+
+            sl->setReplayRequested(state);
+            RaceManager::get()->setRecordRace(state);
+            if (state == sl->isReplayRequested())
+            {
+                std::cout << "replay has already been enabled or disabled." << std::endl;
+                continue;
+            }
+            else if (state)
+                msg = "Next race will be recorded into the new replay.";
+            else
+                msg = "Recording of the new replay is cancelled.";
+            sl->sendStringToAllPeers(msg);
+            std::cout << msg << std::endl;
+        }
+        else if (str == "setowner" && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (ServerConfig::m_owner_less)
+            {
+                std::cout << "Cannot set owner for an ownerless server." << std::endl;
+                continue;
+            }
+
+            if (ServerConfig::m_ranked)
+                continue;
+
+            std::shared_ptr<STKPeer> peer = STKHost::get()->findPeerByName(
+                    StringUtils::utf8ToWide(str2), true, true);
+            if (!peer)
+            {
+                std::cout << "Peer is not online." << std::endl;
+                continue;
+            }
+
+            // update the owner and inform
+            sl->updateServerOwner(peer);
+
+            std::cout << "Owner has been changed." << std::endl;
+        }
+        else if (str == "setmode" && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            int mode;
+            int goal_target = -1;
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (ServerConfig::m_ranked)
+                continue;
+
+            std::string str3;
+            ss >> str3;
+            if (!ss.bad() && !ss.fail())
+            {
+                goal_target = str3 == "on" ? 1 : 0;
+            }
+
+            if (!ServerConfig::getLocalGameModeFromName(str2, &mode, false))
+            {
+                std::cout << "Unknown mode. Please specify one of the following: "
+                       "standard, time-trial, ffa, soccer, ctf" << std::endl;
+                continue;
+            }
+
+            sl->updateServerConfiguration(-1, mode, goal_target);
+
+            std::cout << "Changed mode to " << RaceManager::get()->getMinorModeName() << 
+                "." << std::endl;
+        }
+        else if ((str == "setdifficulty" || str == "setdiff") && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            RaceManager::Difficulty diff;
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (ServerConfig::m_ranked)
+                continue;
+
+            if (!RaceManager::getDifficultyFromName(str2, &diff))
+            {
+                std::cout << "Unknown difficulty. Please specify one of the following: "
+                       "standard, time-trial, ffa, soccer, ctf" << std::endl;
+                continue;
+            }
+
+            sl->updateServerConfiguration(diff, -1, -1);
+
+            std::cout << "Changed difficulty to " << 
+                RaceManager::get()->getDifficultyAsString(RaceManager::get()->getDifficulty()) << 
+                "." << std::endl;
+        }
+        else if (str == "setgoaltarget" && !str2.empty() &&
+                NetworkConfig::get()->isServer())
+        {
+            auto sl = LobbyProtocol::get<ServerLobby>();
+            if (!sl)
+                continue;
+
+            if (ServerConfig::m_ranked)
+                continue;
+            
+            const bool state = str2 == "on";
+
+            sl->updateServerConfiguration(-1, -1, state ? 1 : 0);
+
+            std::cout << "Changed goal target to " << (state ? "on" : "off") << 
+                "." << std::endl;
+        }
         else
         {
             std::cout << "Unknown command: " << str << std::endl;

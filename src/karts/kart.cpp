@@ -24,6 +24,7 @@
 #include "challenges/challenge_status.hpp"
 #include "challenges/unlock_manager.hpp"
 #include "config/player_manager.hpp"
+#include "config/stk_config.hpp"
 #include "config/user_config.hpp"
 #include "font/bold_face.hpp"
 #include "font/font_manager.hpp"
@@ -2641,6 +2642,13 @@ void Kart::updatePhysics(int ticks)
                 /*fade_out_time*/stk_config->time2Ticks(5.0f));
         }
     }
+    /*
+    else if (World::getWorld()->getTicksSinceStart() ==
+            stk_config->time2Ticks(1.0f) && m_startup_boost > 0.0f)
+    {
+        m_kart_gfx->setCreationRateAbsolute(KartGFX::KGFX_ZIPPER, 0.0f);
+    }
+    */
     if (m_bounce_back_ticks > 0)
         m_bounce_back_ticks -= ticks;
 
@@ -3282,28 +3290,31 @@ void Kart::updateGraphics(float dt)
         }
     }
 
-    if (m_kart_animation)
-        m_kart_animation->updateGraphics(dt);
-
-    for (int i = 0; i < EMITTER_COUNT; i++)
-        m_emitters[i]->setPosition(getXYZ());
-    if (m_skid_sound)
-        m_skid_sound->setPosition(getSmoothedXYZ());
-    m_nitro_sound->setPosition(getSmoothedXYZ());
-
-    m_attachment->updateGraphics(dt);
-
-    // update star effect (call will do nothing if stars are not activated)
-    // Remove it if no invulnerability
-    if (m_stars_effect)
+    if (isVisible())
     {
-        if (!isInvulnerable() && m_stars_effect->isEnabled())
+        if (m_kart_animation)
+            m_kart_animation->updateGraphics(dt);
+
+        for (int i = 0; i < EMITTER_COUNT; i++)
+            m_emitters[i]->setPosition(getXYZ());
+        if (m_skid_sound)
+            m_skid_sound->setPosition(getSmoothedXYZ());
+        m_nitro_sound->setPosition(getSmoothedXYZ());
+
+        m_attachment->updateGraphics(dt);
+
+        // update star effect (call will do nothing if stars are not activated)
+        // Remove it if no invulnerability
+        if (m_stars_effect)
         {
-            m_stars_effect->reset();
-            m_stars_effect->update(1);
+            if (!isInvulnerable() && m_stars_effect->isEnabled())
+            {
+                m_stars_effect->reset();
+                m_stars_effect->update(1);
+            }
+            else
+                m_stars_effect->update(dt);
         }
-        else
-            m_stars_effect->update(dt);
     }
 
     // Update particle effects (creation rate, and emitter size
