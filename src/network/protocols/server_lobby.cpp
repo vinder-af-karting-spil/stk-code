@@ -950,9 +950,6 @@ void ServerLobby::handleChat(Event* event)
 
             return;
         }
-        // evil chat log
-        Log::info("ServerLobby", "[CHAT] %s", StringUtils::wideToUtf8(message).c_str());
-
         NetworkString* chat = getNetworkString();
         chat->setSynchronous(true);
         chat->addUInt8(LE_CHAT).encodeString16(message);
@@ -2077,7 +2074,11 @@ void ServerLobby::asynchronousUpdate()
             // If player chose random / hasn't chose any kart
             for (unsigned i = 0; i < players.size(); i++)
             {
-                if (players[i]->getKartName().empty())
+                if (!players[i]->getForcedKart().empty())
+                {
+                    players[i]->setKartName(players[i]->getForcedKart());
+                }
+                else if (players[i]->getKartName().empty())
                 {
                     RandomGenerator rg;
                     std::set<std::string>::iterator it =
@@ -3087,11 +3088,23 @@ void ServerLobby::startSelection(const Event *event)
                 std::string msg = "You need to install the following addons to play:\n";
                 for (auto track : m_must_have_tracks)
                 {
-	            real_track = "addon_" + track;
+		    bool official = false;
+		    for (auto t : m_official_kts.second)
+		        if (t == track) official=true;
+		    real_track = track;
+		    if (!(official) && track!="addon_minigolf")
+	                real_track = "addon_" + track;
                     if (kt.second.find(real_track) == kt.second.end())
                     {
                         msg += "/installaddon ";
-                        msg += track;
+			if (track!="addon_minigolf")
+			{
+			    msg += track;
+			}
+			else
+			{
+			    msg +="minigolf";
+			}
                         msg += "\n";
 	                sendStringToPeer(msg, peer);
 	            }
@@ -3320,7 +3333,13 @@ void ServerLobby::startSelection(const Event *event)
 	    found = false;
 	    for (auto t2:m_only_played_tracks)
 	    {
-	        real_track = "addon_" + t2;
+                bool official = false;
+                for (auto t : m_official_kts.second)
+                    if (t == track) official=true;
+                real_track = t2;
+                if (!(official) && real_track!="addon_minigolf")
+                    real_track = "addon_" + t2;
+
 	        if (track==real_track) found = true;
 	    }
 	    if (not found) m_available_kts.second.erase(track);
@@ -3502,6 +3521,10 @@ skip_default_vote_randomizing:
             if (!forced_kart.empty())
                 hasEnforcedKart = true;
         }
+        else if (hasEnforcedKart)
+        {
+            forced_kart = profiles[0]->getForcedKart();
+        }
         // INSERT YOUR SETKART HERE
         NetworkString *ns = getNetworkString(1);
         // Start selection - must be synchronous since the receiver pushes
@@ -3520,7 +3543,7 @@ skip_default_vote_randomizing:
             ns->addUInt16((uint16_t)all_k.size());
         ns->addUInt16((uint16_t)all_t.size());
 
-        if (hasEnforcedKart)
+        if (!forced_kart.empty())
         {
             ns->encodeString(forced_kart);
         }
@@ -7193,9 +7216,17 @@ void ServerLobby::handleServerCommand(Event* event,
         }
         if (StringUtils::toLowerCase(argv[1]) == "server")
         {
-            Log::info("ServerLobby", "[DM] %s: %s",
-                    StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str());
-            return;
+		std::string message;
+		for (unsigned int i = 2; i < argv.size (); i++)
+		{
+			message += argv[i];
+			if (i < argv.size() - 1)
+				message += " ";
+		}
+		Log::info("ServerLobby", "[DM] %s: %s",
+				StringUtils::wideToUtf8(peer->getPlayerProfiles()[0]->getName()).c_str(),
+				message.c_str());
+		return;
         }
         NetworkString* senderMsg = getNetworkString();
         senderMsg->addUInt8(LE_CHAT);
@@ -7943,6 +7974,24 @@ void ServerLobby::handleServerCommand(Event* event,
                         re.m_win_rate,
                         re.m_elo
                         );
+	        if (re.m_elo == 0)
+		{
+                    msg = StringUtils::insertValues(
+                        "Ranking data of %s:\n"
+                        "Rank: %u,\n"
+                        "Played games: %f\n"
+                        "Average player number: %f\n"
+                        "Win rate: %f\n"
+                        "ELO: %d",
+                        re.m_name,
+                        re.m_rank,
+                        re.m_played_games,
+                        re.m_avg_team_size,
+                        re.m_goals_per_game,
+                        re.m_win_rate
+                        );
+		}
+
             sendStringToPeer(msg, peer);
             return;
         }
@@ -9994,16 +10043,19 @@ bool ServerLobby::canRace(STKPeer* peer) const
       }
       if (has_addon == false) return false;
     }
+    std::string real_track;
     if (m_must_have_tracks.size()!=0)
     {
-	std::string real_track;
         for (auto track : m_must_have_tracks)
-        {
-	    real_track = "addon_" + track;
+	{
+            bool official = false;
+            for (auto t : m_official_kts.second)
+                if (t == track) official=true;
+            real_track = track;
+            if (!(official) && real_track!="addon_minigolf")
+                real_track = "addon_" + track;
             if (kt.second.find(real_track) == kt.second.end())
-            {
                 return false;
-	    }
         }
     }
     //if (ServerConfig::m_supertournament)
@@ -10641,7 +10693,7 @@ std::tuple<uint32_t, std::string> ServerLobby::loadRestrictionsForOID(const uint
     Log::verbose("ServerLobby", "%u restrictions = %u", online_id, __target.lvl);
     return std::make_tuple(__target.lvl, __target.kart_id);
 #else
-    return 0;
+    return std::make_tuple(0,"0");
 #endif
 }
 std::tuple<uint32_t, std::string> ServerLobby::loadRestrictionsForUsername(const core::stringw& name)
@@ -10695,7 +10747,7 @@ std::tuple<uint32_t, std::string> ServerLobby::loadRestrictionsForUsername(const
     sqlite3_finalize(stmt);
     return default_;
 #else
-    return 0;
+    return std::make_tuple(0,"0");
 #endif
 }
 void ServerLobby::writeRestrictionsForOID(const uint32_t online_id, const uint32_t flags)
@@ -11255,6 +11307,7 @@ const std::string ServerLobby::formatBanList(unsigned int page,
 }
 const std::string ServerLobby::formatBanInfo(const std::string& name)
 {
+#ifdef ENABLE_SQLITE3
     if (!m_db || !m_online_id_ban_table_exists || name.empty())
         return "";
 
@@ -11309,6 +11362,9 @@ const std::string ServerLobby::formatBanInfo(const std::string& name)
         return "";
     }
     sqlite3_finalize(stmt);
+#else
+    return "";
+#endif
 }
 int ServerLobby::loadPermissionLevelForUsername(const core::stringw& name)
 {
@@ -11776,6 +11832,9 @@ bool ServerLobby::forceSetTrack(std::string track_id,
                 {
                     if (ServerConfig::m_supertournament)
                         laps = fv.m_num_laps;
+                    else
+                     // apply default laps
+                        laps = t->getDefaultNumberOfLaps();
                 }
                 m_set_field = track_id;
                 m_set_laps = laps;
